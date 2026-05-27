@@ -8,5 +8,12 @@
   "instructions": [
     "AGENTS.md",
     "README.md"
-  ]
+  ],
+  "mcp": {
+    "supabase": {
+      "type": "remote",
+      "url": "https://mcp.supabase.com/mcp?project_ref=bdyhakpmxegoipbmbtjb",
+      "enabled": true
+    }
+  }
 }
