@@ -43,3 +43,4 @@ coverage/
 .opencode/
 .opencode-bin/
 .opencode-runtime/
+.vercel/
