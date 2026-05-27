@@ -1233,11 +1233,13 @@ No exponer datos de leads en páginas públicas.
 
 Crear `.env.example` con nombres como:
 
+> Nota del proyecto (2026-05-26): por decisión explícita del usuario, AC Travel usa el modelo moderno de llaves Supabase y no el naming legacy del prompt original.
+
 ```env
 NEXT_PUBLIC_SITE_URL=
 NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+SUPABASE_SECRET_KEY=
 
 NEXT_PUBLIC_WHATSAPP_PHONE=529988453455
 

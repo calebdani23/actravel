@@ -1,0 +1,301 @@
+# Decisiones técnicas y de producto
+
+## 2026-05-27
+
+### Decisión
+
+Declarar el MVP listo para lanzamiento después de verificar el sync live de Google Sheets con una cotización real.
+
+### Contexto
+
+La verificación final local pasa (`lint`, `build`, pruebas enfocadas y smoke checks básicos). Después de habilitar Google Sheets API en el proyecto configurado, una cotización real persistió en Supabase y registró `sheet_sync_logs.status = success` con fila `Leads!A1:S1`.
+
+### Alternativas consideradas
+
+- Marcar Google Sheets como exitoso por tener tests locales.
+- Revertir o desactivar la integración de Sheets.
+- Marcar el blocker externo como resuelto después de ver evidencia live en Supabase y Google Sheets.
+
+### Motivo
+
+No se debe inventar éxito externo; el estado se actualiza solo después de confirmar una fila real escrita y el log exitoso. Supabase sigue siendo la fuente de verdad y el formulario conserva leads aunque una integración externa falle en el futuro.
+
+### Impacto
+
+El lanzamiento queda en estado `ready for MVP launch`; ya no hay blocker externo de Google Sheets API pendiente.
+
+## 2026-05-27
+
+### Decisión
+
+Restringir la lectura de objetos privados de Storage por bucket y rol, sin ampliar el alcance a upload completo en Bloque 6.
+
+### Contexto
+
+La política previa `staff read private storage objects` permitía que ciertos roles autenticados leyeran objetos de cualquier bucket por no acotar el predicado al bucket privado esperado. El panel de pagos/documentos solo necesita metadata y URLs firmadas para `payment-proofs` y `documents`.
+
+### Alternativas consideradas
+
+- Mantener la política amplia y depender solo de la UI.
+- Construir flujos completos de carga, path generation y validación de archivos en este pase.
+
+### Motivo
+
+La corrección mínima segura es limitar lectura a `catalog-media` para staff autenticado y a `documents`/`payment-proofs` solo para roles operativos/financieros/admin. El upload completo corresponde a una mejora posterior y no es necesario para cerrar el MVP CRUD del panel.
+
+### Impacto
+
+Roles no autorizados ya no pueden leer objetos de buckets privados arbitrarios por esta política. Bloque 6 conserva gestión de metadata y signed URLs para objetos existentes, con carga completa documentada como diferida.
+
+## 2026-05-27
+
+### Decisión
+
+Mantener Bloque 5 como persistencia CRM server-only y logs de frontera para email/Google Sheets, sin envío ni sincronización reales hasta contar con credenciales e integraciones dedicadas.
+
+### Contexto
+
+El formulario de cotización ya crea `contacts`, `leads`, `quote_requests` y `lead_events`. El prompt maestro menciona emails y Google Sheets, pero los bloques dedicados a proveedor de email y sync real siguen siendo posteriores. Las variables oficiales para esta frontera son `EMAIL_ADMIN`, `GOOGLE_SHEETS_CLIENT_EMAIL`, `GOOGLE_SHEETS_SPREADSHEET_ID` y `GOOGLE_SHEETS_LEADS_TAB`.
+
+### Alternativas consideradas
+
+- Inventar credenciales o nombres alternos para completar delivery/sync.
+- Agregar una integración parcial de proveedor antes de Bloques 8–9.
+
+### Motivo
+
+Evita falsos positivos operativos y mantiene una frontera segura: Supabase recibe el lead, y los logs dejan trazabilidad de la intención de notificar/sincronizar hasta que existan credenciales reales y se implemente el proveedor correspondiente.
+
+### Impacto
+
+Con credenciales ausentes, las filas de log quedan como `skipped` con razón explícita. Con credenciales presentes, Bloque 5 puede marcar intención `queued`, pero la entrega/sync reales siguen bloqueados por la implementación de Bloques 8–9.
+
+## 2026-05-26
+
+### Decisión
+
+Usar únicamente los nombres modernos de llaves Supabase: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` para cliente/SSR y `SUPABASE_SECRET_KEY` para código privilegiado server-only.
+
+### Contexto
+
+El prompt maestro histórico mencionaba los nombres legacy de Supabase, pero el usuario pidió explícitamente no usarlos; además confirmó que las variables modernas ya están configuradas localmente junto con las credenciales bootstrap.
+
+### Alternativas consideradas
+
+- Mantener compatibilidad con ambos pares de variables.
+- Usar fallback silencioso a los nombres legacy.
+
+### Motivo
+
+Aceptar ambos nombres reintroduciría el modelo legacy que el usuario quiere evitar. La app, scripts y docs deben fallar claramente si faltan las variables modernas.
+
+### Impacto
+
+Los clientes browser/server usan `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`; bootstrap/admin usa `SUPABASE_SECRET_KEY`. La documentación registra esta desviación deliberada respecto del prompt maestro.
+
+## 2026-05-26
+
+### Decisión
+
+Restringir los helpers RLS (`has_role`, `is_admin`, `is_assigned_lead`) para que no sean ejecutables por `anon`, pero sí por `authenticated` y `service_role`.
+
+### Contexto
+
+La corrección de seguridad posterior al Bloque 4 revocó `execute` desde `public`, pero solo volvió a concederlo a `service_role`. Eso rompía las políticas que evalúan roles para usuarios autenticados.
+
+### Alternativas consideradas
+
+- Volver a conceder ejecución a `public`.
+- Cambiar las políticas para no usar helpers.
+
+### Motivo
+
+Conceder solo a `authenticated` mantiene cerrado el acceso anónimo directo y restaura el comportamiento esperado de las políticas role-based.
+
+### Impacto
+
+Las políticas RLS de staff pueden evaluar roles nuevamente. Los helpers siguen siendo `security definer` con `search_path = public` y no son ejecutables por `anon`.
+
+## 2026-05-26
+
+### Decisión
+
+No crear el usuario administrador inicial sin email, password y service-role disponibles en configuración segura.
+
+### Contexto
+
+El bootstrap existe en `db/seed/bootstrap-admin.ts`, pero las credenciales operativas son secretos y no deben inventarse ni guardarse en git.
+
+### Alternativas consideradas
+
+- Generar una contraseña temporal inventada.
+- Insertar registros directamente en `auth.users` por SQL.
+
+### Motivo
+
+Crear credenciales irreversibles o manipular tablas internas de Auth directamente sería inseguro. El flujo seguro es ejecutar `npm run db:bootstrap-admin` desde un entorno con `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD` reales.
+
+### Impacto
+
+El administrador inicial queda pendiente hasta que el usuario proporcione esos valores fuera de git; no bloquea la fundación de esquema/RLS.
+
+## 2026-05-26
+
+### Decisión
+
+Crear la base como una aplicación Next.js con App Router en la raíz del repositorio, usando npm como package manager.
+
+### Contexto
+
+El prompt maestro solicita Next.js, TypeScript, Tailwind CSS, shadcn/ui y una arquitectura preparada para Supabase. El repositorio no tenía aplicación existente ni package manager configurado.
+
+### Alternativas consideradas
+
+- Crear la app en un subdirectorio.
+- Usar pnpm/yarn.
+
+### Motivo
+
+El usuario indicó usar npm si no había package manager especificado. La estructura recomendada del prompt maestro asume `app/`, `components/`, `lib/` y `db/` en la raíz.
+
+### Impacto
+
+Los siguientes bloques pueden continuar directamente sobre App Router y la estructura sugerida.
+
+## 2026-05-26
+
+### Decisión
+
+Configurar shadcn/ui manualmente con estilo `new-york`, base `neutral`, React Server Components y CSS variables.
+
+### Contexto
+
+Bloque 1 exige instalar/configurar shadcn/ui, pero solo requiere una base limpia y placeholders mínimos.
+
+### Alternativas consideradas
+
+- Ejecutar el CLI de shadcn para agregar muchos componentes iniciales.
+- No agregar componentes UI hasta Bloque 2.
+
+### Motivo
+
+La configuración manual mantiene el alcance pequeño, deja `components.json` listo y agrega solo `Button`/`Card` necesarios para placeholders.
+
+### Impacto
+
+Bloques posteriores pueden usar `npx shadcn@latest add ...` o continuar agregando componentes compatibles con la configuración existente.
+
+## 2026-05-26
+
+### Decisión
+
+Agregar scaffolding de Supabase (`browser`, `server` y `service role`) y un login/guard admin mínimo sin conectar a un proyecto real ni crear migraciones todavía.
+
+### Contexto
+
+Bloque 1 pide conectar/preparar Supabase Auth, pero el Scope Guard prohíbe implementar lógica de fases posteriores. La revisión pidió que el setup pudiera afirmar honestamente una base de Auth para usuarios internos.
+
+### Alternativas consideradas
+
+- Crear migraciones y políticas RLS en Bloque 1.
+- Implementar producto completo de login admin en Bloque 1.
+
+### Motivo
+
+Las migraciones, roles y RLS están asignadas al Bloque 4. El setup actual evita secretos, prepara helpers reutilizables y ofrece un formulario mínimo que usa `signInWithPassword` cuando las variables públicas existen, con fallback si no están configuradas.
+
+### Impacto
+
+La app compila sin requerir variables reales. `/admin/login` y `/admin/dashboard` muestran mensajes claros sin Supabase configurado; con variables reales, el login base puede crear sesión para usuarios existentes.
+
+## 2026-05-26
+
+### Decisión
+
+Resolver las rutas públicas faltantes con un catch-all placeholder validado por locale/segmento, usando los segmentos ingleses del prompt maestro.
+
+### Contexto
+
+La navegación y el prompt maestro referencian rutas públicas que aún no tenían páginas reales. Bloque 1 no debe construir contenido de negocio completo.
+
+### Alternativas consideradas
+
+- Crear una carpeta y página por cada ruta pública.
+- Quitar enlaces hasta bloques posteriores.
+
+### Motivo
+
+Un placeholder validado evita enlaces rotos, mantiene la diferencia correcta entre segmentos en español e inglés y limita el alcance a scaffolding.
+
+### Impacto
+
+Las páginas públicas existen como placeholders obvios; bloques posteriores podrán reemplazarlas por páginas específicas.
+
+## 2026-05-26
+
+### Decisión
+
+Mantener `app/layout.tsx` con `lang="es"` inicial y ajustar `document.documentElement.lang` en cliente para `/en`.
+
+### Contexto
+
+Next.js requiere que `<html>` viva en el root layout. Reestructurar layouts para resolver el atributo inicial perfecto sería desproporcionado para Bloque 1.
+
+### Alternativas consideradas
+
+- Reestructurar toda la app para renderizar `<html>` por locale.
+- Dejar `/en` permanentemente con `lang="es"`.
+
+### Motivo
+
+El ajuste cliente es la mejora mínima correctaable dentro del scope de setup y documenta la limitación de SSR inicial.
+
+### Impacto
+
+Después de hidratar, `/en` queda con `document.documentElement.lang = "en"`; una solución SSR completa queda para un bloque futuro si se prioriza SEO/accesibilidad avanzada.
+
+## 2026-05-26
+
+### Decisión
+
+Mantener los CTAs públicos de WhatsApp como enlaces directos `wa.me` durante Bloque 2 y dejar el tracking para el bloque dedicado.
+
+### Contexto
+
+El prompt maestro describe una ruta intermedia de tracking, pero el alcance de Bloque 2 pide identidad visual y scaffolding público, con preferencia explícita por links directos `wa.me` por ahora.
+
+### Alternativas consideradas
+
+- Conectar todos los CTAs al endpoint placeholder `/api/whatsapp-click`.
+- Implementar tracking completo antes del bloque correspondiente.
+
+### Motivo
+
+Evita adelantar lógica de analytics/leads y mantiene el foco en conversión visual móvil-first.
+
+### Impacto
+
+Navbar, footer, hero y botón flotante abren WhatsApp directamente. El Bloque 7 deberá reemplazar o envolver estos CTAs con tracking.
+
+## 2026-05-26
+
+### Decisión
+
+Implementar moneda como preferencia visual cliente con `localStorage`, sin conversión ni precios.
+
+### Contexto
+
+Bloque 2 solicita `CurrencySwitch`, pero las reglas de precios y promociones pertenecen a bloques posteriores y no debe implementarse conversión automática.
+
+### Alternativas consideradas
+
+- Guardar la preferencia en cookie desde servidor.
+- Conectar moneda a datos de promociones desde Supabase.
+
+### Motivo
+
+`localStorage` resuelve el scaffolding visual sin afectar SSR, base de datos ni contenido de negocio.
+
+### Impacto
+
+El switch recuerda MXN/USD en el navegador; Bloque 3+ podrá consumir esa preferencia cuando existan precios y formularios.

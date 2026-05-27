@@ -5,6 +5,7 @@
 
 # Node / Vite
 node_modules/
+.next/
 dist/
 build/
 .vite/

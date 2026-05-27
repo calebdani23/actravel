@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand-orange: var(--ac-orange);
+  --color-brand-red: var(--ac-red);
+  --color-brand-blush: var(--ac-light-bg);
+  --color-brand-blue: var(--ac-blue);
+  --color-brand-sand: var(--ac-sand);
+  --color-brand-ink: var(--ac-ink);
+  --font-sans: var(--font-geist-sans);
+}
+
+:root {
+  --ac-orange: #ee592a;
+  --ac-red: #eb0816;
+  --ac-light-bg: #f8eef7;
+  --ac-blue: #1b8bad;
+  --ac-sand: #fff7ed;
+  --ac-ink: #211816;
+  --ac-orange-soft: #fff0e9;
+  --ac-blue-soft: #e7f7fb;
+  --ac-red-soft: #fff1f2;
+
+  --background: #fffdfb;
+  --foreground: var(--ac-ink);
+  --card: #ffffff;
+  --card-foreground: var(--ac-ink);
+  --primary: var(--ac-orange);
+  --primary-foreground: #ffffff;
+  --secondary: var(--ac-light-bg);
+  --secondary-foreground: #3f1d33;
+  --muted: #f7f2ef;
+  --muted-foreground: #746a66;
+  --accent: var(--ac-blue);
+  --accent-foreground: #ffffff;
+  --border: #eadfd9;
+  --input: #eadfd9;
+  --ring: var(--ac-orange);
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(238, 89, 42, 0.08), transparent 32rem),
+    linear-gradient(180deg, #fffdfb 0%, #ffffff 48%, #fff8f4 100%);
+  color: var(--foreground);
+  font-feature-settings: "liga" 1, "kern" 1;
+}
+
+a {
+  text-underline-offset: 4px;
+}
+
+::selection {
+  background: rgba(238, 89, 42, 0.22);
+}
+
+button,
+a {
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-duration: 180ms;
+  transition-timing-function: ease-out;
+}

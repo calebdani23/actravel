@@ -1,0 +1,67 @@
+# Progreso AC Travel Mx MVP
+
+## Estado general
+
+Bloques 1–10 completados en alcance MVP actual. Bloque 9 está implementado y verificado con una cotización real: Supabase persistió la solicitud y `sheet_sync_logs` registró sincronización live exitosa a Google Sheets. El proyecto queda en estado **ready for MVP launch** con validación local final pasada.
+
+## Completado
+
+- ✅ Confirmado que el repositorio no tenía una app Next.js existente: no había `package.json`, `app/`, `src/` ni archivos de configuración Next/Tailwind en la raíz.
+- ✅ Creado proyecto base Next.js con TypeScript, ESLint, Tailwind CSS y App Router.
+- ✅ Preparadas rutas públicas base `/es` y `/en` mediante `app/[locale]`.
+- ✅ Agregados placeholders mínimos para las rutas públicas del prompt maestro en español e inglés, incluyendo segmentos ingleses correctos como `/en/packages` y `/en/deals`.
+- ✅ Preparadas rutas admin `/admin/login` y `/admin/dashboard` con layout administrativo.
+- ✅ Configurado shadcn/ui con estilo `new-york`, `neutral`, CSS variables y componentes base `Button`/`Card`.
+- ✅ Instaladas dependencias de preparación: Supabase, React Hook Form, Zod, TanStack Table y Framer Motion.
+- ✅ Agregado scaffolding Supabase para cliente browser, server y service role sin secretos.
+- ✅ Agregado formulario admin mínimo que llama Supabase Auth si existen variables públicas y muestra fallback claro si no están configuradas.
+- ✅ Agregado guard ligero al dashboard admin: muestra mensaje/setup o pide login antes de presentar el placeholder.
+- ✅ Mejorado manejo de idioma para rutas públicas: el cliente actualiza `document.documentElement.lang` según `/es` o `/en`.
+- ✅ Creado `.env.example` con las variables del prompt maestro.
+- ✅ Creada estructura inicial de carpetas para `app`, `components`, `lib`, `db`, `public/images` y `public/brand`.
+- ✅ Creados placeholders de API para futuros bloques sin implementar lógica fuera de alcance.
+- ✅ Refinados tokens visuales de marca (`--ac-orange`, `--ac-red`, `--ac-light-bg`, `--ac-blue`) con neutros cálidos y suaves para evitar saturación.
+- ✅ Extraído el shell público en componentes modulares: `Navbar`, `Footer`, `WhatsAppCta`, `LanguageSwitch`, `CurrencySwitch` y `BrandMark`.
+- ✅ Agregado switch de idioma que conserva rutas conocidas entre español e inglés y vuelve al home localizado si no reconoce el mapeo.
+- ✅ Agregado switch de moneda cliente como preferencia visual en `localStorage`, sin conversión ni lógica de precios.
+- ✅ Integrado CTA directo `wa.me` en navbar, footer y botón flotante móvil-first, sin tracking aún.
+- ✅ Pulido visual inicial de home y placeholders sin implementar contenido de negocio completo del Bloque 3.
+- ✅ Confirmada conexión con Supabase vía MCP; el proyecto responde correctamente y el esquema `public` aún no tiene tablas creadas.
+- ✅ Implementado Bloque 3 del sitio público con páginas bilingües explícitas para home, servicios, paquetes, promociones, detalle de promoción, destinos, detalle de destino, cotizar, nosotros/about, contacto/contact y legales provisionales.
+- ✅ Centralizado contenido público estático bilingüe para poder migrarlo después a Supabase sin rehacer la UI.
+- ✅ Agregados componentes reutilizables para secciones públicas, tarjetas, bloques de confianza, vista previa de cotización y aviso legal.
+- ✅ Verificado que segmentos cruzados inválidos respondan `404`, por ejemplo `/es/services` y `/en/servicios`.
+- ✅ Implementado Bloque 4: migraciones Supabase de identidad, CRM, catálogo, operaciones, logs, storage y RLS; seed idempotente; bootstrap admin opcional; scripts de base de datos; tipos Supabase y helpers de roles.
+- ✅ Aplicadas correcciones de seguridad/rendimiento posteriores al Bloque 4: `0009_security_advisor_fixes.sql`, `0010_fk_indexes.sql`, `0011_restrict_helper_function_execute.sql` y `0012_grant_authenticated_helper_execute.sql`.
+- ✅ Corregida la regresión de RLS donde `authenticated` no podía ejecutar `has_role`, `is_admin` ni `is_assigned_lead` después de restringir los grants de helpers.
+- ✅ Alineados app, bootstrap y documentación al modelo moderno de llaves Supabase: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` y `SUPABASE_SECRET_KEY`, como desviación deliberada del prompt maestro legacy.
+- ✅ Ejecutado bootstrap seguro con variables locales: existen usuarios Auth, perfiles activos y asignaciones de rol para `admin` y `asesor`.
+- ✅ Implementado Bloque 5: QuoteForm bilingüe en `/es/cotizar` y `/en/quote`, validación Zod, API server-only `/api/quote-request`, normalización/dedupe de contacto por WhatsApp/email, creación de `contacts`, `leads`, `quote_requests` y `lead_events`.
+- ✅ Agregados logs de frontera seguros para intención de email y Google Sheets en `notification_logs` y `sheet_sync_logs`, usando los nombres documentados `EMAIL_ADMIN`, `GOOGLE_SHEETS_CLIENT_EMAIL`, `GOOGLE_SHEETS_SPREADSHEET_ID` y `GOOGLE_SHEETS_LEADS_TAB`.
+- ✅ Implementado Bloque 6: panel interno protegido por Supabase Auth/RLS con shell y navegación por rol, dashboard, listado/detalle de leads, acciones básicas de estado/asignación/notas, CRUD MVP de catálogo, plantillas, pagos, reservas, documentos y logs ligeros de lectura.
+- ✅ Corregida la política de lectura de objetos privados para que el acceso autenticado de staff no aplique a cualquier bucket: catálogo sigue legible para staff, y `documents`/`payment-proofs` quedan limitados a `admin`, `operaciones` y/o `finanzas` según el bucket privado.
+- ✅ Alineado `/admin/leads` con la visibilidad prevista de navegación: acceso de página para `admin` y `asesor`; otros roles dependen de sus módulos dedicados y de RLS.
+- ✅ Implementado Bloque 7: `/api/whatsapp-click` registra clicks de WhatsApp de forma fail-open y redirige a `wa.me`; CTAs públicos usan links trackeados y el hash de IP solo se guarda si existe `WHATSAPP_CLICK_HASH_SALT`.
+- ✅ Implementado Bloque 8: emails de cotización reales con Resend desde frontera server-only, templates bilingües, logs de notificación y manejo no bloqueante de errores/ausencia de configuración.
+- ✅ Implementado y verificado Bloque 9: mapeo documentado de columnas, cliente server-only de Google Sheets, ciclo de logs `queued` → `success`/`failed`/`skipped`, integración al intake de cotizaciones y endpoint público `/api/google-sheets` intencionalmente deshabilitado.
+- ✅ Ejecutada verificación final de Bloque 10: `npm run lint`, `npm run build`, `npm run test:quote-notifications`, `npm run test:google-sheets` y smoke checks básicos de `/es`, `/en`, `/admin/login` y ruta cruzada inválida `/es/services`.
+
+## En proceso
+
+- Nada activo en código. El blocker externo de Google Sheets API quedó resuelto y el sync live fue verificado.
+
+## Pendiente
+
+- Completar QA manual de negocio en el entorno de hosting final: mobile real, copy bilingüe, sesión/roles con usuarios reales, flujo de cotización con credenciales productivas y revisión visual final.
+
+## Bloqueos
+
+- El `lang` inicial renderizado por el root layout sigue siendo `es` porque Next.js solo permite `<html>` en `app/layout.tsx`; en Bloque 1 se corrigió en cliente para rutas `/en` sin reestructurar toda la app.
+- Las páginas públicas siguen usando contenido estático de arranque; la fundación Supabase ya existe, pero conectar catálogos dinámicos queda para bloques posteriores.
+- No exponer ni commitear `SUPABASE_SECRET_KEY` ni credenciales bootstrap; deben quedarse solo en el entorno local/hosting seguro.
+- Bloque 6 no implementa upload completo de comprobantes/documentos ni progreso de carga: gestiona metadata de `bucket/path` y firma URLs cortas para objetos existentes. La subida real, validación UX de MIME/tamaño y generación de paths quedan diferidas.
+- El refresh proactivo de sesión en middleware sigue diferido; las rutas admin validan sesión en servidor mediante Supabase SSR y guardas por rol.
+
+## Última actualización
+
+2026-05-27 — Google Sheets API habilitada y verificada con cotización real: `quote_requests.status = received` y `sheet_sync_logs.status = success` con fila `Leads!A1:S1`. MVP listo para lanzamiento.
