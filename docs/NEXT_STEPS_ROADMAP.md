@@ -245,6 +245,10 @@ Objetivo: dejar de depender de contenido estático para catálogo comercial.
 - Publicación real desde admin.
 - Menor duplicidad entre contenido y operación.
 
+#### Estado
+
+- ✅ Implementado y verificado: el catálogo público ahora prioriza filas publicadas desde Supabase y mantiene fallback estático razonable.
+
 ### Bloque P1.8 — Media management básico
 
 #### Implementar
@@ -257,6 +261,10 @@ Objetivo: dejar de depender de contenido estático para catálogo comercial.
 
 - Mejor presentación pública.
 - Operación más sostenible.
+
+#### Estado
+
+- ✅ Implementado y verificado: soporte básico de media para catálogo vía `hero_image_url` / `thumbnail_image_url` en público y admin.
 
 ---
 

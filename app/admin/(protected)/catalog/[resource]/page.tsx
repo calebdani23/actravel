@@ -81,6 +81,7 @@ function CatalogForm({ resource, row, destinations, services }: { resource: Cata
             <TextInput defaultValue={destination?.country} label="País" name="country" required />
             <TextInput defaultValue={destination?.region} label="Región" name="region" />
             <TextInput defaultValue={destination?.hero_image_url} label="Hero image URL" name="hero_image_url" />
+            <TextInput defaultValue={destination?.thumbnail_image_url} label="Thumbnail image URL" name="thumbnail_image_url" />
           </>
         ) : null}
 
@@ -90,6 +91,8 @@ function CatalogForm({ resource, row, destinations, services }: { resource: Cata
             <TextInput defaultValue={service?.price_from_mxn} label="Precio desde MXN" name="price_from_mxn" type="number" />
             <TextInput defaultValue={service?.price_from_usd} label="Precio desde USD" name="price_from_usd" type="number" />
             <TextInput defaultValue={service?.sort_order ?? 0} label="Orden" name="sort_order" type="number" />
+            <TextInput defaultValue={service?.hero_image_url} label="Hero image URL" name="hero_image_url" />
+            <TextInput defaultValue={service?.thumbnail_image_url} label="Thumbnail image URL" name="thumbnail_image_url" />
           </>
         ) : null}
 
@@ -121,6 +124,8 @@ function CatalogForm({ resource, row, destinations, services }: { resource: Cata
             <TextInput defaultValue={promotion?.price_from_usd} label="Precio desde USD" name="price_from_usd" type="number" />
             <TextInput defaultValue={promotion?.starts_at?.slice(0, 10)} label="Inicio" name="starts_at" type="date" />
             <TextInput defaultValue={promotion?.ends_at?.slice(0, 10)} label="Fin" name="ends_at" type="date" />
+            <TextInput defaultValue={promotion?.hero_image_url} label="Hero image URL" name="hero_image_url" />
+            <TextInput defaultValue={promotion?.thumbnail_image_url} label="Thumbnail image URL" name="thumbnail_image_url" />
           </>
         ) : null}
       </div>

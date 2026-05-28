@@ -68,6 +68,7 @@ export async function upsertCatalogAction(formData: FormData) {
       country: text(formData, "country", true),
       region: text(formData, "region"),
       hero_image_url: text(formData, "hero_image_url"),
+      thumbnail_image_url: text(formData, "thumbnail_image_url"),
     };
     const { error } = id ? await supabase.from("destinations").update(payload).eq("id", id) : await supabase.from("destinations").insert(payload);
     errorMessage = error?.message ?? null;
@@ -85,6 +86,8 @@ export async function upsertCatalogAction(formData: FormData) {
       price_from_mxn: numberValue(formData, "price_from_mxn"),
       price_from_usd: numberValue(formData, "price_from_usd"),
       sort_order: numberValue(formData, "sort_order") ?? 0,
+      hero_image_url: text(formData, "hero_image_url"),
+      thumbnail_image_url: text(formData, "thumbnail_image_url"),
     };
     const { error } = id ? await supabase.from("services").update(payload).eq("id", id) : await supabase.from("services").insert(payload);
     errorMessage = error?.message ?? null;
@@ -105,6 +108,8 @@ export async function upsertCatalogAction(formData: FormData) {
       price_from_usd: numberValue(formData, "price_from_usd"),
       starts_at: text(formData, "starts_at"),
       ends_at: text(formData, "ends_at"),
+      hero_image_url: text(formData, "hero_image_url"),
+      thumbnail_image_url: text(formData, "thumbnail_image_url"),
     };
     const { error } = id ? await supabase.from("promotions").update(payload).eq("id", id) : await supabase.from("promotions").insert(payload);
     errorMessage = error?.message ?? null;

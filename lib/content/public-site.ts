@@ -21,6 +21,10 @@ export type PublicItem = {
   title: Localized;
   summary: Localized;
   description: Localized;
+  media?: {
+    heroImageUrl?: string | null;
+    thumbnailImageUrl?: string | null;
+  };
   eyebrow?: Localized;
   highlights: Record<Locale, string[]>;
   bestFor?: Localized;
@@ -225,6 +229,106 @@ const packages: ValueItem[] = [
 export function getPublicSiteContent(locale: Locale) {
   const t = copy[locale];
   return { locale, routes: routeNames[locale], t, services, packages, destinations, promotions };
+}
+
+export type PublicCatalogContent = {
+  locale: Locale;
+  routes: typeof routeNames[Locale];
+  t: (typeof copy)[Locale];
+  services: PublicItem[];
+  packages: typeof packages;
+  destinations: PublicItem[];
+  promotions: PublicItem[];
+};
+
+export type CatalogRowLike = {
+  id: string;
+  slug_es?: string | null;
+  slug_en?: string | null;
+  name_es?: string | null;
+  name_en?: string | null;
+  title_es?: string | null;
+  title_en?: string | null;
+  summary_es?: string | null;
+  summary_en?: string | null;
+  description_es?: string | null;
+  description_en?: string | null;
+  details_es?: string | null;
+  details_en?: string | null;
+  is_featured?: boolean | null;
+  status?: string | null;
+  published_at?: string | null;
+  country?: string | null;
+  region?: string | null;
+  hero_image_url?: string | null;
+  thumbnail_image_url?: string | null;
+  price_from_mxn?: number | string | null;
+  price_from_usd?: number | string | null;
+  sort_order?: number | null;
+  destination_id?: string | null;
+  service_id?: string | null;
+};
+
+function toNumber(value?: number | string | null) {
+  if (value === null || value === undefined || value === "") return undefined;
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function catalogMedia(row: CatalogRowLike) {
+  const image = row.hero_image_url ?? row.thumbnail_image_url;
+  return image ? { heroImageUrl: image, thumbnailImageUrl: row.thumbnail_image_url ?? image } : undefined;
+}
+
+export function buildPublicCatalogItem(row: CatalogRowLike, kind: "destinations" | "services" | "promotions"): PublicItem {
+  const slug = { es: row.slug_es ?? row.id, en: row.slug_en ?? row.slug_es ?? row.id };
+  const priceFrom = toNumber(row.price_from_mxn) || toNumber(row.price_from_usd);
+  if (kind === "destinations") {
+    return {
+      id: row.id,
+      slug,
+      title: { es: row.name_es ?? "", en: row.name_en ?? "" },
+      summary: { es: row.summary_es ?? "", en: row.summary_en ?? "" },
+      description: { es: row.description_es ?? row.summary_es ?? "", en: row.description_en ?? row.summary_en ?? "" },
+      media: catalogMedia(row),
+      highlights: { es: [], en: [] },
+      price: { type: "consult" },
+      featured: Boolean(row.is_featured),
+    };
+  }
+
+  if (kind === "services") {
+    return {
+      id: row.id,
+      slug,
+      title: { es: row.name_es ?? "", en: row.name_en ?? "" },
+      summary: { es: row.summary_es ?? "", en: row.summary_en ?? "" },
+      description: { es: row.description_es ?? row.summary_es ?? "", en: row.description_en ?? row.summary_en ?? "" },
+      media: catalogMedia(row),
+      highlights: { es: [], en: [] },
+      price: priceFrom ? { type: "from", mxn: toNumber(row.price_from_mxn), usd: toNumber(row.price_from_usd) } : { type: "consult" },
+      featured: Boolean(row.is_featured),
+    };
+  }
+
+  return {
+    id: row.id,
+    slug,
+    title: { es: row.title_es ?? row.name_es ?? "", en: row.title_en ?? row.name_en ?? "" },
+    summary: { es: row.summary_es ?? "", en: row.summary_en ?? "" },
+    description: { es: row.details_es ?? row.description_es ?? row.summary_es ?? "", en: row.details_en ?? row.description_en ?? row.summary_en ?? "" },
+    eyebrow: { es: "Promoción", en: "Promotion" },
+    media: catalogMedia(row),
+    highlights: { es: [], en: [] },
+    price: priceFrom ? { type: "from", mxn: toNumber(row.price_from_mxn), usd: toNumber(row.price_from_usd) } : { type: "consult" },
+    featured: Boolean(row.is_featured),
+  };
+}
+
+export function publishedCatalogRows<T extends { status?: string | null; is_featured?: boolean | null; published_at?: string | null; sort_order?: number | null }>(rows: T[]) {
+  return rows
+    .filter((row) => row.status === "published")
+    .sort((a, b) => Number(b.is_featured ?? false) - Number(a.is_featured ?? false) || Number(b.published_at ? new Date(b.published_at).getTime() : 0) - Number(a.published_at ? new Date(a.published_at).getTime() : 0) || Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0));
 }
 
 export function localizedPath(locale: Locale, key: keyof typeof routeNames.es, slug?: string) {
