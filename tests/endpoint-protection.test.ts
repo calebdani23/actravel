@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { checkPublicRateLimit, requesterKeyHash, resetPublicRateLimitFallbackForTests, setPublicRateLimitStoreForTests } from "@/lib/security/public-rate-limit";
+import { leadTemplateVariables, renderWhatsAppTemplate } from "@/lib/admin/whatsapp-template-renderer";
 import { createQuoteRequestSchema } from "@/lib/validations/quote-request";
 
 const validQuotePayload = {
@@ -142,6 +143,26 @@ test("admin app keeps server-side role allowlists and avoids service-role import
   assert.match(combined, /requireAdminRole\(\["admin", "finanzas"\]\)/);
   assert.match(combined, /requireAdminRole\(\["admin", "marketing", "asesor"\]\)/);
   assert.doesNotMatch(combined, /service-role|SUPABASE_SECRET_KEY|createServiceRoleClient|@\/lib\/supabase\/service/);
+});
+
+test("admin lead follow-up actions stay role gated and auditable", () => {
+  const actions = readFileSync("app/admin/(protected)/leads/[id]/actions.ts", "utf8");
+  const page = readFileSync("app/admin/(protected)/leads/[id]/page.tsx", "utf8");
+
+  assert.match(actions, /export async function registerFollowUpAction/);
+  assert.match(actions, /requireAdminRole\(\["admin", "asesor"\]\)/);
+  assert.match(actions, /from\("lead_notes"\)\.insert/);
+  assert.match(actions, /"follow_up_registered"/);
+  assert.match(actions, /Number\.isNaN\(parsed\.getTime\(\)\)/);
+  assert.match(page, /name="followUpBody"/);
+  assert.match(page, /name="followUpAt"/);
+});
+
+test("WhatsApp template renderer fills known variables and removes missing ones", () => {
+  const variables = leadTemplateVariables({ contactName: "Ada", destination: "Riviera Maya", travelersCount: 3, advisorName: null });
+  const rendered = renderWhatsAppTemplate("Hola {{ name }}, viaje: {{destination}} / {{travelers}} / {{advisor}} / {{missing}}", variables);
+
+  assert.equal(rendered, "Hola Ada, viaje: Riviera Maya / 3 / AC Travel /");
 });
 
 test("next config defines baseline security headers", () => {

@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "test:lead-template-actions": "node --import tsx --test tests/lead-template-actions.test.tsx",
     "test:quote-notifications": "node --conditions react-server --import tsx --test tests/quote-notifications.test.ts",
     "test:google-sheets": "node --conditions react-server --import tsx --test tests/google-sheets.test.ts",
     "db:types": "supabase gen types typescript --linked > lib/supabase/database.types.ts",

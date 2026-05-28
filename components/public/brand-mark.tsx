@@ -6,7 +6,7 @@ export function BrandMark({ locale }: Readonly<{ locale: Locale }>) {
     <Link href={`/${locale}`} className="group inline-flex items-center gap-3" aria-label="AC Travel home">
       <span className="grid size-11 place-items-center overflow-hidden rounded-2xl bg-white shadow-sm shadow-orange-900/10 transition-transform group-hover:scale-[1.03]">
         <img
-          src="/brand/logo-ac-travel-horizontal.ai"
+          src="/brand/ac-travel-logo-500x500-v3.png"
           alt="AC Travel"
           className="h-8 w-8 object-contain"
         />

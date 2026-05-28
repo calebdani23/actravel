@@ -219,6 +219,10 @@ Objetivo: convertir el panel MVP en una herramienta operativa diaria.
 
 - Respuesta más rápida y consistente.
 
+#### Estado
+
+- ✅ Implementado y verificado: lead detail ahora cubre acciones de plantilla con WhatsApp trackeado, copiado y email deshabilitado cuando falta correo.
+
 ---
 
 ## 6. P1 — Catálogo dinámico y publicación real desde admin

@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAdminRole } from "@/lib/admin/auth";
 import { getOperationOptions, getPayments, type PaymentRow } from "@/lib/admin/operations";
+import { STORAGE_UPLOAD_ACCEPT, STORAGE_UPLOAD_CONFIG } from "@/lib/admin/storage-uploads";
 import { deletePaymentAction, upsertPaymentAction } from "../operations/actions";
 
 type Options = Awaited<ReturnType<typeof getOperationOptions>>;
@@ -32,8 +33,11 @@ function PaymentForm({ payment, options }: { payment?: PaymentRow; options: Opti
         <label className="space-y-1 text-sm font-medium"><span>Tipo</span><select className="w-full rounded-md border px-3 py-2 text-sm" defaultValue={payment?.payment_type ?? "deposit"} name="payment_type"><option value="deposit">Anticipo</option><option value="partial">Parcial</option><option value="balance">Liquidación</option><option value="full">Total</option><option value="refund">Reembolso</option></select></label>
         <label className="space-y-1 text-sm font-medium"><span>Estado</span><select className="w-full rounded-md border px-3 py-2 text-sm" defaultValue={payment?.status ?? "pending"} name="status"><option value="pending">Pendiente</option><option value="received">Recibido</option><option value="verified">Verificado</option><option value="rejected">Rechazado</option><option value="refunded">Reembolsado</option></select></label>
         <Input defaultValue={payment?.paid_at?.slice(0, 16)} label="Fecha pagado" name="paid_at" type="datetime-local" />
-        <Input defaultValue={payment?.proof_bucket ?? "payment-proofs"} label="Bucket comprobante" name="proof_bucket" />
-        <Input defaultValue={payment?.proof_path} label="Ruta comprobante" name="proof_path" />
+        <label className="space-y-1 text-sm font-medium md:col-span-2">
+          <span>Comprobante (opcional)</span>
+          <input accept={STORAGE_UPLOAD_ACCEPT} className="w-full rounded-md border px-3 py-2 text-sm" name="proof_file" type="file" />
+          <span className="block text-xs font-normal text-muted-foreground">{STORAGE_UPLOAD_CONFIG["payment-proofs"].helpText}. Si no eliges archivo, se conserva el comprobante actual.</span>
+        </label>
         <label className="space-y-1 text-sm font-medium"><span>Notas</span><textarea className="min-h-20 w-full rounded-md border px-3 py-2 text-sm" defaultValue={payment?.notes ?? ""} name="notes" /></label>
       </div>
       <div className="flex flex-wrap gap-2"><Button type="submit">{payment ? "Guardar pago" : "Crear pago"}</Button>{payment ? <Button formAction={deletePaymentAction} type="submit" variant="outline">Eliminar</Button> : null}</div>
@@ -41,8 +45,13 @@ function PaymentForm({ payment, options }: { payment?: PaymentRow; options: Opti
   );
 }
 
+function ProofLinks({ payment }: { payment: PaymentRow }) {
+  if (!payment.proof_preview_url && !payment.proof_download_url) return <span className="text-xs text-muted-foreground">Sin comprobante adjunto</span>;
+  return <span className="inline-flex gap-2">{payment.proof_preview_url ? <a className="text-[var(--ac-blue)] underline" href={payment.proof_preview_url} rel="noreferrer" target="_blank">Vista previa</a> : null}{payment.proof_download_url ? <a className="text-[var(--ac-blue)] underline" download href={payment.proof_download_url}>Descargar</a> : null}</span>;
+}
+
 export default async function PaymentsPage() {
   await requireAdminRole(["admin", "finanzas"]);
   const [{ payments, error }, options] = await Promise.all([getPayments(), getOperationOptions()]);
-  return <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8"><div><p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--ac-blue)]">Operaciones</p><h1 className="mt-2 text-3xl font-bold">Pagos</h1><p className="mt-2 text-muted-foreground">CRUD manual RLS-aware. Los comprobantes se gestionan por bucket/ruta; si existe ruta, se muestra URL firmada temporal.</p></div>{error ? <Card className="border-amber-200 bg-amber-50"><CardContent className="pt-6 text-sm text-amber-900">No se pudieron cargar pagos: {error}</CardContent></Card> : null}<Card><CardHeader><CardTitle>Nuevo pago</CardTitle></CardHeader><CardContent><PaymentForm options={options} /></CardContent></Card><Card><CardHeader><CardTitle>{payments.length} pagos visibles</CardTitle></CardHeader><CardContent className="space-y-4">{payments.length ? payments.map((payment) => <details className="rounded-lg border p-4" key={payment.id}><summary className="cursor-pointer font-semibold">{money(payment.amount, payment.currency)} · {payment.status} <span className="ml-2 text-xs font-normal text-muted-foreground">{contactName(payment.contacts)} · {payment.payment_methods?.label_es ?? "sin método"} {payment.proof_url ? <a className="ml-2 text-[var(--ac-blue)] underline" href={payment.proof_url}>comprobante</a> : null}</span></summary><div className="mt-4"><PaymentForm options={options} payment={payment} /></div></details>) : <p className="text-sm text-muted-foreground">No hay pagos visibles para tu rol.</p>}</CardContent></Card></main>;
+  return <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8"><div><p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--ac-blue)]">Operaciones</p><h1 className="mt-2 text-3xl font-bold">Pagos</h1><p className="mt-2 text-muted-foreground">Registra pagos y adjunta comprobantes privados con rutas seguras automáticas y URLs firmadas temporales.</p></div>{error ? <Card className="border-amber-200 bg-amber-50"><CardContent className="pt-6 text-sm text-amber-900">No se pudieron cargar pagos: {error}</CardContent></Card> : null}<Card><CardHeader><CardTitle>Nuevo pago</CardTitle></CardHeader><CardContent><PaymentForm options={options} /></CardContent></Card><Card><CardHeader><CardTitle>{payments.length} pagos visibles</CardTitle></CardHeader><CardContent className="space-y-4">{payments.length ? payments.map((payment) => <details className="rounded-lg border p-4" key={payment.id}><summary className="cursor-pointer font-semibold">{money(payment.amount, payment.currency)} · {payment.status} <span className="ml-2 text-xs font-normal text-muted-foreground">{contactName(payment.contacts)} · {payment.payment_methods?.label_es ?? "sin método"} · <ProofLinks payment={payment} /></span></summary><div className="mt-4"><PaymentForm options={options} payment={payment} /></div></details>) : <p className="text-sm text-muted-foreground">No hay pagos visibles para tu rol.</p>}</CardContent></Card></main>;
 }

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { requireAdminRole } from "@/lib/admin/auth";
-import { getAdvisors, getDestinations, getLeads, getLeadStatuses, type LeadFilters } from "@/lib/admin/leads";
+import { getAdvisors, getDestinations, getLeads, getLeadSources, getLeadStatuses, type LeadFilters } from "@/lib/admin/leads";
 
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -20,6 +20,7 @@ function money(mxn: number | null, usd: number | null) {
 export default async function LeadsPage({ searchParams }: PageProps) {
   const [params] = await Promise.all([searchParams, requireAdminRole(["admin", "asesor"])]);
   const filters: LeadFilters = {
+    q: value(params, "q"),
     status: value(params, "status"),
     destination: value(params, "destination"),
     channel: value(params, "channel"),
@@ -28,8 +29,8 @@ export default async function LeadsPage({ searchParams }: PageProps) {
     from: value(params, "from"),
     to: value(params, "to"),
   };
-  const [{ leads, error }, statuses, advisors, destinations] = await Promise.all([getLeads(filters), getLeadStatuses(), getAdvisors(), getDestinations()]);
-  const channels = Array.from(new Set(leads.map((lead) => lead.source))).sort();
+  const [{ leads, error }, statuses, advisors, destinations, channels] = await Promise.all([getLeads(filters), getLeadStatuses(), getAdvisors(), getDestinations(), getLeadSources()]);
+  const activeFilters = Object.entries(filters).filter(([, filterValue]) => filterValue).length;
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
@@ -45,6 +46,7 @@ export default async function LeadsPage({ searchParams }: PageProps) {
         </CardHeader>
         <CardContent>
           <form className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+            <input className="rounded-md border px-3 py-2 text-sm md:col-span-3 xl:col-span-2" defaultValue={filters.q ?? ""} name="q" placeholder="Buscar nombre, email, WhatsApp o destino" />
             <select className="rounded-md border px-3 py-2 text-sm" defaultValue={filters.status ?? ""} name="status">
               <option value="">Todos los estados</option>
               {statuses.map((status) => <option key={status.id} value={status.name}>{status.label_es}</option>)}
@@ -65,12 +67,13 @@ export default async function LeadsPage({ searchParams }: PageProps) {
             </select>
             <input className="rounded-md border px-3 py-2 text-sm" defaultValue={filters.from ?? ""} name="from" type="date" />
             <input className="rounded-md border px-3 py-2 text-sm" defaultValue={filters.to ?? ""} name="to" type="date" />
-            <input className="rounded-md border px-3 py-2 text-sm" defaultValue={filters.channel ?? ""} name="channel" placeholder="Canal" list="lead-channels" />
+            <input className="rounded-md border px-3 py-2 text-sm" defaultValue={filters.channel ?? ""} name="channel" placeholder="Origen/source" list="lead-channels" />
             <datalist id="lead-channels">{channels.map((channel) => <option key={channel} value={channel} />)}</datalist>
             <div className="flex gap-2 xl:col-span-6">
               <Button type="submit">Aplicar</Button>
               <Button asChild variant="outline"><Link href="/admin/leads">Limpiar</Link></Button>
             </div>
+            {activeFilters ? <p className="text-xs text-muted-foreground xl:col-span-6">{activeFilters} filtro(s) activo(s). El listado mantiene la visibilidad permitida por rol y RLS.</p> : null}
           </form>
         </CardContent>
       </Card>
@@ -105,7 +108,7 @@ export default async function LeadsPage({ searchParams }: PageProps) {
               </tbody>
             </table>
           ) : (
-            <p className="text-sm text-muted-foreground">No hay leads visibles con estos filtros.</p>
+            <div className="space-y-3 text-sm text-muted-foreground"><p>No hay leads visibles con estos filtros.</p><Button asChild variant="outline"><Link href="/admin/leads">Resetear búsqueda</Link></Button></div>
           )}
         </CardContent>
       </Card>

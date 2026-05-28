@@ -59,12 +59,15 @@ on conflict (slug_es) do update set
   status = excluded.status,
   published_at = coalesce(public.services.published_at, excluded.published_at);
 
-insert into public.message_templates (name, channel, subject_es, subject_en, body_es, body_en, variables) values
-  ('quote_received_email', 'email', 'Recibimos tu solicitud', 'We received your request', 'Hola {{name}}, recibimos tu solicitud y un asesor te contactará pronto.', 'Hi {{name}}, we received your request and an advisor will contact you soon.', '["name"]'),
-  ('payment_received_email', 'email', 'Pago recibido', 'Payment received', 'Hola {{name}}, registramos tu pago y está en validación.', 'Hi {{name}}, your payment has been recorded and is being validated.', '["name"]'),
-  ('whatsapp_followup', 'whatsapp', null, null, 'Hola {{name}}, soy tu asesor de AC Travel. ¿Te ayudo con tu viaje?', 'Hi {{name}}, I am your AC Travel advisor. May I help with your trip?', '["name"]')
+insert into public.message_templates (name, channel, category, description, sort_order, subject_es, subject_en, body_es, body_en, variables) values
+  ('quote_received_email', 'email', 'cotizacion', 'Confirmación inicial para solicitudes de cotización.', 10, 'Recibimos tu solicitud', 'We received your request', 'Hola {{name}}, recibimos tu solicitud y un asesor te contactará pronto.', 'Hi {{name}}, we received your request and an advisor will contact you soon.', '["name"]'),
+  ('payment_received_email', 'email', 'pagos', 'Acuse interno/manual para pagos recibidos.', 20, 'Pago recibido', 'Payment received', 'Hola {{name}}, registramos tu pago y está en validación.', 'Hi {{name}}, your payment has been recorded and is being validated.', '["name"]'),
+  ('whatsapp_followup', 'whatsapp', 'seguimiento', 'Primer seguimiento manual por WhatsApp.', 10, null, null, 'Hola {{name}}, soy tu asesor de AC Travel. ¿Te ayudo con tu viaje?', 'Hi {{name}}, I am your AC Travel advisor. May I help with your trip?', '["name"]')
 on conflict (name) do update set
   channel = excluded.channel,
+  category = excluded.category,
+  description = excluded.description,
+  sort_order = excluded.sort_order,
   subject_es = excluded.subject_es,
   subject_en = excluded.subject_en,
   body_es = excluded.body_es,

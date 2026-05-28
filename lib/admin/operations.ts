@@ -12,7 +12,8 @@ export type PaymentRow = Tables<"payments"> & {
   contacts: ContactSummary;
   leads: LeadSummary;
   bookings: BookingSummary;
-  proof_url?: string | null;
+  proof_preview_url?: string | null;
+  proof_download_url?: string | null;
 };
 
 export type BookingRow = Tables<"bookings"> & {
@@ -27,8 +28,18 @@ export type DocumentRow = Tables<"documents"> & {
   contacts: ContactSummary;
   leads: LeadSummary;
   bookings: BookingSummary;
-  document_url?: string | null;
+  document_preview_url?: string | null;
+  document_download_url?: string | null;
 };
+
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+export async function signedStorageUrl(supabase: SupabaseServerClient, bucket: string, path: string, disposition: "preview" | "download") {
+  const options = disposition === "download" ? { download: true } : undefined;
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 10, options);
+  if (error) return null;
+  return data?.signedUrl ?? null;
+}
 
 export async function getOperationOptions() {
   const supabase = await createClient();
@@ -60,11 +71,15 @@ export async function getPayments() {
     .select("*, payment_methods(id, label_es), contacts(id, first_name, last_name, email, phone), leads(id, summary, contacts(id, first_name, last_name, email, phone)), bookings(id, booking_code, status)")
     .order("updated_at", { ascending: false })
     .limit(100);
-  const rows: PaymentRow[] = ((data ?? []) as unknown as PaymentRow[]).map((row) => ({ ...row, proof_url: null }));
+  const rows: PaymentRow[] = ((data ?? []) as unknown as PaymentRow[]).map((row) => ({ ...row, proof_preview_url: null, proof_download_url: null }));
   await Promise.all(rows.map(async (row) => {
     if (!row.proof_bucket || !row.proof_path) return;
-    const { data: signed } = await supabase.storage.from(row.proof_bucket).createSignedUrl(row.proof_path, 60 * 10);
-    row.proof_url = signed?.signedUrl ?? null;
+    const [previewUrl, downloadUrl] = await Promise.all([
+      signedStorageUrl(supabase, row.proof_bucket, row.proof_path, "preview"),
+      signedStorageUrl(supabase, row.proof_bucket, row.proof_path, "download"),
+    ]);
+    row.proof_preview_url = previewUrl;
+    row.proof_download_url = downloadUrl;
   }));
   return { payments: rows, error: error?.message ?? null };
 }
@@ -86,10 +101,15 @@ export async function getDocuments() {
     .select("*, contacts(id, first_name, last_name, email, phone), leads(id, summary, contacts(id, first_name, last_name, email, phone)), bookings(id, booking_code, status)")
     .order("updated_at", { ascending: false })
     .limit(100);
-  const rows: DocumentRow[] = ((data ?? []) as unknown as DocumentRow[]).map((row) => ({ ...row, document_url: null }));
+  const rows: DocumentRow[] = ((data ?? []) as unknown as DocumentRow[]).map((row) => ({ ...row, document_preview_url: null, document_download_url: null }));
   await Promise.all(rows.map(async (row) => {
-    const { data: signed } = await supabase.storage.from(row.bucket).createSignedUrl(row.path, 60 * 10);
-    row.document_url = signed?.signedUrl ?? null;
+    if (!row.bucket || !row.path) return;
+    const [previewUrl, downloadUrl] = await Promise.all([
+      signedStorageUrl(supabase, row.bucket, row.path, "preview"),
+      signedStorageUrl(supabase, row.bucket, row.path, "download"),
+    ]);
+    row.document_preview_url = previewUrl;
+    row.document_download_url = downloadUrl;
   }));
   return { documents: rows, error: error?.message ?? null };
 }

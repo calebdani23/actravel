@@ -46,6 +46,7 @@ Bloques 1–10 completados en alcance MVP actual. Bloque 9 está implementado y 
 - ✅ Implementado y verificado Bloque 9: mapeo documentado de columnas, cliente server-only de Google Sheets, ciclo de logs `queued` → `success`/`failed`/`skipped`, integración al intake de cotizaciones y endpoint público `/api/google-sheets` intencionalmente deshabilitado.
 - ✅ Ejecutada verificación final de Bloque 10: `npm run lint`, `npm run build`, `npm run test:quote-notifications`, `npm run test:google-sheets` y smoke checks básicos de `/es`, `/en`, `/admin/login` y ruta cruzada inválida `/es/services`.
 - ✅ Implementado P0.3 de seguridad/sesión: middleware coarse para `/admin/:path*` que refresca cookies Supabase con `auth.getUser()`, redirige visitantes sin sesión a `/admin/login`, deja la decisión de redirigir desde `/admin/login` al chequeo completo de `getAdminSession()` para evitar loops con usuarios sin rol/perfil válido, conserva los guards de roles en páginas/actions y agrega headers base (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`).
+- ✅ Cerrado P1.6: las acciones de plantillas en lead detail ahora tienen cobertura runtime para WhatsApp trackeado, cuerpo codificado, copiado de contenido y estado deshabilitado de email cuando falta correo; se agregó `npm run test:lead-template-actions`.
 
 ## En proceso
 
@@ -68,4 +69,4 @@ Bloques 1–10 completados en alcance MVP actual. Bloque 9 está implementado y 
 
 ## Última actualización
 
-2026-05-27 — P0.3 agregó refresh/redirect coarse para sesión admin y headers base; quedan follow-ups manuales de Supabase Auth/advisors.
+2026-05-28 — P1.6 quedó verificado y cerrado con cobertura runtime adicional en lead detail; quedan follow-ups manuales de Supabase Auth/advisors.

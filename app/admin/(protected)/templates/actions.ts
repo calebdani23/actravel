@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdminRole } from "@/lib/admin/auth";
+import { validateTemplatePlaceholders } from "@/lib/admin/template-renderer";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
 
@@ -12,9 +13,15 @@ function text(formData: FormData, key: string, required = false) {
   return result || null;
 }
 
-function parseVariables(raw: string | null): Json {
+function parseVariables(raw: string | null) {
   if (!raw) return [];
   return raw.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+function integer(formData: FormData, key: string, fallback: number) {
+  const value = formData.get(key);
+  const parsed = typeof value === "string" && value.trim() ? Number.parseInt(value, 10) : fallback;
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 export async function upsertTemplateAction(formData: FormData) {
@@ -23,14 +30,28 @@ export async function upsertTemplateAction(formData: FormData) {
   const id = text(formData, "id");
   const channel = text(formData, "channel", true);
   if (channel !== "email" && channel !== "whatsapp") throw new Error("Invalid channel");
+  const variables = parseVariables(text(formData, "variables"));
+  const bodyEs = text(formData, "body_es", true) ?? "";
+  const bodyEn = text(formData, "body_en", true) ?? "";
+  const subjectEs = text(formData, "subject_es");
+  const subjectEn = text(formData, "subject_en");
+  const validation = validateTemplatePlaceholders({
+    subject: [subjectEs, subjectEn].filter(Boolean).join("\n"),
+    body: [bodyEs, bodyEn].join("\n"),
+    declaredVariables: variables,
+  });
+  if (!validation.isValid) throw new Error(`Unsupported template variables: ${validation.unknownVariables.join(", ")}`);
   const payload = {
     name: text(formData, "name", true),
     channel,
-    subject_es: text(formData, "subject_es"),
-    subject_en: text(formData, "subject_en"),
-    body_es: text(formData, "body_es", true),
-    body_en: text(formData, "body_en", true),
-    variables: parseVariables(text(formData, "variables")),
+    category: text(formData, "category") ?? "general",
+    description: text(formData, "description"),
+    sort_order: integer(formData, "sort_order", 100),
+    subject_es: subjectEs,
+    subject_en: subjectEn,
+    body_es: bodyEs,
+    body_en: bodyEn,
+    variables: variables as Json,
     is_active: formData.get("is_active") === "on",
   };
   const { error } = id ? await supabase.from("message_templates").update(payload).eq("id", id) : await supabase.from("message_templates").insert(payload);

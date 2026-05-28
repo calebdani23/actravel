@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { requireAdminRole } from "@/lib/admin/auth";
 import { hasAnyRole } from "@/lib/supabase/roles";
 import { getAdvisors, getLeadDetail, getLeadStatuses } from "@/lib/admin/leads";
-import { addLeadNoteAction, assignLeadAction, updateLeadStatusAction } from "./actions";
+import { getActiveMessageTemplates } from "@/lib/admin/templates";
+import { leadTemplateVariables } from "@/lib/admin/template-renderer";
+import { LeadTemplateActions } from "@/components/admin/leads/whatsapp-template-actions";
+import { addLeadNoteAction, assignLeadAction, registerFollowUpAction, updateLeadStatusAction } from "./actions";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -21,14 +24,26 @@ function Field({ label, value }: { label: string; value?: React.ReactNode }) {
 
 export default async function LeadDetailPage({ params }: PageProps) {
   const [{ id }, session] = await Promise.all([params, requireAdminRole(["admin", "asesor"])]);
-  const [{ lead, notes, events, payments, bookings, documents, error }, statuses, advisors] = await Promise.all([
+  const [{ lead, timeline, payments, bookings, documents, error }, statuses, advisors, messageTemplates] = await Promise.all([
     getLeadDetail(id),
     getLeadStatuses(),
     getAdvisors(),
+    getActiveMessageTemplates(),
   ]);
 
   if (!lead && !error) notFound();
   const canAssign = hasAnyRole(session.roles, ["admin"]);
+  const contactName = [lead?.contacts?.first_name, lead?.contacts?.last_name].filter(Boolean).join(" ");
+  const templateVariables = lead ? leadTemplateVariables({
+    contactName,
+    destination: lead.destinations?.name_es ?? lead.summary,
+    travelStartDate: lead.travel_start_date,
+    travelEndDate: lead.travel_end_date,
+    travelersCount: lead.travelers_count,
+    budget: money(lead.budget_mxn, lead.budget_usd),
+    advisorName: lead.profiles?.full_name,
+    status: lead.lead_statuses?.label_es,
+  }) : {};
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
@@ -89,19 +104,56 @@ export default async function LeadDetailPage({ params }: PageProps) {
                   </form>
                 ) : null}
 
+                <LeadTemplateActions
+                  contactId={lead.contact_id}
+                  email={lead.contacts?.email}
+                  leadId={lead.id}
+                  locale={lead.contacts?.preferred_locale}
+                  phone={lead.contacts?.phone}
+                  templates={messageTemplates.templates}
+                  variables={templateVariables}
+                />
+
                 <form action={addLeadNoteAction} className="space-y-2">
                   <input name="leadId" type="hidden" value={lead.id} />
                   <label className="text-sm font-medium" htmlFor="body">Nota interna</label>
                   <textarea className="min-h-28 w-full rounded-md border px-3 py-2 text-sm" id="body" name="body" required />
                   <Button className="w-full" type="submit">Agregar nota</Button>
                 </form>
+
+                <form action={registerFollowUpAction} className="space-y-2 rounded-md border p-3">
+                  <input name="leadId" type="hidden" value={lead.id} />
+                  <label className="text-sm font-medium" htmlFor="followUpBody">Registrar seguimiento</label>
+                  <textarea className="min-h-24 w-full rounded-md border px-3 py-2 text-sm" id="followUpBody" name="followUpBody" required />
+                  <label className="text-sm font-medium" htmlFor="followUpAt">Próximo contacto (opcional)</label>
+                  <input className="w-full rounded-md border px-3 py-2 text-sm" id="followUpAt" name="followUpAt" type="datetime-local" />
+                  <Button className="w-full" type="submit">Registrar seguimiento</Button>
+                </form>
               </CardContent>
             </Card>
           </section>
 
-          <section className="grid gap-4 lg:grid-cols-2">
-            <Card><CardHeader><CardTitle>Notas</CardTitle></CardHeader><CardContent>{notes.length ? <ul className="space-y-3 text-sm">{notes.map((note) => <li key={note.id} className="rounded-md border p-3"><p>{note.body}</p><p className="mt-2 text-xs text-muted-foreground">{new Date(note.created_at).toLocaleString("es-MX")}</p></li>)}</ul> : <p className="text-sm text-muted-foreground">Sin notas visibles.</p>}</CardContent></Card>
-            <Card><CardHeader><CardTitle>Eventos</CardTitle></CardHeader><CardContent>{events.length ? <ul className="space-y-3 text-sm">{events.map((event) => <li key={event.id} className="rounded-md border p-3"><p className="font-semibold">{event.event_type}</p><p className="text-xs text-muted-foreground">{new Date(event.created_at).toLocaleString("es-MX")}</p></li>)}</ul> : <p className="text-sm text-muted-foreground">Sin eventos visibles.</p>}</CardContent></Card>
+          <section>
+            <Card>
+              <CardHeader><CardTitle>Timeline comercial</CardTitle></CardHeader>
+              <CardContent>
+                {timeline.length ? (
+                  <ol className="space-y-3 text-sm">
+                    {timeline.map((item) => (
+                      <li key={item.id} className="rounded-md border p-3">
+                        <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                          <p className="font-semibold">{item.label}</p>
+                          <p className="text-xs text-muted-foreground">{new Date(item.at).toLocaleString("es-MX")}</p>
+                        </div>
+                        {item.actorName ? <p className="mt-1 text-xs text-muted-foreground">Por {item.actorName}</p> : null}
+                        {item.summary ? <p className="mt-2 whitespace-pre-wrap">{item.summary}</p> : null}
+                        {item.metadata?.length ? <p className="mt-2 text-xs text-muted-foreground">{item.metadata.join(" · ")}</p> : null}
+                      </li>
+                    ))}
+                  </ol>
+                ) : <p className="text-sm text-muted-foreground">Sin actividad comercial registrada todavía.</p>}
+              </CardContent>
+            </Card>
           </section>
 
           <section className="grid gap-4 lg:grid-cols-3">

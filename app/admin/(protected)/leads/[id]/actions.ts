@@ -51,3 +51,24 @@ export async function addLeadNoteAction(formData: FormData) {
   await insertLeadEvent(leadId, session.user.id, "note_added", { internal: true });
   revalidatePath(`/admin/leads/${leadId}`);
 }
+
+export async function registerFollowUpAction(formData: FormData) {
+  const session = await requireAdminRole(["admin", "asesor"]);
+  const leadId = requiredString(formData, "leadId");
+  const body = requiredString(formData, "followUpBody");
+  const followUpAtValue = formData.get("followUpAt");
+  let followUpAt: string | null = null;
+
+  if (typeof followUpAtValue === "string" && followUpAtValue.trim()) {
+    const parsed = new Date(followUpAtValue);
+    if (Number.isNaN(parsed.getTime())) throw new Error("followUpAt must be a valid date/time");
+    followUpAt = parsed.toISOString();
+  }
+
+  const supabase = await createClient();
+  const { error: noteError } = await supabase.from("lead_notes").insert({ lead_id: leadId, author_id: session.user.id, body, is_internal: true });
+  if (noteError) throw new Error(noteError.message);
+  await insertLeadEvent(leadId, session.user.id, "follow_up_registered", { followUpAt, hasNote: true });
+  revalidatePath(`/admin/leads/${leadId}`);
+  revalidatePath("/admin/leads");
+}
