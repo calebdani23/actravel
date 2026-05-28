@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { renderQuoteEmail } from "@/lib/email/templates/quote-request";
 import { deliverQuoteNotification } from "@/lib/leads/quote-notification-core";
+import { retryNotificationLog } from "@/lib/leads/quote-notification-retry";
 import type { Json } from "@/lib/supabase/database.types";
 import type { QuoteRequestInput } from "@/lib/validations/quote-request";
 
@@ -101,4 +102,156 @@ test("notification lifecycle avoids duplicate send when an existing log is alrea
   assert.equal(summary.status, "sent");
   assert.match(summary.reason ?? "", /already sent/i);
   assert.equal(sendCalled, false);
+});
+
+test("notification lifecycle treats processing or ambiguous logs as duplicate-guarded", async () => {
+  process.env.RESEND_API_KEY = "test-key";
+  process.env.EMAIL_FROM = "AC Travel <noreply@example.com>";
+  let sendCalls = 0;
+  for (const existingStatus of ["processing", "ambiguous"] as const) {
+    const summary = await deliverQuoteNotification({
+      plan: { templateName: "admin_quote_request_received", recipient: "admin@example.com" },
+      context: { quoteRequestId: "quote-1", leadId: "12345678-abcd", contactId: "contact-1", locale: "en", destination: "Riviera Maya" },
+      render: () => ({ subject: "Subject", text: "Text", html: "<p>Text</p>", metadata: {} }),
+      insertLog: async () => ({ id: `log-${existingStatus}`, existingStatus }),
+      updateLog: async () => undefined,
+      send: async () => {
+        sendCalls += 1;
+        return { provider: "resend", messageId: "msg_should_not_send" };
+      },
+    });
+    assert.equal(summary.status, existingStatus);
+    assert.match(summary.reason ?? "", /skipped duplicate send/i);
+  }
+  assert.equal(sendCalls, 0);
+});
+
+test("notification lifecycle marks ambiguous when log update fails after provider send", async () => {
+  process.env.RESEND_API_KEY = "test-key";
+  process.env.EMAIL_FROM = "AC Travel <noreply@example.com>";
+  const updates: Array<{ status: string; error?: string | null }> = [];
+  const summary = await deliverQuoteNotification({
+    plan: { templateName: "admin_quote_request_received", recipient: "admin@example.com" },
+    context: { quoteRequestId: "quote-1", leadId: "12345678-abcd", contactId: "contact-1", locale: "en", destination: "Riviera Maya" },
+    render: () => ({ subject: "Subject", text: "Text", html: "<p>Text</p>", metadata: {} }),
+    insertLog: async () => ({ id: "log-ambiguous" }),
+    updateLog: async (_id, value) => {
+      updates.push(value);
+      if (value.status === "sent") throw new Error("database token=secret failed");
+    },
+    send: async () => ({ provider: "resend", messageId: "msg_sent" }),
+  });
+
+  assert.equal(summary.status, "sent");
+  assert.match(summary.reason ?? "", /Log update failed after send/);
+  assert.equal(updates[1].status, "ambiguous");
+  assert.match(updates[1].error ?? "", /token=\[redacted\]/);
+});
+
+function createNotificationRetryMock(status = "failed") {
+  const quotePayload = { ...input, email: "ada@example.com", whatsapp: "15551002000" };
+  const log = { id: "log-retry", created_at: new Date().toISOString(), lead_id: "12345678-1234-4234-9234-123456789abc", contact_id: "12345678-1234-4234-9234-123456789abd", channel: "email", provider: "resend", recipient: "admin@example.com", template_name: "admin_quote_request_received", status, error_message: "failed", payload: { quoteRequestId: "quote-1" }, provider_message_id: null, sent_at: null, updated_at: new Date().toISOString(), attempt_count: 0, last_attempt_at: null, locked_at: null, last_retried_by: null } as Record<string, unknown>;
+  const updated: Array<Record<string, unknown>> = [];
+  const supabase = {
+    from(table: string) {
+      return {
+        select() {
+          return { eq: (_column: string, value: string) => ({ maybeSingle: async () => (table === "quote_requests" ? { data: { id: value, payload: quotePayload }, error: null } : { data: log.id === value ? log : null, error: null }) }) };
+        },
+        update(row: Record<string, unknown>) {
+          const builder = {
+            eq: (_column: string, value: string) => {
+              Object.assign(builder, { id: value });
+              return builder;
+            },
+            in: (_column: string, allowed: string[]) => {
+              Object.assign(builder, { allowed });
+              return builder;
+            },
+            select: () => builder,
+            maybeSingle: async () => {
+              if ((builder as { id?: string }).id !== log.id || !((builder as { allowed?: string[] }).allowed ?? []).includes(log.status as string)) return { data: null, error: null };
+              Object.assign(log, row);
+              updated.push(row);
+              return { data: log, error: null };
+            },
+            then: (resolve: (value: { error: Error | null }) => void) => {
+              Object.assign(log, row);
+              updated.push(row);
+              resolve({ error: null });
+            },
+          };
+          return builder;
+        },
+      };
+    },
+  };
+  return { supabase, log, updated };
+}
+
+test("notification retry claims failed log and sends exactly once", async () => {
+  process.env.RESEND_API_KEY = "test-key";
+  process.env.EMAIL_FROM = "AC Travel <noreply@example.com>";
+  const { supabase, updated } = createNotificationRetryMock("failed");
+  let sendCalls = 0;
+  const result = await retryNotificationLog("log-retry", "actor-1", { supabase: supabase as never, now: () => "2026-05-27T00:00:00.000Z", send: async () => { sendCalls += 1; return { provider: "resend", messageId: "msg_retry" }; } });
+
+  assert.equal(result.status, "sent");
+  assert.equal(sendCalls, 1);
+  assert.equal(updated[0].status, "processing");
+  assert.equal(updated[1].status, "sent");
+  assert.equal(updated[0].last_retried_by, "actor-1");
+});
+
+test("notification retry is terminal/guarded for sent and concurrent claims", async () => {
+  const sent = createNotificationRetryMock("sent");
+  let sendCalls = 0;
+  const sentResult = await retryNotificationLog("log-retry", "actor-1", { supabase: sent.supabase as never, send: async () => { sendCalls += 1; return { provider: "resend" }; } });
+  assert.equal(sentResult.status, "sent");
+  assert.equal(sendCalls, 0);
+
+  const guarded = createNotificationRetryMock("failed");
+  guarded.log.status = "sent";
+  const guardedResult = await retryNotificationLog("log-retry", "actor-1", { supabase: guarded.supabase as never, send: async () => { sendCalls += 1; return { provider: "resend" }; } });
+  assert.equal(guardedResult.status, "sent");
+  assert.equal(sendCalls, 0);
+});
+
+test("notification retry skips send when a concurrent retry already claimed the log", async () => {
+  process.env.RESEND_API_KEY = "test-key";
+  process.env.EMAIL_FROM = "AC Travel <noreply@example.com>";
+  const { supabase, log, updated } = createNotificationRetryMock("failed");
+  let sendCalls = 0;
+  let firstSelect = true;
+  const originalFrom = supabase.from;
+
+  supabase.from = (table: string) => {
+    const query = originalFrom(table);
+    if (table !== "notification_logs") return query;
+    return {
+      ...query,
+      select() {
+        return {
+          eq: (_column: string, value: string) => ({
+            maybeSingle: async () => {
+              if (value !== log.id) return { data: null, error: null };
+              if (firstSelect) {
+                firstSelect = false;
+                queueMicrotask(() => { log.status = "processing"; });
+                return { data: { ...log, status: "failed" }, error: null };
+              }
+              return { data: { status: log.status }, error: null };
+            },
+          }),
+        };
+      },
+    };
+  };
+
+  const result = await retryNotificationLog("log-retry", "actor-1", { supabase: supabase as never, send: async () => { sendCalls += 1; return { provider: "resend", messageId: "msg_should_not_send" }; } });
+
+  assert.equal(result.status, "processing");
+  assert.match(result.reason ?? "", /retry claim skipped/i);
+  assert.equal(sendCalls, 0);
+  assert.equal(updated.length, 0);
 });

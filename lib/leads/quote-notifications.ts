@@ -51,10 +51,10 @@ async function insertLog(supabase: SupabaseAdminClient, values: { leadId: string
   throw inserted.error ?? new Error("Unable to create notification log");
 }
 
-async function updateLog(supabase: SupabaseAdminClient, id: string, values: { status: "sent" | "failed" | "skipped"; error?: string | null; providerMessageId?: string; payload: Json }) {
+async function updateLog(supabase: SupabaseAdminClient, id: string, values: { status: "sent" | "failed" | "skipped" | "ambiguous"; error?: string | null; providerMessageId?: string; payload: Json }) {
   const { error } = await supabase
     .from("notification_logs")
-    .update({ status: values.status, error_message: values.error ?? null, provider_message_id: values.providerMessageId ?? null, sent_at: values.status === "sent" ? new Date().toISOString() : null, payload: values.payload })
+    .update({ status: values.status, error_message: values.error ?? null, provider_message_id: values.providerMessageId ?? null, sent_at: values.status === "sent" ? new Date().toISOString() : null, payload: values.payload, last_attempt_at: new Date().toISOString(), locked_at: null })
     .eq("id", id);
   if (error) throw new Error(error.message);
 }

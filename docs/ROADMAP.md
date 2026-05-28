@@ -18,6 +18,10 @@
 - **Ready for MVP launch**: la app compila, lint/test pasan, los smoke checks públicos/admin básicos responden y Google Sheets live sync fue confirmado.
 - **Google Sheets operativo**: una cotización real persistió en Supabase y registró `sheet_sync_logs.status = success` con fila escrita en la pestaña configurada.
 
+## Siguientes pasos priorizados
+
+- Ver `docs/NEXT_STEPS_ROADMAP.md` para el roadmap accionable posterior al MVP, organizado por prioridad, bloques y sprints sugeridos.
+
 ## Fase 2
 
 - WhatsApp Cloud API y webhooks de mensajes.

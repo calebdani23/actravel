@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
+import { checkPublicRateLimit } from "@/lib/security/public-rate-limit";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   buildWhatsAppUrl,
@@ -40,6 +41,9 @@ export async function GET(request: Request) {
   const finalUrl = buildWhatsAppUrl(message, phone ?? undefined);
 
   try {
+    const limit = await checkPublicRateLimit("whatsapp_click", request, pagePath ?? locale);
+    if (!limit.allowed) return NextResponse.redirect(finalUrl, { status: 302 });
+
     const supabase = createSupabaseAdminClient();
     const { error } = await supabase.from("whatsapp_clicks").insert({
       lead_id: leadId,

@@ -29,6 +29,7 @@ function defaultValues(locale: Locale): QuoteRequestInput {
     sourceChannel: "Sitio web",
     contactConsent: false,
     notes: undefined,
+    website: "",
   };
 }
 
@@ -95,6 +96,10 @@ export function QuoteForm({ locale }: Props) {
       </div>
 
       <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)} noValidate>
+        <label className="sr-only" aria-hidden="true">
+          Website
+          <input tabIndex={-1} autoComplete="off" {...form.register("website")} />
+        </label>
         <div className="grid gap-4 md:grid-cols-2">
           <TextField label={copy.fields.holderName} placeholder={copy.placeholders.holderName} error={form.formState.errors.holderName?.message} {...form.register("holderName")} />
           <TextField label={copy.fields.whatsapp} placeholder={copy.placeholders.whatsapp} error={form.formState.errors.whatsapp?.message} {...form.register("whatsapp")} />

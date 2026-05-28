@@ -11,7 +11,7 @@ import { normalizeEmail, normalizeWhatsApp, type QuoteRequestInput, type QuoteRe
 const WHATSAPP_PHONE = "529988453455" as const;
 
 type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>;
-type BoundaryLogSummary = { kind: string; status: "queued" | "sent" | "success" | "skipped" | "failed"; reason?: string; recipient?: string | null; rowId?: string | null };
+type BoundaryLogSummary = { kind: string; status: "queued" | "processing" | "sent" | "success" | "skipped" | "failed" | "ambiguous"; reason?: string; recipient?: string | null; rowId?: string | null };
 
 function splitName(fullName: string) {
   const parts = fullName.trim().replace(/\s+/g, " ").split(" ");

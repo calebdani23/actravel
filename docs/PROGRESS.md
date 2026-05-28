@@ -45,14 +45,18 @@ Bloques 1–10 completados en alcance MVP actual. Bloque 9 está implementado y 
 - ✅ Implementado Bloque 8: emails de cotización reales con Resend desde frontera server-only, templates bilingües, logs de notificación y manejo no bloqueante de errores/ausencia de configuración.
 - ✅ Implementado y verificado Bloque 9: mapeo documentado de columnas, cliente server-only de Google Sheets, ciclo de logs `queued` → `success`/`failed`/`skipped`, integración al intake de cotizaciones y endpoint público `/api/google-sheets` intencionalmente deshabilitado.
 - ✅ Ejecutada verificación final de Bloque 10: `npm run lint`, `npm run build`, `npm run test:quote-notifications`, `npm run test:google-sheets` y smoke checks básicos de `/es`, `/en`, `/admin/login` y ruta cruzada inválida `/es/services`.
+- ✅ Implementado P0.3 de seguridad/sesión: middleware coarse para `/admin/:path*` que refresca cookies Supabase con `auth.getUser()`, redirige visitantes sin sesión a `/admin/login`, deja la decisión de redirigir desde `/admin/login` al chequeo completo de `getAdminSession()` para evitar loops con usuarios sin rol/perfil válido, conserva los guards de roles en páginas/actions y agrega headers base (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`).
 
 ## En proceso
 
-- Nada activo en código. El blocker externo de Google Sheets API quedó resuelto y el sync live fue verificado.
+- P0.3 requiere seguimientos manuales en Supabase Dashboard/advisors antes de marcar seguridad externa como cerrada.
 
 ## Pendiente
 
 - Completar QA manual de negocio en el entorno de hosting final: mobile real, copy bilingüe, sesión/roles con usuarios reales, flujo de cotización con credenciales productivas y revisión visual final.
+- Activar o confirmar en Supabase Auth la protección de contraseñas filtradas (leaked password protection). No se habilitó desde código porque depende de configuración externa del proyecto; validar después login normal, recuperación de contraseña y bloqueo de credenciales filtradas.
+- Revisar y archivar un snapshot actualizado de Supabase Security Advisors. Estado conocido de P0.3: advertencia de leaked password protection deshabilitada; warnings sobre helpers `SECURITY DEFINER` (`has_role`, `is_admin`, `is_assigned_lead`) se aceptan temporalmente porque los grants a `authenticated` son necesarios para el modelo RLS actual y fueron corregidos tras regresión. Reabrir solo con pruebas sobre datos/roles reales.
+- Tratar como trabajo futuro, fuera de P0.3: MFA/SSO, rediseño completo de políticas RLS/helpers, mapas finos de rol en middleware, expansión de auditoría y limpieza de advisors puramente de performance.
 
 ## Bloqueos
 
@@ -60,8 +64,8 @@ Bloques 1–10 completados en alcance MVP actual. Bloque 9 está implementado y 
 - Las páginas públicas siguen usando contenido estático de arranque; la fundación Supabase ya existe, pero conectar catálogos dinámicos queda para bloques posteriores.
 - No exponer ni commitear `SUPABASE_SECRET_KEY` ni credenciales bootstrap; deben quedarse solo en el entorno local/hosting seguro.
 - Bloque 6 no implementa upload completo de comprobantes/documentos ni progreso de carga: gestiona metadata de `bucket/path` y firma URLs cortas para objetos existentes. La subida real, validación UX de MIME/tamaño y generación de paths quedan diferidas.
-- El refresh proactivo de sesión en middleware sigue diferido; las rutas admin validan sesión en servidor mediante Supabase SSR y guardas por rol.
+- El middleware admin solo hace refresh/redirect coarse por sesión Supabase; perfiles activos, roles internos y permisos por módulo siguen validados en servidor con `requireAdminRole([...])` y RLS.
 
 ## Última actualización
 
-2026-05-27 — Google Sheets API habilitada y verificada con cotización real: `quote_requests.status = received` y `sheet_sync_logs.status = success` con fila `Leads!A1:S1`. MVP listo para lanzamiento.
+2026-05-27 — P0.3 agregó refresh/redirect coarse para sesión admin y headers base; quedan follow-ups manuales de Supabase Auth/advisors.

@@ -19,6 +19,7 @@ export const quoteValidationCopy = {
     returnDate: "La fecha de regreso debe ser posterior o igual a la salida.",
     consent: "Debes aceptar que te contactemos para atender tu solicitud.",
     invalid: "Revisa los campos marcados.",
+    rateLimited: "Recibimos varias solicitudes seguidas. Intenta de nuevo en unos minutos o escríbenos por WhatsApp.",
     server: "No pudimos guardar tu solicitud. Intenta de nuevo o escríbenos por WhatsApp.",
   },
   en: {
@@ -32,12 +33,18 @@ export const quoteValidationCopy = {
     returnDate: "Return date must be on or after departure date.",
     consent: "You must accept that we contact you about this request.",
     invalid: "Please review the highlighted fields.",
+    rateLimited: "We received several requests in a row. Please try again in a few minutes or message us on WhatsApp.",
     server: "We could not save your request. Please try again or message us on WhatsApp.",
   },
 } as const;
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+const suspiciousControlCharacters = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/;
 const requiredString = (message: string) => z.string().trim().min(1, message).max(180);
+
+function hasSuspiciousControlCharacters(value?: string | null) {
+  return Boolean(value && suspiciousControlCharacters.test(value));
+}
 
 function isValidDateString(value: string) {
   if (!datePattern.test(value)) return false;
@@ -74,9 +81,18 @@ export function createQuoteRequestSchema(locale: Locale = "es") {
     sourceChannel: requiredString(copy.required),
     contactConsent: z.boolean().refine((value) => value === true, copy.consent),
     notes: z.string().trim().max(2000).optional(),
+    website: z.string().trim().max(0, copy.invalid).optional(),
   }).superRefine((value, ctx) => {
     if (isValidDateString(value.departureDate) && isValidDateString(value.returnDate) && value.returnDate < value.departureDate) {
       ctx.addIssue({ code: "custom", path: ["returnDate"], message: copy.returnDate });
+    }
+    if (value.adults + value.children > 30) {
+      ctx.addIssue({ code: "custom", path: ["adults"], message: copy.invalid });
+    }
+    for (const field of ["holderName", "whatsapp", "origin", "mainDestination", "serviceInterest", "sourceChannel", "notes"] as const) {
+      if (hasSuspiciousControlCharacters(value[field])) {
+        ctx.addIssue({ code: "custom", path: [field], message: copy.invalid });
+      }
     }
   });
 }

@@ -1,7 +1,7 @@
 import type { Json } from "@/lib/supabase/database.types";
 import type { QuoteRequestInput } from "@/lib/validations/quote-request";
 
-export type NotificationStatus = "queued" | "sent" | "failed" | "skipped";
+export type NotificationStatus = "queued" | "processing" | "sent" | "failed" | "skipped" | "ambiguous";
 export type NotificationSummary = { kind: string; status: NotificationStatus; reason?: string; recipient?: string | null };
 export type SendResult = { provider: "resend"; messageId?: string; raw?: Json };
 export type InsertLogResult = { id: string; existingStatus?: NotificationStatus; providerMessageId?: string | null };
@@ -40,7 +40,7 @@ export async function deliverQuoteNotification(values: {
   context: { quoteRequestId: string; leadId: string; contactId: string; locale: string; destination: string };
   render: () => { subject: string; text: string; html: string; metadata: Json };
   insertLog: (input: { status: "queued" | "skipped"; reason?: string; payload: Json }) => Promise<InsertLogResult>;
-  updateLog: (id: string, input: { status: "sent" | "failed" | "skipped"; error?: string | null; providerMessageId?: string; payload: Json }) => Promise<void>;
+  updateLog: (id: string, input: { status: "sent" | "failed" | "skipped" | "ambiguous"; error?: string | null; providerMessageId?: string; payload: Json }) => Promise<void>;
   send: (input: { to: string; subject: string; text: string; html: string }) => Promise<SendResult>;
 }) {
   const readiness = values.plan.skipReason ? { ready: false, reason: values.plan.skipReason } : getEmailReadiness(values.plan.recipient);
@@ -57,6 +57,14 @@ export async function deliverQuoteNotification(values: {
         recipient: values.plan.recipient,
       };
     }
+    if (log.existingStatus === "processing" || log.existingStatus === "ambiguous" || log.existingStatus === "skipped") {
+      return {
+        kind: values.plan.templateName,
+        status: log.existingStatus,
+        reason: `Notification log is ${log.existingStatus}; skipped duplicate send.`,
+        recipient: values.plan.recipient,
+      };
+    }
     if (!readiness.ready || !values.plan.recipient) return { kind: values.plan.templateName, status: "skipped" as const, reason: readiness.reason ?? undefined, recipient: values.plan.recipient };
 
     const rendered = values.render();
@@ -70,6 +78,11 @@ export async function deliverQuoteNotification(values: {
       });
     } catch (error) {
       updateWarning = `Log update failed after send: ${sanitizeError(error)}`;
+      try {
+        await values.updateLog(logId, { status: "ambiguous", error: updateWarning, providerMessageId: result.messageId, payload });
+      } catch {
+        // Preserve the user-facing success summary; the warning tells operators to review before retrying.
+      }
     }
     return { kind: values.plan.templateName, status: "sent" as const, recipient: values.plan.recipient, reason: updateWarning };
   } catch (error) {

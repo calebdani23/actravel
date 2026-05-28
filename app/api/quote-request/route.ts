@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createQuoteRequest } from "@/lib/leads/quote-request-service";
+import { checkPublicRateLimit } from "@/lib/security/public-rate-limit";
 import { createQuoteRequestSchema, quoteValidationCopy, type QuoteRequestErrorResponse, type QuoteRequestResponse } from "@/lib/validations/quote-request";
 import { type Locale } from "@/lib/i18n/config";
 
@@ -29,6 +30,15 @@ export async function POST(request: Request) {
   }
 
   try {
+    const limit = await checkPublicRateLimit("quote_request", request, parsed.data.mainDestination);
+    if (!limit.allowed) {
+      const body: QuoteRequestErrorResponse = { ok: false, message: quoteValidationCopy[locale].rateLimited };
+      return NextResponse.json<QuoteRequestResponse>(body, {
+        status: 429,
+        headers: limit.retryAfterSeconds ? { "Retry-After": String(limit.retryAfterSeconds) } : undefined,
+      });
+    }
+
     const body = await createQuoteRequest(parsed.data);
     return NextResponse.json<QuoteRequestResponse>(body, { status: 201 });
   } catch (error) {

@@ -6,6 +6,7 @@ import { ItemCard } from "@/components/public/item-card";
 import { LegalNotice } from "@/components/public/legal-notice";
 import { QuoteForm } from "@/components/public/quote-form";
 import { SectionHeader } from "@/components/public/section-header";
+import { ValueGrid } from "@/components/public/value-grid";
 import { Button } from "@/components/ui/button";
 import { type Locale } from "@/lib/i18n/config";
 import {
@@ -25,34 +26,17 @@ function PageShell({ children }: Readonly<{ children: ReactNode }>) {
 
 export function ListingPage({ locale, kind }: Readonly<{ locale: Locale; kind: "services" | "packages" | "deals" | "destinations" }>) {
   const content = getPublicSiteContent(locale);
-  const title = {
-    services: content.t.servicesTitle,
-    packages: content.t.packagesTitle,
-    deals: content.t.dealsTitle,
-    destinations: content.t.destinationsTitle,
-  }[kind];
+  const page = content.t.listingPages[kind];
   return (
     <PageShell>
-      <SectionHeader eyebrow="AC Travel" title={title} description={content.t.sections[kind === "deals" ? "deals" : kind === "destinations" ? "destinations" : "services"][1]} />
-      {kind === "services" ? <SimpleGrid items={content.services.map((item) => ({ title: item.title[locale], text: item.text[locale] }))} /> : null}
-      {kind === "packages" ? <SimpleGrid items={content.packages.map((item) => ({ title: item.title[locale], text: item.text[locale] }))} /> : null}
+      <SectionHeader eyebrow={page.eyebrow} title={page.title} description={page.description} />
+      {kind === "services" ? <ValueGrid items={content.services.map((item) => ({ title: item.title[locale], text: item.text[locale], eyebrow: item.eyebrow?.[locale] }))} /> : null}
+      {kind === "packages" ? <ValueGrid items={content.packages.map((item) => ({ title: item.title[locale], text: item.text[locale], eyebrow: item.eyebrow?.[locale] }))} /> : null}
       {kind === "deals" ? <ItemGrid locale={locale} items={content.promotions} section="deals" /> : null}
       {kind === "destinations" ? <ItemGrid locale={locale} items={content.destinations} section="destinations" /> : null}
-      <FinalCta locale={locale} />
+      <p className="rounded-3xl bg-[var(--ac-light-bg)] p-5 text-sm leading-6 text-muted-foreground">{page.note}</p>
+      <FinalCta locale={locale} title={page.ctaTitle} text={page.ctaText} whatsappTopic={page.ctaTopic} />
     </PageShell>
-  );
-}
-
-function SimpleGrid({ items }: Readonly<{ items: { title: string; text: string }[] }>) {
-  return (
-    <div className="grid gap-4 md:grid-cols-3">
-      {items.map((item) => (
-        <div key={item.title} className="rounded-3xl border bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-black text-[var(--ac-ink)]">{item.title}</h2>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.text}</p>
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -64,8 +48,10 @@ export function ItemGrid({ locale, items, section }: Readonly<{ locale: Locale; 
           key={item.id}
           title={item.title[locale]}
           summary={item.summary[locale]}
+          eyebrow={item.eyebrow?.[locale] ?? (section === "deals" ? (locale === "es" ? "Idea muestra" : "Sample idea") : undefined)}
           price={priceLabel(locale, item.price)}
           highlights={item.highlights[locale]}
+          note={item.detailNote?.[locale]}
           href={localizedPath(locale, section, item.slug[locale])}
           cta={locale === "es" ? "Ver detalle" : "View detail"}
         />
@@ -85,10 +71,14 @@ export function DetailPage({ locale, slug, kind }: Readonly<{ locale: Locale; sl
           <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-[var(--ac-blue)]">{item.eyebrow?.[locale] ?? "AC Travel"}</p>
           <h1 className="mt-3 text-4xl font-black text-[var(--ac-ink)] md:text-5xl">{item.title[locale]}</h1>
           <p className="mt-5 text-lg leading-8 text-muted-foreground">{item.description[locale]}</p>
+          {item.bestFor ? <p className="mt-4 rounded-3xl bg-[var(--ac-light-bg)] p-4 text-sm font-semibold leading-6 text-[var(--ac-ink)]">{item.bestFor[locale]}</p> : null}
           <p className="mt-5 text-xl font-extrabold text-[var(--ac-red)]">{priceLabel(locale, item.price)}</p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-            <WhatsAppCta message={waMessage(locale, item.title[locale])} label={locale === "es" ? "Consultar por WhatsApp" : "Ask on WhatsApp"} locale={locale} pagePath={`/${locale}/${back}/${item.slug[locale]}:detail`} className="rounded-full" />
+            <WhatsAppCta message={waMessage(locale, item.title[locale])} label={item.detailCta?.[locale] ?? (locale === "es" ? "Consultar por WhatsApp" : "Ask on WhatsApp")} locale={locale} pagePath={`/${locale}/${back}/${item.slug[locale]}:detail`} className="rounded-full" />
             <Button asChild variant="outline" className="rounded-full">
+              <Link href={localizedPath(locale, "quote")}>{locale === "es" ? "Enviar datos" : "Send details"}</Link>
+            </Button>
+            <Button asChild variant="ghost" className="rounded-full">
               <Link href={localizedPath(locale, back)}>{locale === "es" ? "Volver" : "Back"}</Link>
             </Button>
           </div>
@@ -98,8 +88,16 @@ export function DetailPage({ locale, slug, kind }: Readonly<{ locale: Locale; sl
           <ul className="mt-4 grid gap-3 text-sm leading-6 text-zinc-700">
             {item.highlights[locale].map((highlight) => <li key={highlight}>• {highlight}</li>)}
           </ul>
+          {item.planningNotes ? (
+            <div className="mt-6 rounded-3xl bg-white p-5">
+              <h3 className="font-black text-[var(--ac-ink)]">{locale === "es" ? "Para planear mejor" : "To plan better"}</h3>
+              <ul className="mt-3 grid gap-2 text-sm leading-6 text-zinc-700">
+                {item.planningNotes[locale].map((note) => <li key={note}>• {note}</li>)}
+              </ul>
+            </div>
+          ) : null}
           <p className="mt-6 text-xs leading-5 text-muted-foreground">
-            {locale === "es" ? "Contenido estático de Block 3. Tarifas y disponibilidad se validan manualmente." : "Block 3 static content. Rates and availability are manually validated."}
+            {item.detailNote?.[locale] ?? (locale === "es" ? "Contenido estático. Tarifas y disponibilidad se validan manualmente." : "Static content. Rates and availability are manually validated.")}
           </p>
         </div>
       </section>
@@ -124,15 +122,24 @@ export function LegalPage({ locale, legalKey }: Readonly<{ locale: Locale; legal
   return <PageShell><SectionHeader eyebrow="AC Travel" title={title} description={text} /><LegalNotice notice={t.legalProvisional} /></PageShell>;
 }
 
-export function FinalCta({ locale }: Readonly<{ locale: Locale }>) {
+export function FinalCta({ locale, title, text, whatsappTopic, quoteLabel }: Readonly<{ locale: Locale; title?: string; text?: string; whatsappTopic?: string; quoteLabel?: string }>) {
   const { t } = getPublicSiteContent(locale);
+  const finalTitle = title ?? t.finalCta.title;
+  const finalText = text ?? t.finalCta.text;
+  const topic = whatsappTopic ?? t.finalCta.whatsappTopic;
   return (
-    <section className="rounded-[2rem] border bg-white p-6 shadow-sm md:flex md:items-center md:justify-between md:p-8">
+    <section className="rounded-[2rem] border bg-white p-6 shadow-sm md:flex md:items-center md:justify-between md:gap-8 md:p-8">
       <div>
         <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-[var(--ac-red)]">WhatsApp first</p>
-        <h2 className="mt-2 text-2xl font-black text-[var(--ac-ink)]">{locale === "es" ? "Hablemos de tu siguiente viaje." : "Let us talk about your next trip."}</h2>
+        <h2 className="mt-2 text-2xl font-black text-[var(--ac-ink)]">{finalTitle}</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{finalText}</p>
       </div>
-      <WhatsAppCta message={waMessage(locale, "viaje")} label={t.primaryCta} locale={locale} pagePath={`/${locale}:final-cta`} className="mt-5 rounded-full md:mt-0" />
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row md:mt-0">
+        <WhatsAppCta message={waMessage(locale, topic)} label={t.primaryCta} locale={locale} pagePath={`/${locale}:final-cta`} className="rounded-full" />
+        <Button asChild variant="outline" className="rounded-full">
+          <Link href={localizedPath(locale, "quote")}>{quoteLabel ?? t.quoteCta}</Link>
+        </Button>
+      </div>
     </section>
   );
 }

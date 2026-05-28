@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { FAQSection } from "@/components/public/faq-section";
 import { HowItWorks } from "@/components/public/how-it-works";
-import { ItemGrid } from "@/components/public/public-pages";
+import { FinalCta, ItemGrid } from "@/components/public/public-pages";
 import { SectionHeader } from "@/components/public/section-header";
 import { TrustBlock } from "@/components/public/trust-block";
+import { ValueGrid } from "@/components/public/value-grid";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import { Button } from "@/components/ui/button";
 import { getPublicSiteContent, localizedPath, waMessage } from "@/lib/content/public-site";
@@ -25,9 +27,15 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
             <p className="text-sm font-extrabold uppercase tracking-[0.3em] text-[var(--ac-blue)]">{t.heroKicker}</p>
             <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-tight text-[var(--ac-ink)] md:text-6xl">{t.homeTitle}</h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-700">{t.homeDescription}</p>
+            <ul className="mt-6 grid gap-2 text-sm font-semibold text-zinc-700 sm:grid-cols-3">
+              {t.heroSupport.map((item) => <li key={item} className="rounded-full bg-white/70 px-4 py-2">{item}</li>)}
+            </ul>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <WhatsAppCta message={waMessage(locale, "vacaciones")} label={t.primaryCta} locale={locale} pagePath={`/${locale}:hero`} className="rounded-full" />
+              <WhatsAppCta message={waMessage(locale, t.finalCta.whatsappTopic)} label={t.primaryCta} locale={locale} pagePath={`/${locale}:hero`} className="rounded-full" />
               <Button asChild variant="outline" size="lg" className="rounded-full border-white bg-white/75">
+                <Link href={localizedPath(locale, "quote")}>{t.quoteCta}</Link>
+              </Button>
+              <Button asChild variant="ghost" size="lg" className="rounded-full">
                 <Link href={localizedPath(locale, "deals")}>{t.viewDeals}</Link>
               </Button>
             </div>
@@ -38,6 +46,13 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
         </div>
       </section>
 
+      <ValueGrid
+        title={t.sections.benefits[0]}
+        description={t.sections.benefits[1]}
+        items={t.benefits.map((item) => ({ title: item.title, text: item.text, eyebrow: item.eyebrow }))}
+        columns="four"
+      />
+
       <section className="space-y-6">
         <SectionHeader title={t.sections.destinations[0]} description={t.sections.destinations[1]} />
         <ItemGrid locale={locale} items={content.destinations.filter((item) => item.featured)} section="destinations" />
@@ -46,27 +61,11 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
         <SectionHeader title={t.sections.deals[0]} description={t.sections.deals[1]} />
         <ItemGrid locale={locale} items={content.promotions.filter((item) => item.featured)} section="deals" />
       </section>
-      <section className="grid gap-4 md:grid-cols-3">
-        {content.services.slice(0, 3).map((service) => (
-          <div key={service.id} className="rounded-3xl border bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-black text-[var(--ac-ink)]">{service.title[locale]}</h2>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">{service.text[locale]}</p>
-          </div>
-        ))}
-      </section>
+      <ValueGrid items={content.services.slice(0, 3).map((service) => ({ title: service.title[locale], text: service.text[locale], eyebrow: service.eyebrow?.[locale] }))} />
       <HowItWorks title={t.sections.process[0]} description={t.sections.process[1]} steps={[...t.process]} />
       <TrustBlock title={t.sections.trust[0]} description={t.sections.trust[1]} items={[...t.trust]} />
-      <section className="rounded-[2rem] border bg-white px-6 py-8 shadow-sm sm:px-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-[var(--ac-red)]">WhatsApp first</p>
-            <h2 className="mt-2 text-2xl font-black text-[var(--ac-ink)]">{locale === "es" ? "Tu viaje empieza con una conversación clara." : "Your trip starts with a clear conversation."}</h2>
-          </div>
-          <Button asChild variant="outline" size="lg" className="rounded-full">
-            <Link href={localizedPath(locale, "quote")}>{t.quoteCta}</Link>
-          </Button>
-        </div>
-      </section>
+      <FAQSection locale={locale} title={t.sections.faq[0]} description={t.sections.faq[1]} items={[...t.faq]} />
+      <FinalCta locale={locale} title={t.finalCta.title} text={t.finalCta.text} whatsappTopic={t.finalCta.whatsappTopic} quoteLabel={t.finalCta.quoteLabel} />
     </main>
   );
 }
