@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
 import { catalogResources, getCatalogOptions, getCatalogRows, type CatalogResource, type DestinationRow, type PromotionRow, type ServiceRow } from "@/lib/admin/catalog";
 import { requireAdminRole } from "@/lib/admin/auth";
 import { deleteCatalogAction, upsertCatalogAction } from "../actions";
@@ -32,20 +33,44 @@ function TextArea({ name, label, defaultValue }: { name: string; label: string; 
 }
 
 function StatusControls({ row }: { row?: CatalogRow }) {
+  const status = row?.status ?? "draft";
   return (
     <div className="grid gap-3 md:grid-cols-3">
       <label className="space-y-1 text-sm font-medium">
         <span>Estado</span>
-        <select className="w-full rounded-md border px-3 py-2 text-sm" defaultValue={row?.status ?? "draft"} name="status">
-          <option value="draft">Borrador</option>
-          <option value="published">Publicado</option>
-          <option value="archived">Archivado</option>
+        <select className="w-full rounded-md border px-3 py-2 text-sm" defaultValue={status} name="status">
+          <option value="draft">Borrador — no visible públicamente</option>
+          <option value="published">Publicado — visible públicamente</option>
+          <option value="archived">Archivado — oculto</option>
         </select>
       </label>
       <label className="flex items-center gap-2 pt-7 text-sm font-medium">
         <input defaultChecked={row?.is_featured ?? false} name="is_featured" type="checkbox" /> Destacado
       </label>
       <div className="pt-7 text-xs text-muted-foreground">Al publicar se actualiza la fecha de publicación.</div>
+    </div>
+  );
+}
+
+function MediaPreview({ heroImageUrl, thumbnailImageUrl }: { heroImageUrl?: string | null; thumbnailImageUrl?: string | null }) {
+  const hero = resolveCatalogMediaUrl(heroImageUrl);
+  const thumbnail = resolveCatalogMediaUrl(thumbnailImageUrl);
+  const preview = hero ?? thumbnail;
+
+  if (!preview) {
+    return <p className="text-xs text-muted-foreground">Sin media configurada.</p>;
+  }
+
+  return (
+    <div className="space-y-2 rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground">
+      <div className="flex gap-3">
+        {preview ? <img alt="" className="h-16 w-24 rounded-md object-cover" loading="lazy" src={preview} /> : null}
+        <div className="space-y-1 break-all">
+          <p><span className="font-medium text-foreground">Hero:</span> {hero ?? "—"}</p>
+          <p><span className="font-medium text-foreground">Thumbnail:</span> {thumbnail ?? "—"}</p>
+        </div>
+      </div>
+      <p>Media desde URL pública o ruta Storage de catalog-media.</p>
     </div>
   );
 }
@@ -82,6 +107,7 @@ function CatalogForm({ resource, row, destinations, services }: { resource: Cata
             <TextInput defaultValue={destination?.region} label="Región" name="region" />
             <TextInput defaultValue={destination?.hero_image_url} label="Hero image URL" name="hero_image_url" />
             <TextInput defaultValue={destination?.thumbnail_image_url} label="Thumbnail image URL" name="thumbnail_image_url" />
+            <div className="md:col-span-2"><MediaPreview heroImageUrl={destination?.hero_image_url} thumbnailImageUrl={destination?.thumbnail_image_url} /></div>
           </>
         ) : null}
 
@@ -93,6 +119,7 @@ function CatalogForm({ resource, row, destinations, services }: { resource: Cata
             <TextInput defaultValue={service?.sort_order ?? 0} label="Orden" name="sort_order" type="number" />
             <TextInput defaultValue={service?.hero_image_url} label="Hero image URL" name="hero_image_url" />
             <TextInput defaultValue={service?.thumbnail_image_url} label="Thumbnail image URL" name="thumbnail_image_url" />
+            <div className="md:col-span-2"><MediaPreview heroImageUrl={service?.hero_image_url} thumbnailImageUrl={service?.thumbnail_image_url} /></div>
           </>
         ) : null}
 
@@ -126,6 +153,7 @@ function CatalogForm({ resource, row, destinations, services }: { resource: Cata
             <TextInput defaultValue={promotion?.ends_at?.slice(0, 10)} label="Fin" name="ends_at" type="date" />
             <TextInput defaultValue={promotion?.hero_image_url} label="Hero image URL" name="hero_image_url" />
             <TextInput defaultValue={promotion?.thumbnail_image_url} label="Thumbnail image URL" name="thumbnail_image_url" />
+            <div className="md:col-span-2"><MediaPreview heroImageUrl={promotion?.hero_image_url} thumbnailImageUrl={promotion?.thumbnail_image_url} /></div>
           </>
         ) : null}
       </div>
@@ -181,9 +209,9 @@ export default async function CatalogPage({ params }: PageProps) {
           {rows.length ? rows.map((row) => (
             <details className="rounded-lg border p-4" key={row.id}>
               <summary className="cursor-pointer font-semibold">
-                {rowTitle(resource, row)} <span className="ml-2 text-xs font-normal text-muted-foreground">{row.status} · {row.published_at ? new Date(row.published_at).toLocaleDateString("es-MX") : "sin publicar"}</span>
+                {rowTitle(resource, row)} <span className="ml-2 text-xs font-normal text-muted-foreground">{row.status === "published" ? "Publicado" : row.status === "archived" ? "Archivado" : "Borrador"} · {row.published_at ? new Date(row.published_at).toLocaleDateString("es-MX") : "sin publicar"}</span>
               </summary>
-              <div className="mt-4"><CatalogForm destinations={options.destinations} resource={resource} row={row} services={options.services} /></div>
+              <div className="mt-4 space-y-4"><CatalogForm destinations={options.destinations} resource={resource} row={row} services={options.services} /></div>
             </details>
           )) : <p className="text-sm text-muted-foreground">No hay registros visibles para tu rol.</p>}
         </CardContent>

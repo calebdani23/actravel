@@ -8,6 +8,7 @@ import {
   type LegalKey,
   type PublicItem,
 } from "@/lib/content/public-site";
+import { getPublicCatalogContent } from "@/lib/content/public-catalog";
 import { type Locale, locales } from "@/lib/i18n/config";
 
 const siteName = "AC Travel";
@@ -139,12 +140,9 @@ export function buildLegalMetadata(locale: Locale, legalKey: LegalKey) {
   });
 }
 
-function findDetail(locale: Locale, kind: DetailKind, slug: string) {
-  return kind === "deal" ? findPromotion(locale, slug) : findDestination(locale, slug);
-}
-
-export function buildDetailMetadata(locale: Locale, kind: DetailKind, slug: string) {
-  const item = findDetail(locale, kind, slug);
+export async function buildDetailMetadata(locale: Locale, kind: DetailKind, slug: string) {
+  const catalog = await getPublicCatalogContent(locale).catch(() => null);
+  const item = (kind === "deal" ? catalog?.promotions : catalog?.destinations)?.find((entry) => entry.slug[locale] === slug) ?? (kind === "deal" ? findPromotion(locale, slug) : findDestination(locale, slug));
   const listKey = kind === "deal" ? "deals" : "destinations";
 
   if (!item) {

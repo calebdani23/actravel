@@ -1,4 +1,5 @@
 import { type Locale } from "@/lib/i18n/config";
+import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
 
 type Localized = Record<Locale, string>;
 export type PriceDisplay = { type: "from"; mxn?: number; usd?: number } | { type: "consult" };
@@ -276,8 +277,10 @@ function toNumber(value?: number | string | null) {
 }
 
 function catalogMedia(row: CatalogRowLike) {
-  const image = row.hero_image_url ?? row.thumbnail_image_url;
-  return image ? { heroImageUrl: image, thumbnailImageUrl: row.thumbnail_image_url ?? image } : undefined;
+  const heroImageUrl = resolveCatalogMediaUrl(row.hero_image_url);
+  const thumbnailImageUrl = resolveCatalogMediaUrl(row.thumbnail_image_url);
+  const resolvedHero = heroImageUrl ?? thumbnailImageUrl;
+  return resolvedHero ? { heroImageUrl: resolvedHero, thumbnailImageUrl: thumbnailImageUrl ?? resolvedHero } : undefined;
 }
 
 export function buildPublicCatalogItem(row: CatalogRowLike, kind: "destinations" | "services" | "promotions"): PublicItem {
@@ -322,6 +325,28 @@ export function buildPublicCatalogItem(row: CatalogRowLike, kind: "destinations"
     highlights: { es: [], en: [] },
     price: priceFrom ? { type: "from", mxn: toNumber(row.price_from_mxn), usd: toNumber(row.price_from_usd) } : { type: "consult" },
     featured: Boolean(row.is_featured),
+  };
+}
+
+type PublicCatalogRows = {
+  destinations: CatalogRowLike[];
+  services: CatalogRowLike[];
+  promotions: CatalogRowLike[];
+};
+
+export function buildPublicCatalogContent(locale: Locale, rows?: Partial<PublicCatalogRows> | null) {
+  const staticContent = getPublicSiteContent(locale);
+  if (!rows) return staticContent;
+
+  const destinations = publishedCatalogRows(rows.destinations ?? []).map((row) => buildPublicCatalogItem(row, "destinations"));
+  const services = publishedCatalogRows(rows.services ?? []).map((row) => buildPublicCatalogItem(row, "services"));
+  const promotions = publishedCatalogRows(rows.promotions ?? []).map((row) => buildPublicCatalogItem(row, "promotions"));
+
+  return {
+    ...staticContent,
+    services: services.length ? services : staticContent.services,
+    destinations: destinations.length ? destinations : staticContent.destinations,
+    promotions: promotions.length ? promotions : staticContent.promotions,
   };
 }
 
