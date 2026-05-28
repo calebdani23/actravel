@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
+import { buildPublicCatalogStaticParams } from "@/lib/content/public-catalog-utils";
 import { buildPublicCatalogContent, buildPublicCatalogItem, buildPublicHomeContent, publishedCatalogRows } from "@/lib/content/public-site";
 
 test("published catalog rows exclude drafts and keep published ordering", () => {
@@ -92,4 +93,19 @@ test("home content prefers live published catalog items and keeps static fallbac
   assert.ok(fallback.destinations.length > 0);
   assert.ok(fallback.promotions.length > 0);
   assert.ok(fallback.services.length > 0);
+});
+
+test("catalog static params follow the provided catalog content", () => {
+  const content = buildPublicCatalogContent("es", {
+    destinations: [
+      { id: "d1", slug_es: "live-dest", slug_en: "live-dest-en", name_es: "Destino en vivo", name_en: "Live destination", summary_es: "Resumen", summary_en: "Summary", description_es: "Descripción", description_en: "Description", status: "published" },
+    ],
+    services: [],
+    promotions: [
+      { id: "p1", slug_es: "live-deal", slug_en: "live-deal-en", title_es: "Promoción en vivo", title_en: "Live deal", summary_es: "Resumen", summary_en: "Summary", details_es: "Detalles", details_en: "Details", status: "published" },
+    ],
+  });
+
+  assert.deepEqual(buildPublicCatalogStaticParams(content, "es", "destinations"), [{ locale: "es", slug: "live-dest" }]);
+  assert.deepEqual(buildPublicCatalogStaticParams(content, "es", "promotions"), [{ locale: "es", slug: "live-deal" }]);
 });

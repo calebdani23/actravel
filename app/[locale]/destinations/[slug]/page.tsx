@@ -1,8 +1,8 @@
 import { DetailPage } from "@/components/public/public-pages";
-import { getPublicSiteContent } from "@/lib/content/public-site";
+import { getPublicCatalogStaticParams } from "@/lib/content/public-catalog";
 import { type Locale } from "@/lib/i18n/config";
 import { assertRouteLocale } from "@/lib/i18n/route-guards";
 import { buildDetailMetadata } from "@/lib/seo/public-seo";
-export function generateStaticParams() { return getPublicSiteContent("en").destinations.map((item) => ({ locale: "en", slug: item.slug.en })); }
+export async function generateStaticParams() { return getPublicCatalogStaticParams("en", "destinations"); }
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale; slug: string }> }) { const { locale, slug } = await params; return await buildDetailMetadata(locale, "destination", slug); }
 export default async function Page({ params }: { params: Promise<{ locale: Locale; slug: string }> }) { const { locale, slug } = await params; assertRouteLocale(locale, "en"); return await DetailPage({ locale, slug, kind: "destination" }); }

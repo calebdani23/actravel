@@ -232,12 +232,11 @@ export function getPublicSiteContent(locale: Locale) {
   return { locale, routes: routeNames[locale], t, services, packages, destinations, promotions };
 }
 
-export type PublicCatalogContent = {
-  locale: Locale;
-  routes: typeof routeNames[Locale];
-  t: (typeof copy)[Locale];
-  services: PublicItem[];
-  packages: typeof packages;
+type PublicSiteContent = ReturnType<typeof getPublicSiteContent>;
+type CatalogServiceItem = PublicItem | (ValueItem & { id: string }) | ValueItem;
+
+export type PublicCatalogContent = Omit<PublicSiteContent, "services"> & {
+  services: CatalogServiceItem[];
   destinations: PublicItem[];
   promotions: PublicItem[];
 };
@@ -250,7 +249,7 @@ export type HomeServiceItem = {
 };
 
 export type PublicHomeContent = Omit<PublicCatalogContent, "services"> & { services: HomeServiceItem[] };
-export type HomeCatalogSource = Omit<PublicCatalogContent, "services"> & { services: Array<PublicItem | HomeServiceItem> };
+export type HomeCatalogSource = Omit<PublicCatalogContent, "services"> & { services: Array<PublicItem | HomeServiceItem | ValueItem> };
 
 export type CatalogRowLike = {
   id: string;
@@ -344,7 +343,7 @@ type PublicCatalogRows = {
   promotions: CatalogRowLike[];
 };
 
-export function buildPublicCatalogContent(locale: Locale, rows?: Partial<PublicCatalogRows> | null) {
+export function buildPublicCatalogContent(locale: Locale, rows?: Partial<PublicCatalogRows> | null): PublicCatalogContent {
   const staticContent = getPublicSiteContent(locale);
   if (!rows) return staticContent;
 
@@ -360,9 +359,14 @@ export function buildPublicCatalogContent(locale: Locale, rows?: Partial<PublicC
   };
 }
 
-function toHomeServiceItem(item: PublicItem | (ValueItem & { id: string })) : HomeServiceItem {
+function toHomeServiceItem(item: PublicItem | (ValueItem & { id: string }) | ValueItem): HomeServiceItem {
   if ("text" in item) {
-    return item;
+    return {
+      id: "id" in item ? item.id : item.title.es,
+      title: item.title,
+      text: item.text,
+      eyebrow: item.eyebrow,
+    };
   }
 
   return {
