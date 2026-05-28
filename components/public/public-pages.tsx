@@ -29,14 +29,14 @@ export async function ListingPage({ locale, kind }: Readonly<{ locale: Locale; k
   const staticContent = getPublicSiteContent(locale);
   const page = staticContent.t.listingPages[kind];
   const catalog = await getPublicCatalogContent(locale).catch(() => null);
-  const serviceItems = catalog?.services ?? staticContent.services;
+  const serviceItems = catalog ? catalog.services : staticContent.services;
   return (
     <PageShell>
       <SectionHeader eyebrow={page.eyebrow} title={page.title} description={page.description} />
       {kind === "services" ? <ValueGrid items={serviceItems.map((item) => ({ title: item.title[locale], text: "description" in item ? item.description[locale] || item.summary[locale] : item.text[locale], eyebrow: item.eyebrow?.[locale] }))} /> : null}
       {kind === "packages" ? <ValueGrid items={staticContent.packages.map((item) => ({ title: item.title[locale], text: item.text[locale], eyebrow: item.eyebrow?.[locale] }))} /> : null}
-      {kind === "deals" ? <ItemGrid locale={locale} items={catalog?.promotions ?? staticContent.promotions} section="deals" /> : null}
-      {kind === "destinations" ? <ItemGrid locale={locale} items={catalog?.destinations ?? staticContent.destinations} section="destinations" /> : null}
+      {kind === "deals" ? <ItemGrid locale={locale} items={catalog ? catalog.promotions : staticContent.promotions} section="deals" /> : null}
+      {kind === "destinations" ? <ItemGrid locale={locale} items={catalog ? catalog.destinations : staticContent.destinations} section="destinations" /> : null}
       <p className="rounded-3xl bg-[var(--ac-light-bg)] p-5 text-sm leading-6 text-muted-foreground">{page.note}</p>
       <FinalCta locale={locale} title={page.ctaTitle} text={page.ctaText} whatsappTopic={page.ctaTopic} />
     </PageShell>
@@ -66,7 +66,9 @@ export function ItemGrid({ locale, items, section }: Readonly<{ locale: Locale; 
 
 export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Locale; slug: string; kind: "deal" | "destination" }>) {
   const catalog = await getPublicCatalogContent(locale).catch(() => null);
-  const item = (kind === "deal" ? catalog?.promotions : catalog?.destinations)?.find((entry) => entry.slug[locale] === slug) ?? (kind === "deal" ? findPromotion(locale, slug) : findDestination(locale, slug));
+  const item = catalog
+    ? (kind === "deal" ? catalog.promotions : catalog.destinations).find((entry) => entry.slug[locale] === slug)
+    : (kind === "deal" ? findPromotion(locale, slug) : findDestination(locale, slug));
   if (!item) notFound();
   const back = kind === "deal" ? "deals" : "destinations";
   return (

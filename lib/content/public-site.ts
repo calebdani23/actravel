@@ -344,9 +344,9 @@ export function buildPublicCatalogContent(locale: Locale, rows?: Partial<PublicC
 
   return {
     ...staticContent,
-    services: services.length ? services : staticContent.services,
-    destinations: destinations.length ? destinations : staticContent.destinations,
-    promotions: promotions.length ? promotions : staticContent.promotions,
+    services,
+    destinations,
+    promotions,
   };
 }
 

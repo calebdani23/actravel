@@ -14,6 +14,16 @@ test("published catalog rows exclude drafts and keep published ordering", () => 
   assert.deepEqual(rows.map((row) => row.id), ["3", "2"]);
 });
 
+test("unpublished catalog rows stay hidden from public content", () => {
+  const rows = publishedCatalogRows([
+    { id: "1", status: "published", is_featured: false, published_at: "2026-01-01", sort_order: 1 },
+    { id: "2", status: "draft", is_featured: false, published_at: null, sort_order: 2 },
+    { id: "3", status: "draft", is_featured: false, published_at: "2026-01-03", sort_order: 3 },
+  ]);
+
+  assert.deepEqual(rows.map((row) => row.id), ["1"]);
+});
+
 test("public catalog items expose hero media fields and fallback text", () => {
   const destination = buildPublicCatalogItem({ id: "cancun", slug_es: "cancun", slug_en: "cancun", name_es: "Cancún", name_en: "Cancun", summary_es: "Resumen", summary_en: "Summary", description_es: "Descripción", description_en: "Description", hero_image_url: "https://example.com/hero.jpg", status: "published" }, "destinations");
   const promotion = buildPublicCatalogItem({ id: "deal-1", slug_es: "oferta", slug_en: "deal", title_es: "Oferta", title_en: "Deal", summary_es: "Resumen", summary_en: "Summary", details_es: "Detalles", details_en: "Details", thumbnail_image_url: "https://example.com/thumb.jpg", status: "published" }, "promotions");
@@ -32,7 +42,7 @@ test("catalog media urls resolve storage paths and absolute urls", () => {
   assert.equal(resolveCatalogMediaUrl("catalog-media/items/thumb.jpg", { baseUrl: "https://project.supabase.co" }), "https://project.supabase.co/storage/v1/object/public/catalog-media/items/thumb.jpg");
 });
 
-test("public catalog content uses published Supabase rows and falls back when empty", () => {
+test("public catalog content returns only published rows and bootstrap fallback stays static", () => {
   const content = buildPublicCatalogContent("es", {
     destinations: [
       { id: "d1", slug_es: "pub-dest", slug_en: "pub-dest", name_es: "Destino publicado", name_en: "Published destination", summary_es: "Resumen", summary_en: "Summary", description_es: "Descripción", description_en: "Description", status: "published" },
@@ -47,7 +57,12 @@ test("public catalog content uses published Supabase rows and falls back when em
   assert.equal(content.destinations.some((item) => item.id === "d1"), true);
   assert.equal(content.destinations.some((item) => item.id === "d2"), false);
   assert.equal(content.promotions.some((item) => item.id === "p1"), true);
-  assert.ok(content.services.length > 0);
+  assert.deepEqual(content.services, []);
+
+  const empty = buildPublicCatalogContent("es", { destinations: [], services: [], promotions: [] });
+  assert.deepEqual(empty.destinations, []);
+  assert.deepEqual(empty.services, []);
+  assert.deepEqual(empty.promotions, []);
 
   const fallback = buildPublicCatalogContent("en", null);
   assert.ok(fallback.destinations.length > 0);

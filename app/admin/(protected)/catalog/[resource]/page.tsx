@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
 import { catalogResources, getCatalogOptions, getCatalogRows, type CatalogResource, type DestinationRow, type PromotionRow, type ServiceRow } from "@/lib/admin/catalog";
 import { requireAdminRole } from "@/lib/admin/auth";
-import { deleteCatalogAction, upsertCatalogAction } from "../actions";
+import { deleteCatalogAction, publishCatalogAction, unpublishCatalogAction, upsertCatalogAction } from "../actions";
 
 type PageProps = { params: Promise<{ resource: string }> };
 type CatalogRow = DestinationRow | ServiceRow | PromotionRow;
@@ -36,18 +36,14 @@ function StatusControls({ row }: { row?: CatalogRow }) {
   const status = row?.status ?? "draft";
   return (
     <div className="grid gap-3 md:grid-cols-3">
-      <label className="space-y-1 text-sm font-medium">
-        <span>Estado</span>
-        <select className="w-full rounded-md border px-3 py-2 text-sm" defaultValue={status} name="status">
-          <option value="draft">Borrador — no visible públicamente</option>
-          <option value="published">Publicado — visible públicamente</option>
-          <option value="archived">Archivado — oculto</option>
-        </select>
-      </label>
+      <div className="space-y-1 text-sm font-medium">
+        <span>Estado actual</span>
+        <p className="rounded-md border px-3 py-2 text-sm text-muted-foreground">{status === "published" ? "Publicado" : status === "archived" ? "Archivado" : "Borrador"}</p>
+      </div>
       <label className="flex items-center gap-2 pt-7 text-sm font-medium">
         <input defaultChecked={row?.is_featured ?? false} name="is_featured" type="checkbox" /> Destacado
       </label>
-      <div className="pt-7 text-xs text-muted-foreground">Al publicar se actualiza la fecha de publicación.</div>
+      <div className="pt-7 text-xs text-muted-foreground">Guardar crea/actualiza borrador. Publicar y despublicar son acciones separadas.</div>
     </div>
   );
 }
@@ -159,7 +155,15 @@ function CatalogForm({ resource, row, destinations, services }: { resource: Cata
       </div>
       <StatusControls row={row} />
       <div className="flex flex-wrap gap-2">
-        <Button type="submit">{row ? "Guardar cambios" : "Crear"}</Button>
+        <Button type="submit">{row ? "Guardar borrador" : "Crear borrador"}</Button>
+        <Button formAction={publishCatalogAction} type="submit" variant="outline">
+          {row?.status === "published" ? "Re-publicar" : "Publicar"}
+        </Button>
+        {row?.status === "published" ? (
+          <Button formAction={unpublishCatalogAction} type="submit" variant="outline">
+            Despublicar
+          </Button>
+        ) : null}
         {row ? (
           <Button formAction={deleteCatalogAction} type="submit" variant="outline">
             Eliminar

@@ -142,7 +142,9 @@ export function buildLegalMetadata(locale: Locale, legalKey: LegalKey) {
 
 export async function buildDetailMetadata(locale: Locale, kind: DetailKind, slug: string) {
   const catalog = await getPublicCatalogContent(locale).catch(() => null);
-  const item = (kind === "deal" ? catalog?.promotions : catalog?.destinations)?.find((entry) => entry.slug[locale] === slug) ?? (kind === "deal" ? findPromotion(locale, slug) : findDestination(locale, slug));
+  const item = catalog
+    ? (kind === "deal" ? catalog.promotions : catalog.destinations).find((entry) => entry.slug[locale] === slug)
+    : (kind === "deal" ? findPromotion(locale, slug) : findDestination(locale, slug));
   const listKey = kind === "deal" ? "deals" : "destinations";
 
   if (!item) {
