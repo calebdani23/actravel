@@ -10,8 +10,6 @@ import { ValueGrid } from "@/components/public/value-grid";
 import { Button } from "@/components/ui/button";
 import { type Locale } from "@/lib/i18n/config";
 import {
-  findDestination,
-  findPromotion,
   getPublicSiteContent,
   localizedPath,
   priceLabel,
@@ -19,7 +17,7 @@ import {
   type PublicItem,
   waMessage,
 } from "@/lib/content/public-site";
-import { getPublicCatalogContent } from "@/lib/content/public-catalog";
+import { getLivePublicCatalogContent } from "@/lib/content/public-catalog";
 
 function PageShell({ children }: Readonly<{ children: ReactNode }>) {
   return <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-10 sm:px-6 lg:px-8">{children}</main>;
@@ -28,22 +26,37 @@ function PageShell({ children }: Readonly<{ children: ReactNode }>) {
 export async function ListingPage({ locale, kind }: Readonly<{ locale: Locale; kind: "services" | "packages" | "deals" | "destinations" }>) {
   const staticContent = getPublicSiteContent(locale);
   const page = staticContent.t.listingPages[kind];
-  const catalog = await getPublicCatalogContent(locale).catch(() => null);
-  const serviceItems = catalog ? catalog.services : staticContent.services;
+  const catalog = await getLivePublicCatalogContent(locale).catch(() => null);
+  const serviceItems = catalog?.services ?? [];
+  const packageItems = catalog?.packages ?? [];
+  const destinationItems = catalog?.destinations ?? [];
+  const promotionItems = catalog?.promotions ?? [];
   return (
     <PageShell>
       <SectionHeader eyebrow={page.eyebrow} title={page.title} description={page.description} />
-      {kind === "services" ? <ValueGrid items={serviceItems.map((item) => ({ title: item.title[locale], text: "description" in item ? item.description[locale] || item.summary[locale] : item.text[locale], eyebrow: item.eyebrow?.[locale] }))} /> : null}
-      {kind === "packages" ? <ValueGrid items={staticContent.packages.map((item) => ({ title: item.title[locale], text: item.text[locale], eyebrow: item.eyebrow?.[locale] }))} /> : null}
-      {kind === "deals" ? <ItemGrid locale={locale} items={catalog ? catalog.promotions : staticContent.promotions} section="deals" /> : null}
-      {kind === "destinations" ? <ItemGrid locale={locale} items={catalog ? catalog.destinations : staticContent.destinations} section="destinations" /> : null}
+      {kind === "services" ? <CatalogEmptyState locale={locale} items={serviceItems} /> : null}
+      {kind === "packages" ? <CatalogEmptyState locale={locale} items={packageItems} /> : null}
+      {kind === "deals" ? <ItemGrid locale={locale} items={promotionItems} section="deals" /> : null}
+      {kind === "destinations" ? <ItemGrid locale={locale} items={destinationItems} section="destinations" /> : null}
       <p className="rounded-3xl bg-[var(--ac-light-bg)] p-5 text-sm leading-6 text-muted-foreground">{page.note}</p>
       <FinalCta locale={locale} title={page.ctaTitle} text={page.ctaText} whatsappTopic={page.ctaTopic} />
     </PageShell>
   );
 }
 
+function CatalogEmptyState({ locale, items }: Readonly<{ locale: Locale; items: Array<{ title: Record<Locale, string>; text?: Record<Locale, string>; description?: Record<Locale, string>; eyebrow?: Record<Locale, string> }> }>) {
+  if (!items.length) {
+    return <p className="rounded-3xl border bg-white p-6 text-sm text-muted-foreground">{locale === "es" ? "No hay contenido publicado todavía." : "No published content yet."}</p>;
+  }
+
+  return <ValueGrid items={items.map((item) => ({ title: item.title[locale], text: item.description?.[locale] ?? item.text?.[locale] ?? "", eyebrow: item.eyebrow?.[locale] }))} />;
+}
+
 export function ItemGrid({ locale, items, section }: Readonly<{ locale: Locale; items: PublicItem[]; section: "deals" | "destinations" }>) {
+  if (!items.length) {
+    return <p className="rounded-3xl border bg-white p-6 text-sm text-muted-foreground">{locale === "es" ? "No hay contenido publicado todavía." : "No published content yet."}</p>;
+  }
+
   return (
     <div className="grid gap-5 md:grid-cols-3">
       {items.map((item) => (
@@ -51,7 +64,7 @@ export function ItemGrid({ locale, items, section }: Readonly<{ locale: Locale; 
           key={item.id}
           title={item.title[locale]}
           summary={item.summary[locale]}
-          eyebrow={item.eyebrow?.[locale] ?? (section === "deals" ? (locale === "es" ? "Idea muestra" : "Sample idea") : undefined)}
+          eyebrow={item.eyebrow?.[locale]}
           price={priceLabel(locale, item.price)}
           highlights={item.highlights[locale]}
           note={item.detailNote?.[locale] ?? undefined}
@@ -65,10 +78,8 @@ export function ItemGrid({ locale, items, section }: Readonly<{ locale: Locale; 
 }
 
 export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Locale; slug: string; kind: "deal" | "destination" }>) {
-  const catalog = await getPublicCatalogContent(locale).catch(() => null);
-  const item = catalog
-    ? (kind === "deal" ? catalog.promotions : catalog.destinations).find((entry) => entry.slug[locale] === slug)
-    : (kind === "deal" ? findPromotion(locale, slug) : findDestination(locale, slug));
+  const catalog = await getLivePublicCatalogContent(locale).catch(() => null);
+  const item = catalog ? (kind === "deal" ? catalog.promotions : catalog.destinations).find((entry) => entry.slug[locale] === slug) : null;
   if (!item) notFound();
   const back = kind === "deal" ? "deals" : "destinations";
   return (
@@ -104,9 +115,7 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
               </ul>
             </div>
           ) : null}
-          <p className="mt-6 text-xs leading-5 text-muted-foreground">
-            {item.detailNote?.[locale] ?? (locale === "es" ? "Contenido estático. Tarifas y disponibilidad se validan manualmente." : "Static content. Rates and availability are manually validated.")}
-          </p>
+          {item.detailNote?.[locale] ? <p className="mt-6 text-xs leading-5 text-muted-foreground">{item.detailNote[locale]}</p> : null}
         </div>
       </section>
     </PageShell>

@@ -233,10 +233,10 @@ export function getPublicSiteContent(locale: Locale) {
 }
 
 type PublicSiteContent = ReturnType<typeof getPublicSiteContent>;
-type CatalogServiceItem = PublicItem | (ValueItem & { id: string }) | ValueItem;
 
-export type PublicCatalogContent = Omit<PublicSiteContent, "services"> & {
-  services: CatalogServiceItem[];
+export type PublicCatalogContent = Omit<PublicSiteContent, "services" | "packages"> & {
+  services: PublicItem[];
+  packages: PublicItem[];
   destinations: PublicItem[];
   promotions: PublicItem[];
 };
@@ -248,8 +248,11 @@ export type HomeServiceItem = {
   eyebrow?: Localized;
 };
 
-export type PublicHomeContent = Omit<PublicCatalogContent, "services"> & { services: HomeServiceItem[] };
-export type HomeCatalogSource = Omit<PublicCatalogContent, "services"> & { services: Array<PublicItem | HomeServiceItem | ValueItem> };
+export type PublicHomeContent = Omit<PublicCatalogContent, "services" | "packages"> & { services: HomeServiceItem[]; packages: HomeServiceItem[] };
+export type HomeCatalogSource = Omit<PublicCatalogContent, "services" | "packages"> & {
+  services: Array<PublicItem | HomeServiceItem | ValueItem>;
+  packages: Array<PublicItem | HomeServiceItem | ValueItem>;
+};
 
 export type CatalogRowLike = {
   id: string;
@@ -292,7 +295,7 @@ function catalogMedia(row: CatalogRowLike) {
   return resolvedHero ? { heroImageUrl: resolvedHero, thumbnailImageUrl: thumbnailImageUrl ?? resolvedHero } : undefined;
 }
 
-export function buildPublicCatalogItem(row: CatalogRowLike, kind: "destinations" | "services" | "promotions"): PublicItem {
+export function buildPublicCatalogItem(row: CatalogRowLike, kind: "destinations" | "services" | "packages" | "promotions"): PublicItem {
   const slug = { es: row.slug_es ?? row.id, en: row.slug_en ?? row.slug_es ?? row.id };
   const priceFrom = toNumber(row.price_from_mxn) || toNumber(row.price_from_usd);
   if (kind === "destinations") {
@@ -309,7 +312,7 @@ export function buildPublicCatalogItem(row: CatalogRowLike, kind: "destinations"
     };
   }
 
-  if (kind === "services") {
+  if (kind === "services" || kind === "packages") {
     return {
       id: row.id,
       slug,
@@ -340,23 +343,38 @@ export function buildPublicCatalogItem(row: CatalogRowLike, kind: "destinations"
 type PublicCatalogRows = {
   destinations: CatalogRowLike[];
   services: CatalogRowLike[];
+  packages: CatalogRowLike[];
   promotions: CatalogRowLike[];
 };
 
 export function buildPublicCatalogContent(locale: Locale, rows?: Partial<PublicCatalogRows> | null): PublicCatalogContent {
   const staticContent = getPublicSiteContent(locale);
-  if (!rows) return staticContent;
+  if (!rows) {
+    return {
+      ...staticContent,
+      destinations: [],
+      services: [],
+      packages: [],
+      promotions: [],
+    };
+  }
 
   const destinations = publishedCatalogRows(rows.destinations ?? []).map((row) => buildPublicCatalogItem(row, "destinations"));
   const services = publishedCatalogRows(rows.services ?? []).map((row) => buildPublicCatalogItem(row, "services"));
+  const packages = publishedCatalogRows(rows.packages ?? []).map((row) => buildPublicCatalogItem(row, "packages"));
   const promotions = publishedCatalogRows(rows.promotions ?? []).map((row) => buildPublicCatalogItem(row, "promotions"));
 
   return {
     ...staticContent,
     services,
+    packages,
     destinations,
     promotions,
   };
+}
+
+export function getPublicPackagesContent(locale: Locale) {
+  return getPublicSiteContent(locale).packages;
 }
 
 function toHomeServiceItem(item: PublicItem | (ValueItem & { id: string }) | ValueItem): HomeServiceItem {
@@ -377,22 +395,30 @@ function toHomeServiceItem(item: PublicItem | (ValueItem & { id: string }) | Val
   };
 }
 
-function pickHomeItems<T>(items: T[], fallback: T[], limit?: number) {
+function pickHomeItems<T>(items: T[], limit?: number) {
   const featured = items.filter((item) => (item as { featured?: boolean }).featured);
   const selected = featured.length > 0 ? featured : items;
-  const resolved = selected.length > 0 ? selected : fallback;
-  return typeof limit === "number" ? resolved.slice(0, limit) : resolved;
+  return typeof limit === "number" ? selected.slice(0, limit) : selected;
 }
 
 export function buildPublicHomeContent(locale: Locale, catalog?: HomeCatalogSource | null): PublicHomeContent {
   const staticContent = getPublicSiteContent(locale);
-  if (!catalog) return { ...staticContent, services: staticContent.services.map(toHomeServiceItem) };
+  if (!catalog) {
+    return {
+      ...staticContent,
+      destinations: [],
+      packages: [],
+      promotions: [],
+      services: [],
+    };
+  }
 
   return {
     ...staticContent,
-    destinations: pickHomeItems(catalog.destinations, staticContent.destinations.filter((item) => item.featured)),
-    promotions: pickHomeItems(catalog.promotions, staticContent.promotions.filter((item) => item.featured)),
-    services: pickHomeItems(catalog.services, staticContent.services, 3).map(toHomeServiceItem),
+    destinations: pickHomeItems(catalog.destinations),
+    packages: pickHomeItems(catalog.packages).map(toHomeServiceItem),
+    promotions: pickHomeItems(catalog.promotions),
+    services: pickHomeItems(catalog.services, 3).map(toHomeServiceItem),
   };
 }
 

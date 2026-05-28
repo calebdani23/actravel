@@ -45,6 +45,30 @@ create table public.services (
 
 create trigger set_services_updated_at before update on public.services for each row execute function public.set_updated_at();
 
+create table public.packages (
+  id uuid primary key default gen_random_uuid(),
+  name_es text not null,
+  name_en text not null,
+  slug_es text not null unique,
+  slug_en text not null unique,
+  summary_es text,
+  summary_en text,
+  description_es text,
+  description_en text,
+  hero_image_url text,
+  thumbnail_image_url text,
+  price_from_mxn numeric(12,2) check (price_from_mxn is null or price_from_mxn >= 0),
+  price_from_usd numeric(12,2) check (price_from_usd is null or price_from_usd >= 0),
+  sort_order integer not null default 0,
+  is_featured boolean not null default false,
+  status text not null default 'draft' check (status in ('draft', 'published', 'archived')),
+  published_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create trigger set_packages_updated_at before update on public.packages for each row execute function public.set_updated_at();
+
 create table public.promotions (
   id uuid primary key default gen_random_uuid(),
   destination_id uuid references public.destinations(id) on delete set null,

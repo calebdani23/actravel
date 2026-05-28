@@ -3,17 +3,19 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
 
-export type CatalogResource = "destinations" | "services" | "promotions";
+export type CatalogResource = "destinations" | "services" | "packages" | "promotions";
 export type CatalogStatus = "draft" | "published" | "archived";
 
 export const catalogResources = {
   destinations: { label: "Destinos", href: "/admin/catalog/destinations" },
   services: { label: "Servicios", href: "/admin/catalog/services" },
+  packages: { label: "Paquetes", href: "/admin/catalog/packages" },
   promotions: { label: "Promociones", href: "/admin/catalog/promotions" },
 } satisfies Record<CatalogResource, { label: string; href: string }>;
 
 export type DestinationRow = Tables<"destinations">;
 export type ServiceRow = Tables<"services">;
+export type PackageRow = Tables<"packages">;
 export type PromotionRow = Tables<"promotions"> & {
   destinations: { id: string; name_es: string } | null;
   services: { id: string; name_es: string } | null;
@@ -40,6 +42,11 @@ export async function getCatalogRows(resource: CatalogResource) {
   if (resource === "services") {
     const { data, error } = await supabase.from("services").select("*").order("sort_order").limit(100);
     return { rows: (data ?? []) as ServiceRow[], error: error?.message ?? null };
+  }
+
+  if (resource === "packages") {
+    const { data, error } = await supabase.from("packages").select("*").order("sort_order").limit(100);
+    return { rows: (data ?? []) as PackageRow[], error: error?.message ?? null };
   }
 
   const { data, error } = await supabase

@@ -3,12 +3,12 @@ import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
-import { catalogResources, getCatalogOptions, getCatalogRows, type CatalogResource, type DestinationRow, type PromotionRow, type ServiceRow } from "@/lib/admin/catalog";
+import { catalogResources, getCatalogOptions, getCatalogRows, type CatalogResource, type DestinationRow, type PackageRow, type PromotionRow, type ServiceRow } from "@/lib/admin/catalog";
 import { requireAdminRole } from "@/lib/admin/auth";
 import { deleteCatalogAction, publishCatalogAction, unpublishCatalogAction, upsertCatalogAction } from "../actions";
 
 type PageProps = { params: Promise<{ resource: string }> };
-type CatalogRow = DestinationRow | ServiceRow | PromotionRow;
+type CatalogRow = DestinationRow | ServiceRow | PackageRow | PromotionRow;
 
 function isResource(value: string): value is CatalogResource {
   return value in catalogResources;
@@ -71,7 +71,7 @@ function MediaPreview({ heroImageUrl, thumbnailImageUrl }: { heroImageUrl?: stri
   );
 }
 
-function SharedBilingualFields({ row }: { row?: DestinationRow | ServiceRow }) {
+function SharedBilingualFields({ row }: { row?: DestinationRow | ServiceRow | PackageRow }) {
   return (
     <>
       <TextInput defaultValue={row?.name_es} label="Nombre ES" name="name_es" required />
@@ -89,6 +89,7 @@ function SharedBilingualFields({ row }: { row?: DestinationRow | ServiceRow }) {
 function CatalogForm({ resource, row, destinations, services }: { resource: CatalogResource; row?: CatalogRow; destinations: { id: string; name_es: string }[]; services: { id: string; name_es: string }[] }) {
   const destination = row as DestinationRow | undefined;
   const service = row as ServiceRow | undefined;
+  const packageRow = row as PackageRow | undefined;
   const promotion = row as PromotionRow | undefined;
 
   return (
@@ -116,6 +117,18 @@ function CatalogForm({ resource, row, destinations, services }: { resource: Cata
             <TextInput defaultValue={service?.hero_image_url} label="Hero image URL" name="hero_image_url" />
             <TextInput defaultValue={service?.thumbnail_image_url} label="Thumbnail image URL" name="thumbnail_image_url" />
             <div className="md:col-span-2"><MediaPreview heroImageUrl={service?.hero_image_url} thumbnailImageUrl={service?.thumbnail_image_url} /></div>
+          </>
+        ) : null}
+
+        {resource === "packages" ? (
+          <>
+            <SharedBilingualFields row={packageRow} />
+            <TextInput defaultValue={packageRow?.price_from_mxn} label="Precio desde MXN" name="price_from_mxn" type="number" />
+            <TextInput defaultValue={packageRow?.price_from_usd} label="Precio desde USD" name="price_from_usd" type="number" />
+            <TextInput defaultValue={packageRow?.sort_order ?? 0} label="Orden" name="sort_order" type="number" />
+            <TextInput defaultValue={packageRow?.hero_image_url} label="Hero image URL" name="hero_image_url" />
+            <TextInput defaultValue={packageRow?.thumbnail_image_url} label="Thumbnail image URL" name="thumbnail_image_url" />
+            <div className="md:col-span-2"><MediaPreview heroImageUrl={packageRow?.hero_image_url} thumbnailImageUrl={packageRow?.thumbnail_image_url} /></div>
           </>
         ) : null}
 
@@ -176,7 +189,7 @@ function CatalogForm({ resource, row, destinations, services }: { resource: Cata
 
 function rowTitle(resource: CatalogResource, row: CatalogRow) {
   if (resource === "promotions") return (row as PromotionRow).title_es;
-  return (row as DestinationRow | ServiceRow).name_es;
+  return (row as DestinationRow | ServiceRow | PackageRow).name_es;
 }
 
 export default async function CatalogPage({ params }: PageProps) {

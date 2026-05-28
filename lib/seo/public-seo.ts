@@ -1,7 +1,5 @@
 import type { Metadata, MetadataRoute } from "next";
 import {
-  findDestination,
-  findPromotion,
   getPublicSiteContent,
   legalKeys,
   localizedPath,
@@ -142,14 +140,10 @@ export function buildLegalMetadata(locale: Locale, legalKey: LegalKey) {
 
 export async function buildDetailMetadata(locale: Locale, kind: DetailKind, slug: string) {
   const catalog = await getLivePublicCatalogContent(locale).catch(() => null);
-  const item = catalog
-    ? (kind === "deal" ? catalog.promotions : catalog.destinations).find((entry) => entry.slug[locale] === slug)
-    : (kind === "deal" ? findPromotion(locale, slug) : findDestination(locale, slug));
+  const item = catalog ? (kind === "deal" ? catalog.promotions : catalog.destinations).find((entry) => entry.slug[locale] === slug) : null;
   const listKey = kind === "deal" ? "deals" : "destinations";
 
-  if (!item) {
-    return buildListingMetadata(locale, listKey);
-  }
+  if (!item) return buildListingMetadata(locale, listKey);
 
   return buildItemMetadata(locale, kind, item);
 }
@@ -206,12 +200,12 @@ export async function getPublicSeoSitemapEntries(): Promise<MetadataRoute.Sitema
     for (const locale of locales) addEntry(localizedPath(locale, routeKey), { es: localizedPath("es", routeKey), en: localizedPath("en", routeKey) });
   }
 
-  const catalog = (await getLivePublicCatalogContent("es").catch(() => null)) ?? getPublicSiteContent("es");
-  for (const item of catalog.promotions) {
+  const catalog = await getLivePublicCatalogContent("es").catch(() => null);
+  for (const item of catalog?.promotions ?? []) {
     for (const locale of locales) addEntry(localizedPath(locale, "deals", item.slug[locale]), { es: localizedPath("es", "deals", item.slug.es), en: localizedPath("en", "deals", item.slug.en) });
   }
 
-  for (const item of catalog.destinations) {
+  for (const item of catalog?.destinations ?? []) {
     for (const locale of locales) addEntry(localizedPath(locale, "destinations", item.slug[locale]), { es: localizedPath("es", "destinations", item.slug.es), en: localizedPath("en", "destinations", item.slug.en) });
   }
 

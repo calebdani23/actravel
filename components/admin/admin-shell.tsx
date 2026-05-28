@@ -12,6 +12,7 @@ const adminLinks = [
   { href: "/admin/operations/bookings", label: "Reservas", roles: ["admin", "operaciones"] },
   { href: "/admin/operations/documents", label: "Documentos", roles: ["admin", "operaciones"] },
   { href: "/admin/catalog/destinations", label: "Catálogo", roles: ["admin", "marketing"] },
+  { href: "/admin/catalog/packages", label: "Paquetes", roles: ["admin", "marketing"] },
   { href: "/admin/templates", label: "Plantillas", roles: ["admin", "marketing"] },
   { href: "/admin/logs", label: "Logs", roles: ["admin", "marketing", "asesor"] },
 ] satisfies { href: string; label: string; roles: RoleName[] }[];

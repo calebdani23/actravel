@@ -8,7 +8,7 @@ import { ValueGrid } from "@/components/public/value-grid";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import { Button } from "@/components/ui/button";
 import { getPublicCatalogContent } from "@/lib/content/public-catalog";
-import { buildPublicHomeContent, getPublicSiteContent, localizedPath, waMessage } from "@/lib/content/public-site";
+import { buildPublicHomeContent, localizedPath, waMessage } from "@/lib/content/public-site";
 import { type Locale } from "@/lib/i18n/config";
 import { buildHomeMetadata } from "@/lib/seo/public-seo";
 
@@ -63,6 +63,13 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
         <SectionHeader title={t.sections.destinations[0]} description={t.sections.destinations[1]} />
         <ItemGrid locale={locale} items={content.destinations.filter((item) => item.featured)} section="destinations" />
       </section>
+      {content.packages.length ? (
+        <ValueGrid
+          title={locale === "es" ? "Paquetes" : "Packages"}
+          description={locale === "es" ? "Paquetes publicados desde el catálogo live." : "Published packages from the live catalog."}
+          items={content.packages.slice(0, 3).map((item) => ({ title: item.title[locale], text: homeItemText(item, locale), eyebrow: item.eyebrow?.[locale] }))}
+        />
+      ) : null}
       <section className="space-y-6">
         <SectionHeader title={t.sections.deals[0]} description={t.sections.deals[1]} />
         <ItemGrid locale={locale} items={content.promotions.filter((item) => item.featured)} section="deals" />
