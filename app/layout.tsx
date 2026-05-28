@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import { getSiteUrl } from "@/lib/seo/public-seo";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -8,7 +9,7 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  metadataBase: getSiteUrl(),
   title: {
     default: "AC Travel",
     template: "%s | AC Travel",

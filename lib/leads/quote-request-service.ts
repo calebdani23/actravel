@@ -46,6 +46,7 @@ function quotePayload(input: QuoteRequestInput, normalizedEmail: string | null, 
     serviceInterest: input.serviceInterest,
     approximateBudget: input.approximateBudget,
     sourceChannel: input.sourceChannel,
+    campaignContext: input.campaignContext ?? null,
     contactConsent: input.contactConsent,
     consentAt,
     notes: input.notes ?? null,
@@ -142,7 +143,7 @@ export async function createQuoteRequest(input: QuoteRequestInput): Promise<Quot
     .single();
   if (quoteError) throw quoteError;
 
-  const eventPayload: Json = { source: "website_quote_form", locale: input.locale, destination: input.mainDestination, service: input.serviceInterest, travelers: { adults: input.adults, children: input.children, total: travelersCount }, quoteRequestId: quoteRequest.id };
+  const eventPayload: Json = { source: "website_quote_form", sourceChannel: input.sourceChannel, campaignContext: input.campaignContext ?? null, locale: input.locale, destination: input.mainDestination, service: input.serviceInterest, travelers: { adults: input.adults, children: input.children, total: travelersCount }, quoteRequestId: quoteRequest.id };
   const { error: eventError } = await supabase.from("lead_events").insert({ lead_id: lead.id, actor_id: null, event_type: "quote_submitted", payload: eventPayload });
   if (eventError) throw eventError;
 

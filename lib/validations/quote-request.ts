@@ -68,7 +68,7 @@ export function createQuoteRequestSchema(locale: Locale = "es") {
     locale: z.enum(quoteLocales),
     preferredCurrency: z.enum(quoteCurrencies),
     holderName: requiredString(copy.required),
-    email: z.union([z.literal(""), z.string().trim().email(copy.email)]).optional(),
+    email: requiredString(copy.required).email(copy.email),
     whatsapp: requiredString(copy.required).refine((value) => normalizeWhatsApp(value).length >= 10, copy.whatsapp),
     origin: requiredString(copy.required),
     mainDestination: requiredString(copy.required),
@@ -81,6 +81,7 @@ export function createQuoteRequestSchema(locale: Locale = "es") {
     sourceChannel: requiredString(copy.required),
     contactConsent: z.boolean().refine((value) => value === true, copy.consent),
     notes: z.string().trim().max(2000).optional(),
+    campaignContext: z.string().trim().max(180).optional(),
     website: z.string().trim().max(0, copy.invalid).optional(),
   }).superRefine((value, ctx) => {
     if (isValidDateString(value.departureDate) && isValidDateString(value.returnDate) && value.returnDate < value.departureDate) {
@@ -89,7 +90,7 @@ export function createQuoteRequestSchema(locale: Locale = "es") {
     if (value.adults + value.children > 30) {
       ctx.addIssue({ code: "custom", path: ["adults"], message: copy.invalid });
     }
-    for (const field of ["holderName", "whatsapp", "origin", "mainDestination", "serviceInterest", "sourceChannel", "notes"] as const) {
+    for (const field of ["holderName", "email", "whatsapp", "origin", "mainDestination", "serviceInterest", "sourceChannel", "notes", "campaignContext"] as const) {
       if (hasSuspiciousControlCharacters(value[field])) {
         ctx.addIssue({ code: "custom", path: [field], message: copy.invalid });
       }

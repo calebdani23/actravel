@@ -35,12 +35,19 @@ export type QuoteFormCopy = {
   eyebrow: string;
   title: string;
   description: string;
+  requiredMarker: string;
+  optionalMarker: string;
   submit: string;
   submitting: string;
   successTitle: string;
+  successNextStep: string;
+  successDisclaimer: string;
+  successWhatsAppHelp: string;
   failureTitle: string;
+  failureRecovery: string;
   whatsappCta: string;
   reset: string;
+  sections: Record<"contact" | "trip" | "context", { title: string; description: string }>;
   fields: Record<
     | "holderName"
     | "email"
@@ -60,6 +67,7 @@ export type QuoteFormCopy = {
     string
   >;
   placeholders: Record<string, string>;
+  hints: Record<string, string>;
   serviceOptions: string[];
   sourceOptions: string[];
 };
@@ -319,15 +327,26 @@ export const copy = {
       eyebrow: "Formulario de cotización",
       title: "Recibe una propuesta personalizada",
       description: "La atención sigue siendo WhatsApp-first: el formulario nos ayuda a preparar mejor la conversación y no confirma disponibilidad ni compra automática.",
+      requiredMarker: "Obligatorio",
+      optionalMarker: "Opcional",
       submit: "Enviar solicitud",
       submitting: "Enviando...",
       successTitle: "Solicitud recibida",
+      successNextStep: "Una asesora revisará tus datos y continuará por WhatsApp o correo con opciones y preguntas puntuales.",
+      successDisclaimer: "Esto no confirma disponibilidad, precio final ni compra automática; primero validamos condiciones con proveedores.",
+      successWhatsAppHelp: "Puedes acelerar la conversación continuando con el mensaje preparado.",
       failureTitle: "No se pudo enviar",
+      failureRecovery: "Revisa los campos marcados. Si el problema continúa o aparece límite de intentos, intenta más tarde o continúa por WhatsApp.",
       whatsappCta: "Continuar por WhatsApp",
       reset: "Enviar otra solicitud",
+      sections: {
+        contact: { title: "1. Datos de contacto", description: "Necesitamos correo y WhatsApp para dar seguimiento sin perder tu solicitud." },
+        trip: { title: "2. Datos básicos del viaje", description: "Fechas, destino y presupuesto pueden ser aproximados; los afinamos contigo después." },
+        context: { title: "3. Contexto para cotizar", description: "Elige el servicio más cercano y agrega notas solo si ayudan a entender tu viaje." },
+      },
       fields: {
         holderName: "Nombre completo",
-        email: "Correo electrónico (opcional)",
+        email: "Correo electrónico",
         whatsapp: "WhatsApp",
         origin: "Ciudad de origen",
         mainDestination: "Destino principal",
@@ -348,8 +367,24 @@ export const copy = {
         whatsapp: "+52 998 123 4567",
         origin: "Ej. CDMX",
         mainDestination: "Ej. Cancún",
+        sourceChannel: "Ej. Instagram, Google o campaña",
         budget: "Ej. 25000",
         notes: "Hotel, estilo de viaje, edades de menores o detalles importantes.",
+      },
+      hints: {
+        holderName: "Como aparece mejor para contactarte.",
+        email: "Lo usamos para confirmar que recibimos tu solicitud y enviar seguimiento si hace falta.",
+        whatsapp: "Incluye lada para contactarte más rápido.",
+        origin: "Ciudad o aeropuerto desde donde planeas salir.",
+        mainDestination: "Puedes cambiarlo si vienes desde una promoción o destino prellenado.",
+        departureDate: "Si todavía no es final, elige la fecha tentativa más cercana.",
+        returnDate: "Puede ser tentativa; validaremos noches y disponibilidad después.",
+        travelers: "Si viajan menores, agrega edades en notas para cotizar mejor.",
+        serviceInterest: "Elige la opción más cercana aunque después ajustemos el alcance.",
+        approximateBudget: "Un rango aproximado ayuda a filtrar opciones realistas.",
+        sourceChannel: "Nos ayuda a entender el contexto de tu solicitud.",
+        notes: "Opcional: estilo de hotel, edades de menores, celebración o necesidades especiales.",
+        contactConsent: "Sin este permiso no podemos dar seguimiento a la cotización.",
       },
       serviceOptions: ["Paquete hotel + traslados", "Hotel o resort", "Tours y experiencias", "Traslados", "Casa vacacional", "Asesoría personalizada"],
       sourceOptions: ["WhatsApp", "Instagram", "Facebook", "Google", "Recomendación", "Sitio web"],
@@ -414,15 +449,26 @@ export const copy = {
       eyebrow: "Quote form",
       title: "Get a personalized proposal",
       description: "We remain WhatsApp-first: this form helps us prepare a better conversation and does not confirm availability or automatic purchase.",
+      requiredMarker: "Required",
+      optionalMarker: "Optional",
       submit: "Send request",
       submitting: "Sending...",
       successTitle: "Request received",
+      successNextStep: "An advisor will review your details and continue by WhatsApp or email with options and focused questions.",
+      successDisclaimer: "This does not confirm availability, final price, or automatic purchase; we first validate supplier conditions.",
+      successWhatsAppHelp: "You can speed up the conversation by continuing with the prepared message.",
       failureTitle: "Could not send",
+      failureRecovery: "Review the highlighted fields. If the problem continues or you hit the request limit, try again later or continue on WhatsApp.",
       whatsappCta: "Continue on WhatsApp",
       reset: "Send another request",
+      sections: {
+        contact: { title: "1. Contact details", description: "We need email and WhatsApp to follow up without losing your request." },
+        trip: { title: "2. Trip basics", description: "Dates, destination, and budget can be approximate; we will refine them with you." },
+        context: { title: "3. Quote context", description: "Choose the closest service and add notes only if they help explain your trip." },
+      },
       fields: {
         holderName: "Full name",
-        email: "Email (optional)",
+        email: "Email",
         whatsapp: "WhatsApp",
         origin: "Origin city",
         mainDestination: "Main destination",
@@ -443,8 +489,24 @@ export const copy = {
         whatsapp: "+1 555 123 4567",
         origin: "E.g. Dallas",
         mainDestination: "E.g. Cancun",
+        sourceChannel: "E.g. Instagram, Google, or campaign",
         budget: "E.g. 1500",
         notes: "Hotel style, traveler ages, trip vibe, or important details.",
+      },
+      hints: {
+        holderName: "How you prefer us to address you.",
+        email: "We use it to confirm receipt and send follow-up if needed.",
+        whatsapp: "Include country code so we can contact you faster.",
+        origin: "City or airport where you plan to start.",
+        mainDestination: "You can edit this if it was prefilled from a deal or destination.",
+        departureDate: "If it is not final, choose your closest tentative date.",
+        returnDate: "Tentative is fine; we will validate nights and availability later.",
+        travelers: "If children are traveling, add ages in notes for a better quote.",
+        serviceInterest: "Choose the closest option even if we refine scope later.",
+        approximateBudget: "A rough range helps us filter realistic options.",
+        sourceChannel: "This helps us understand the context for your request.",
+        notes: "Optional: hotel style, children ages, celebration, or special needs.",
+        contactConsent: "Without this permission we cannot follow up on the quote.",
       },
       serviceOptions: ["Hotel + transfer package", "Hotel or resort", "Tours and experiences", "Transfers", "Vacation home", "Personalized advisory"],
       sourceOptions: ["WhatsApp", "Instagram", "Facebook", "Google", "Referral", "Website"],

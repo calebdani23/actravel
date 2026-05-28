@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import { ItemCard } from "@/components/public/item-card";
 import { LegalNotice } from "@/components/public/legal-notice";
-import { QuoteForm } from "@/components/public/quote-form";
+import { QuoteForm, type QuoteFormInitialContext } from "@/components/public/quote-form";
 import { SectionHeader } from "@/components/public/section-header";
 import { ValueGrid } from "@/components/public/value-grid";
 import { Button } from "@/components/ui/button";
@@ -105,8 +105,8 @@ export function DetailPage({ locale, slug, kind }: Readonly<{ locale: Locale; sl
   );
 }
 
-export function QuotePage({ locale }: Readonly<{ locale: Locale }>) {
-  return <PageShell><QuoteForm locale={locale} /></PageShell>;
+export function QuotePage({ locale, initialContext }: Readonly<{ locale: Locale; initialContext?: QuoteFormInitialContext }>) {
+  return <PageShell><QuoteForm locale={locale} initialContext={initialContext} /></PageShell>;
 }
 
 export function InfoPage({ locale, kind }: Readonly<{ locale: Locale; kind: "about" | "contact" }>) {

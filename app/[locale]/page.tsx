@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { FAQSection } from "@/components/public/faq-section";
 import { HowItWorks } from "@/components/public/how-it-works";
@@ -10,8 +9,9 @@ import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import { Button } from "@/components/ui/button";
 import { getPublicSiteContent, localizedPath, waMessage } from "@/lib/content/public-site";
 import { type Locale } from "@/lib/i18n/config";
+import { buildHomeMetadata } from "@/lib/seo/public-seo";
 
-export const metadata: Metadata = { title: "AC Travel" };
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) { const { locale } = await params; return buildHomeMetadata(locale); }
 
 export default async function LocaleHome({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;

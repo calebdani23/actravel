@@ -81,6 +81,13 @@ test("quote schema accepts empty honeypot and rejects filled honeypot or suspici
   assert.equal(schema.safeParse({ ...validQuotePayload, holderName: "Ada\u0001" }).success, false);
 });
 
+test("quote schema requires email while keeping notes optional", () => {
+  const schema = createQuoteRequestSchema("en");
+  assert.equal(schema.safeParse({ ...validQuotePayload, email: undefined }).success, false);
+  assert.equal(schema.safeParse({ ...validQuotePayload, email: "" }).success, false);
+  assert.equal(schema.safeParse({ ...validQuotePayload, email: "ada@example.com", notes: undefined }).success, true);
+});
+
 test("admin log retry actions are role gated and forms submit a single logId", () => {
   const actions = readFileSync("app/admin/(protected)/logs/actions.ts", "utf8");
   const page = readFileSync("app/admin/(protected)/logs/page.tsx", "utf8");
