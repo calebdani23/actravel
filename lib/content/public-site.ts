@@ -242,6 +242,16 @@ export type PublicCatalogContent = {
   promotions: PublicItem[];
 };
 
+export type HomeServiceItem = {
+  id: string;
+  title: Localized;
+  text: Localized;
+  eyebrow?: Localized;
+};
+
+export type PublicHomeContent = Omit<PublicCatalogContent, "services"> & { services: HomeServiceItem[] };
+export type HomeCatalogSource = Omit<PublicCatalogContent, "services"> & { services: Array<PublicItem | HomeServiceItem> };
+
 export type CatalogRowLike = {
   id: string;
   slug_es?: string | null;
@@ -347,6 +357,38 @@ export function buildPublicCatalogContent(locale: Locale, rows?: Partial<PublicC
     services,
     destinations,
     promotions,
+  };
+}
+
+function toHomeServiceItem(item: PublicItem | (ValueItem & { id: string })) : HomeServiceItem {
+  if ("text" in item) {
+    return item;
+  }
+
+  return {
+    id: item.id,
+    title: item.title,
+    text: item.description,
+    eyebrow: item.eyebrow,
+  };
+}
+
+function pickHomeItems<T>(items: T[], fallback: T[], limit?: number) {
+  const featured = items.filter((item) => (item as { featured?: boolean }).featured);
+  const selected = featured.length > 0 ? featured : items;
+  const resolved = selected.length > 0 ? selected : fallback;
+  return typeof limit === "number" ? resolved.slice(0, limit) : resolved;
+}
+
+export function buildPublicHomeContent(locale: Locale, catalog?: HomeCatalogSource | null): PublicHomeContent {
+  const staticContent = getPublicSiteContent(locale);
+  if (!catalog) return { ...staticContent, services: staticContent.services.map(toHomeServiceItem) };
+
+  return {
+    ...staticContent,
+    destinations: pickHomeItems(catalog.destinations, staticContent.destinations.filter((item) => item.featured)),
+    promotions: pickHomeItems(catalog.promotions, staticContent.promotions.filter((item) => item.featured)),
+    services: pickHomeItems(catalog.services, staticContent.services, 3).map(toHomeServiceItem),
   };
 }
 

@@ -48,6 +48,7 @@ Bloques 1–10 completados en alcance MVP actual. Bloque 9 está implementado y 
 - ✅ Implementado P0.3 de seguridad/sesión: middleware coarse para `/admin/:path*` que refresca cookies Supabase con `auth.getUser()`, redirige visitantes sin sesión a `/admin/login`, deja la decisión de redirigir desde `/admin/login` al chequeo completo de `getAdminSession()` para evitar loops con usuarios sin rol/perfil válido, conserva los guards de roles en páginas/actions y agrega headers base (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`).
 - ✅ Cerrado P1.6: las acciones de plantillas en lead detail ahora tienen cobertura runtime para WhatsApp trackeado, cuerpo codificado, copiado de contenido y estado deshabilitado de email cuando falta correo; se agregó `npm run test:lead-template-actions`.
 - ✅ Reimplementados P1.7 y P1.8 de forma secuencial con validación entre bloques: el catálogo público prioriza filas publicadas desde Supabase con fallback estático, y el contenido de catálogo soporta media básica (`hero_image_url` / `thumbnail_image_url`) tanto en público como en admin.
+- ✅ Corregido el home público para consumir catálogo vivo publicado en destinos/promociones/servicios, de modo que las publicaciones admin ya se reflejan en la portada.
 
 ## En proceso
 

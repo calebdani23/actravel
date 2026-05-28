@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
-import { buildPublicCatalogContent, buildPublicCatalogItem, publishedCatalogRows } from "@/lib/content/public-site";
+import { buildPublicCatalogContent, buildPublicCatalogItem, buildPublicHomeContent, publishedCatalogRows } from "@/lib/content/public-site";
 
 test("published catalog rows exclude drafts and keep published ordering", () => {
   const rows = publishedCatalogRows([
@@ -67,4 +67,29 @@ test("public catalog content returns only published rows and bootstrap fallback 
   const fallback = buildPublicCatalogContent("en", null);
   assert.ok(fallback.destinations.length > 0);
   assert.ok(fallback.promotions.length > 0);
+});
+
+test("home content prefers live published catalog items and keeps static fallback", () => {
+  const live = buildPublicCatalogContent("es", {
+    destinations: [
+      { id: "d1", slug_es: "live-dest", slug_en: "live-dest", name_es: "Destino en vivo", name_en: "Live destination", summary_es: "Resumen", summary_en: "Summary", description_es: "Descripción", description_en: "Description", is_featured: true, status: "published" },
+    ],
+    services: [
+      { id: "s1", slug_es: "live-service", slug_en: "live-service", name_es: "Servicio en vivo", name_en: "Live service", summary_es: "Resumen servicio", summary_en: "Service summary", description_es: "Descripción servicio", description_en: "Service description", is_featured: true, status: "published" },
+    ],
+    promotions: [
+      { id: "p1", slug_es: "live-deal", slug_en: "live-deal", title_es: "Promoción en vivo", title_en: "Live deal", summary_es: "Resumen", summary_en: "Summary", details_es: "Detalles", details_en: "Details", is_featured: true, status: "published" },
+    ],
+  });
+
+  const home = buildPublicHomeContent("es", live);
+
+  assert.equal(home.destinations[0].id, "d1");
+  assert.equal(home.promotions[0].id, "p1");
+  assert.equal(home.services[0].id, "s1");
+
+  const fallback = buildPublicHomeContent("es", null);
+  assert.ok(fallback.destinations.length > 0);
+  assert.ok(fallback.promotions.length > 0);
+  assert.ok(fallback.services.length > 0);
 });

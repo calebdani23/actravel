@@ -7,15 +7,21 @@ import { TrustBlock } from "@/components/public/trust-block";
 import { ValueGrid } from "@/components/public/value-grid";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import { Button } from "@/components/ui/button";
-import { getPublicSiteContent, localizedPath, waMessage } from "@/lib/content/public-site";
+import { getPublicCatalogContent } from "@/lib/content/public-catalog";
+import { buildPublicHomeContent, getPublicSiteContent, localizedPath, waMessage } from "@/lib/content/public-site";
 import { type Locale } from "@/lib/i18n/config";
 import { buildHomeMetadata } from "@/lib/seo/public-seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) { const { locale } = await params; return buildHomeMetadata(locale); }
 
+function homeItemText(item: { description?: Record<Locale, string>; summary?: Record<Locale, string>; text?: Record<Locale, string> }, locale: Locale) {
+  return item.description?.[locale] ?? item.summary?.[locale] ?? item.text?.[locale] ?? "";
+}
+
 export default async function LocaleHome({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
-  const content = getPublicSiteContent(locale);
+  const catalog = await getPublicCatalogContent(locale).catch(() => null);
+  const content = buildPublicHomeContent(locale, catalog);
   const { t } = content;
 
   return (
@@ -61,7 +67,7 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
         <SectionHeader title={t.sections.deals[0]} description={t.sections.deals[1]} />
         <ItemGrid locale={locale} items={content.promotions.filter((item) => item.featured)} section="deals" />
       </section>
-      <ValueGrid items={content.services.slice(0, 3).map((service) => ({ title: service.title[locale], text: service.text[locale], eyebrow: service.eyebrow?.[locale] }))} />
+      <ValueGrid items={content.services.slice(0, 3).map((service) => ({ title: service.title[locale], text: homeItemText(service, locale), eyebrow: service.eyebrow?.[locale] }))} />
       <HowItWorks title={t.sections.process[0]} description={t.sections.process[1]} steps={[...t.process]} />
       <TrustBlock title={t.sections.trust[0]} description={t.sections.trust[1]} items={[...t.trust]} />
       <FAQSection locale={locale} title={t.sections.faq[0]} description={t.sections.faq[1]} items={[...t.faq]} />

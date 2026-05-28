@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import { getPublicSiteContent, buildPublicCatalogContent, type CatalogRowLike } from "@/lib/content/public-site";
+import { buildPublicCatalogContent, getPublicSiteContent, type CatalogRowLike } from "@/lib/content/public-site";
 import type { Locale } from "@/lib/i18n/config";
 
 export async function getPublicCatalogContent(locale: Locale) {
