@@ -24,6 +24,8 @@ function PageShell({ children }: Readonly<{ children: ReactNode }>) {
 }
 
 export async function ListingPage({ locale, kind }: Readonly<{ locale: Locale; kind: "services" | "packages" | "deals" | "destinations" }>) {
+  const staticContent = getPublicSiteContent(locale);
+  const page = staticContent.t.listingPages[kind];
   const catalog = await getLivePublicCatalogContent(locale);
 
   console.log("[public-pages] ListingPage catalog counts", {
