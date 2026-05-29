@@ -1,13 +1,9 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-type GenericRow = Record<string, any>;
-type GenericInsert = Record<string, any>;
-type GenericUpdate = Record<string, any>;
-
 type GenericTable = {
-  Row: GenericRow;
-  Insert: GenericInsert;
-  Update: GenericUpdate;
+  Row: any;
+  Insert: any;
+  Update: any;
   Relationships: any[];
 };
 
