@@ -15,13 +15,11 @@ export async function getLivePublicCatalogContent(locale: Locale) {
       supabase.from("promotions").select("id, slug_es, slug_en, title_es, title_en, summary_es, summary_en, details_es, details_en, hero_image_url, thumbnail_image_url, price_from_mxn, price_from_usd, is_featured, status, published_at").eq("status", "published").order("updated_at", { ascending: false }).limit(100),
     ]);
 
-    if (destinationsResult.error || servicesResult.error || packagesResult.error || promotionsResult.error) return null;
-
     return buildPublicCatalogContent(locale, {
-      destinations: (destinationsResult.data ?? []) as CatalogRowLike[],
-      services: (servicesResult.data ?? []) as CatalogRowLike[],
-      packages: (packagesResult.data ?? []) as CatalogRowLike[],
-      promotions: (promotionsResult.data ?? []) as CatalogRowLike[],
+      destinations: destinationsResult.error ? [] : ((destinationsResult.data ?? []) as CatalogRowLike[]),
+      services: servicesResult.error ? [] : ((servicesResult.data ?? []) as CatalogRowLike[]),
+      packages: packagesResult.error ? [] : ((packagesResult.data ?? []) as CatalogRowLike[]),
+      promotions: promotionsResult.error ? [] : ((promotionsResult.data ?? []) as CatalogRowLike[]),
     });
   } catch {
     return null;
@@ -30,7 +28,7 @@ export async function getLivePublicCatalogContent(locale: Locale) {
 
 export async function getPublicCatalogContent(locale: Locale) {
   const liveContent = await getLivePublicCatalogContent(locale);
-  return liveContent ?? buildPublicCatalogContent(locale, null);
+  return liveContent ?? buildPublicCatalogContent(locale, { destinations: [], services: [], packages: [], promotions: [] });
 }
 
 export async function getPublicCatalogStaticParams(locale: Locale, kind: "destinations" | "promotions") {

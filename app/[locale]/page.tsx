@@ -12,6 +12,8 @@ import { buildPublicHomeContent, localizedPath, waMessage } from "@/lib/content/
 import { type Locale } from "@/lib/i18n/config";
 import { buildHomeMetadata } from "@/lib/seo/public-seo";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) { const { locale } = await params; return buildHomeMetadata(locale); }
 
 function homeItemText(item: { description?: Record<Locale, string>; summary?: Record<Locale, string>; text?: Record<Locale, string> }, locale: Locale) {
