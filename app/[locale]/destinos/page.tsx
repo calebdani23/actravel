@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { ListingPage } from "@/components/public/public-pages";
 import { type Locale } from "@/lib/i18n/config";
 import { assertRouteLocale } from "@/lib/i18n/route-guards";

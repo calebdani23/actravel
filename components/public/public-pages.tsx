@@ -24,9 +24,17 @@ function PageShell({ children }: Readonly<{ children: ReactNode }>) {
 }
 
 export async function ListingPage({ locale, kind }: Readonly<{ locale: Locale; kind: "services" | "packages" | "deals" | "destinations" }>) {
-  const staticContent = getPublicSiteContent(locale);
-  const page = staticContent.t.listingPages[kind];
-  const catalog = await getLivePublicCatalogContent(locale).catch(() => null);
+  const catalog = await getLivePublicCatalogContent(locale);
+
+  console.log("[public-pages] ListingPage catalog counts", {
+    locale,
+    kind,
+    services: catalog?.services.length ?? 0,
+    packages: catalog?.packages.length ?? 0,
+    destinations: catalog?.destinations.length ?? 0,
+    promotions: catalog?.promotions.length ?? 0,
+  });
+
   const serviceItems = catalog?.services ?? [];
   const packageItems = catalog?.packages ?? [];
   const destinationItems = catalog?.destinations ?? [];
@@ -78,7 +86,15 @@ export function ItemGrid({ locale, items, section }: Readonly<{ locale: Locale; 
 }
 
 export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Locale; slug: string; kind: "deal" | "destination" }>) {
-  const catalog = await getLivePublicCatalogContent(locale).catch(() => null);
+  const catalog = await getLivePublicCatalogContent(locale);
+
+  console.log("[public-pages] DetailPage catalog counts", {
+    locale,
+    kind,
+    slug,
+    destinations: catalog?.destinations.length ?? 0,
+    promotions: catalog?.promotions.length ?? 0,
+  });
   const item = catalog ? (kind === "deal" ? catalog.promotions : catalog.destinations).find((entry) => entry.slug[locale] === slug) : null;
   if (!item) notFound();
   const back = kind === "deal" ? "deals" : "destinations";

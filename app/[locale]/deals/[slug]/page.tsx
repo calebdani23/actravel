@@ -5,6 +5,7 @@ import { assertRouteLocale } from "@/lib/i18n/route-guards";
 import { buildDetailMetadata } from "@/lib/seo/public-seo";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function generateStaticParams() { return getPublicCatalogStaticParams("en", "promotions"); }
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale; slug: string }> }) { const { locale, slug } = await params; return await buildDetailMetadata(locale, "deal", slug); }
