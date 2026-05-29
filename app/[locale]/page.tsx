@@ -23,7 +23,7 @@ function homeItemText(item: { description?: Record<Locale, string>; summary?: Re
 
 export default async function LocaleHome({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
-  const catalog = await getPublicCatalogContent(locale).catch(() => null);
+  const catalog = await getPublicCatalogContent(locale);
   const content = buildPublicHomeContent(locale, catalog);
   const { t } = content;
 
