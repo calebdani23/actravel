@@ -320,9 +320,9 @@ Objetivo: tener visibilidad real del estado operativo del MVP.
 
 #### Implementar
 
-- Reglas mejores de deduplicación.
-- Normalización más fuerte de teléfono/email.
-- Posible constraint o estrategia de identidad más robusta.
+- ✅ Endurecimiento app-layer inicial ya aplicado: intake normaliza mejor teléfono/email y marca casos ambiguos sin auto-merge.
+- ✅ Auditoría admin de duplicados y planificación de merge: grupos exactos por email/teléfono, contacto canónico sugerido, impacto por tablas relacionadas y visibilidad de eventos ambiguos.
+- 🔲 Siguiente etapa segura: playbook transaccional de merge manual + criterios de readiness antes de agregar constraints únicas duras.
 
 ---
 

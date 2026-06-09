@@ -15,6 +15,7 @@ const adminLinks = [
   { href: "/admin/catalog/packages", label: "Paquetes", roles: ["admin", "marketing"] },
   { href: "/admin/templates", label: "Plantillas", roles: ["admin", "marketing"] },
   { href: "/admin/logs", label: "Logs", roles: ["admin", "marketing", "asesor"] },
+  { href: "/admin/data-quality", label: "Calidad de datos", roles: ["admin"] },
 ] satisfies { href: string; label: string; roles: RoleName[] }[];
 
 async function signOut() {

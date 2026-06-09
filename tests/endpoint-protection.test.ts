@@ -137,6 +137,7 @@ test("admin app keeps server-side role allowlists and avoids service-role import
     "app/admin/(protected)/payments/page.tsx",
     "app/admin/(protected)/logs/page.tsx",
     "app/admin/(protected)/logs/actions.ts",
+    "app/admin/(protected)/data-quality/page.tsx",
   ];
   const combined = files.map((file) => readFileSync(file, "utf8")).join("\n");
 
@@ -145,6 +146,7 @@ test("admin app keeps server-side role allowlists and avoids service-role import
   assert.match(combined, /requireAdminRole\(\["admin", "operaciones"\]\)/);
   assert.match(combined, /requireAdminRole\(\["admin", "finanzas"\]\)/);
   assert.match(combined, /requireAdminRole\(\["admin", "marketing", "asesor"\]\)/);
+  assert.match(combined, /requireAdminRole\(\["admin"\]\)/);
   assert.doesNotMatch(combined, /service-role|SUPABASE_SECRET_KEY|createServiceRoleClient|@\/lib\/supabase\/service/);
 });
 

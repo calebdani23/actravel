@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getDuplicateAuditSnapshot } from "@/lib/admin/data-quality";
 import { getDashboardMetrics } from "@/lib/admin/dashboard";
 
 const metricCards = [
@@ -16,7 +17,7 @@ function alertClasses(level: "healthy" | "warning" | "critical") {
 }
 
 export default async function AdminDashboardPage() {
-  const metrics = await getDashboardMetrics();
+  const [metrics, dataQuality] = await Promise.all([getDashboardMetrics(), getDuplicateAuditSnapshot()]);
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-8">
@@ -58,6 +59,35 @@ export default async function AdminDashboardPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Calidad de datos P2.3</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-md border bg-slate-50 p-3">
+                <p className="text-muted-foreground">Contactos auditados</p>
+                <p className="mt-1 text-2xl font-bold">{dataQuality.totalContacts}</p>
+              </div>
+              <div className="rounded-md border bg-slate-50 p-3">
+                <p className="text-muted-foreground">Eventos ambiguos</p>
+                <p className="mt-1 text-2xl font-bold">{dataQuality.ambiguousIdentityEvents}</p>
+              </div>
+            </div>
+            <p className="text-muted-foreground">
+              Duplicados exactos detectados: <span className="font-semibold text-foreground">{dataQuality.duplicateEmailGroups}</span> por email y <span className="font-semibold text-foreground">{dataQuality.duplicatePhoneGroups}</span> por teléfono.
+            </p>
+            <div className="rounded-md border bg-slate-50 p-3 text-muted-foreground">
+              Esta vista prepara merges manuales/transaccionales y documenta por qué la unicidad dura sigue diferida.
+              <div className="mt-3">
+                <Link className="font-semibold text-[var(--ac-blue)] hover:underline" href="/admin/data-quality">
+                  Abrir auditoría de duplicados →
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Errores e incidentes recientes</CardTitle>
