@@ -49,6 +49,7 @@ Bloques 1–10 completados en alcance MVP actual. Bloque 9 está implementado y 
 - ✅ Cerrado P1.6: las acciones de plantillas en lead detail ahora tienen cobertura runtime para WhatsApp trackeado, cuerpo codificado, copiado de contenido y estado deshabilitado de email cuando falta correo; se agregó `npm run test:lead-template-actions`.
 - ✅ Corregidos los remanentes previos a P1.8 más críticos: `npm run build` volvió a verde; pagos/documentos ya soportan reemplazo real de archivo con limpieza best-effort del objeto anterior/al borrar; el catálogo público ahora sí cae a fallback estático utilizable cuando Supabase no devuelve contenido; la búsqueda de leads amplió cobertura por términos/quote payload; y el formulario guarda borrador local con señal mínima de abandono/fricción para recuperación posterior.
 - ✅ Corregido el home público para consumir catálogo vivo publicado en destinos/promociones/servicios, de modo que las publicaciones admin ya se reflejan en la portada.
+- ✅ Cerrado P1.8 con una mejora MVP coherente: admin de catálogo ya permite subir hero/thumbnail a `catalog-media` o guardar URLs administradas con validación/normalización server-side, limpiar/reemplazar media previa con cleanup best-effort, conservar publicación al editar, y usar thumbnail en cards + hero en detalle cuando existe.
 
 ## En proceso
 
@@ -70,4 +71,4 @@ Bloques 1–10 completados en alcance MVP actual. Bloque 9 está implementado y 
 
 ## Última actualización
 
-2026-06-08 — Build nuevamente en verde y se corrigieron gaps operativos de P1.2/P1.4/P1.5/P1.7; siguen pendientes follow-ups manuales de Supabase Auth/advisors y la mejora estructural de `lang` SSR.
+2026-06-09 — Cerrado P1.8 con media management real para catálogo, workflow de estado más explícito y semántica pública thumbnail/hero corregida; siguen pendientes follow-ups manuales de Supabase Auth/advisors y la mejora estructural de `lang` SSR.

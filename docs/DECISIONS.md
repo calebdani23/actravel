@@ -41,11 +41,11 @@ La política previa `staff read private storage objects` permitía que ciertos r
 
 ### Motivo
 
-La corrección mínima segura es limitar lectura a `catalog-media` para staff autenticado y a `documents`/`payment-proofs` solo para roles operativos/financieros/admin. El upload completo corresponde a una mejora posterior y no es necesario para cerrar el MVP CRUD del panel.
+La corrección mínima segura era limitar lectura a `catalog-media` para staff autenticado y a `documents`/`payment-proofs` solo para roles operativos/financieros/admin. Ese endurecimiento quedó activo; después se añadió el flujo MVP de upload administrado solo para `catalog-media`, sin ampliar el alcance de buckets privados operativos.
 
 ### Impacto
 
-Roles no autorizados ya no pueden leer objetos de buckets privados arbitrarios por esta política. Bloque 6 conserva gestión de metadata y signed URLs para objetos existentes, con carga completa documentada como diferida.
+Roles no autorizados ya no pueden leer objetos de buckets privados arbitrarios por esta política. `catalog-media` sí admite gestión/upload para marketing/admin dentro del panel, mientras `documents` y `payment-proofs` conservan su manejo privado y acotado por rol.
 
 ## 2026-05-27
 

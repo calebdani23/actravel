@@ -291,8 +291,8 @@ function toNumber(value?: number | string | null) {
 function catalogMedia(row: CatalogRowLike) {
   const heroImageUrl = resolveCatalogMediaUrl(row.hero_image_url);
   const thumbnailImageUrl = resolveCatalogMediaUrl(row.thumbnail_image_url);
-  const resolvedHero = heroImageUrl ?? thumbnailImageUrl;
-  return resolvedHero ? { heroImageUrl: resolvedHero, thumbnailImageUrl: thumbnailImageUrl ?? resolvedHero } : undefined;
+  if (!heroImageUrl && !thumbnailImageUrl) return undefined;
+  return { heroImageUrl, thumbnailImageUrl };
 }
 
 export function buildPublicCatalogItem(row: CatalogRowLike, kind: "destinations" | "services" | "packages" | "promotions"): PublicItem {

@@ -280,7 +280,7 @@ Objetivo: dejar de depender de contenido estático para catálogo comercial.
 
 #### Estado
 
-- ✅ Implementado y verificado: soporte básico de media para catálogo vía `hero_image_url` / `thumbnail_image_url` en público y admin.
+- ✅ Implementado y verificado: flujo admin de media real para catálogo con upload a `catalog-media` o URL administrada, validación/normalización server-side, preferencia thumbnail/hero en público y estados draft/published/archive más claros.
 
 ---
 

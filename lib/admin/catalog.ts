@@ -5,6 +5,7 @@ import type { Tables } from "@/lib/supabase/database.types";
 
 export type CatalogResource = "destinations" | "services" | "packages" | "promotions";
 export type CatalogStatus = "draft" | "published" | "archived";
+export type CatalogWriteIntent = "save" | "publish" | "draft" | "archive";
 
 export const catalogResources = {
   destinations: { label: "Destinos", href: "/admin/catalog/destinations" },
@@ -20,6 +21,39 @@ export type PromotionRow = Tables<"promotions"> & {
   destinations: { id: string; name_es: string } | null;
   services: { id: string; name_es: string } | null;
 };
+
+export function catalogStatusLabel(status?: string | null) {
+  if (status === "published") return "Publicado";
+  if (status === "archived") return "Archivado";
+  return "Borrador";
+}
+
+export function resolveCatalogWriteState(
+  current: { status?: CatalogStatus | null; published_at?: string | null } | null | undefined,
+  intent: CatalogWriteIntent,
+  now = new Date(),
+) {
+  if (intent === "publish") {
+    return { status: "published" as const, published_at: now.toISOString() };
+  }
+
+  if (intent === "draft") {
+    return { status: "draft" as const, published_at: null };
+  }
+
+  if (intent === "archive") {
+    return { status: "archived" as const, published_at: current?.published_at ?? null };
+  }
+
+  if (!current) {
+    return { status: "draft" as const, published_at: null };
+  }
+
+  return {
+    status: current.status ?? "draft",
+    published_at: current.published_at ?? null,
+  };
+}
 
 export async function getCatalogOptions() {
   const supabase = await createClient();

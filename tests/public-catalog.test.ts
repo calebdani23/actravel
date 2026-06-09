@@ -41,6 +41,7 @@ test("public catalog items expose hero media fields and fallback text", () => {
   assert.equal(storageMedia.media?.heroImageUrl, "catalog-media/services/hero.jpg");
   assert.equal(storageMedia.media?.thumbnailImageUrl, "catalog-media/services/thumb.jpg");
   assert.equal(promotion.description.es, "Detalles");
+  assert.equal(promotion.media?.heroImageUrl, null);
 });
 
 test("catalog media urls resolve storage paths and absolute urls", () => {
@@ -211,5 +212,7 @@ test("public pages use the same resolved catalog helpers as SEO and static param
   assert.match(pageSource, /import \{ getPublicCatalogContent, getPublicCatalogItem \} from "@\/lib\/content\/public-catalog"/);
   assert.match(pageSource, /const catalog = await getPublicCatalogContent\(locale\);/);
   assert.match(pageSource, /const item = await getPublicCatalogItem\(locale, kind === "deal" \? "promotions" : "destinations", slug\);/);
+  assert.match(pageSource, /imageUrl=\{item\.media\?\.thumbnailImageUrl \?\? item\.media\?\.heroImageUrl \?\? undefined\}/);
+  assert.match(pageSource, /src=\{item\.media\?\.heroImageUrl \?\? item\.media\?\.thumbnailImageUrl \?\? ""\}/);
   assert.doesNotMatch(pageSource, /getLivePublicCatalogContent/);
 });

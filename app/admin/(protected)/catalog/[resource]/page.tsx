@@ -2,10 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
-import { catalogResources, getCatalogOptions, getCatalogRows, type CatalogResource, type DestinationRow, type PackageRow, type PromotionRow, type ServiceRow } from "@/lib/admin/catalog";
+import { CATALOG_MEDIA_ACCEPT, catalogMediaSourceLabel, resolveCatalogMedia, resolveCatalogMediaUrl } from "@/lib/catalog-media";
+import { catalogResources, catalogStatusLabel, getCatalogOptions, getCatalogRows, type CatalogResource, type DestinationRow, type PackageRow, type PromotionRow, type ServiceRow } from "@/lib/admin/catalog";
 import { requireAdminRole } from "@/lib/admin/auth";
-import { deleteCatalogAction, publishCatalogAction, unpublishCatalogAction, upsertCatalogAction } from "../actions";
+import { archiveCatalogAction, deleteCatalogAction, moveCatalogToDraftAction, publishCatalogAction, upsertCatalogAction } from "../actions";
 
 type PageProps = { params: Promise<{ resource: string }> };
 type CatalogRow = DestinationRow | ServiceRow | PackageRow | PromotionRow;
@@ -32,18 +32,27 @@ function TextArea({ name, label, defaultValue }: { name: string; label: string; 
   );
 }
 
+function statusTone(status?: string | null) {
+  if (status === "published") return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  if (status === "archived") return "border-zinc-300 bg-zinc-100 text-zinc-700";
+  return "border-amber-200 bg-amber-50 text-amber-800";
+}
+
 function StatusControls({ row }: { row?: CatalogRow }) {
   const status = row?.status ?? "draft";
   return (
-    <div className="grid gap-3 md:grid-cols-3">
+    <div className="grid gap-3 md:grid-cols-[1.3fr_0.8fr_1fr]">
       <div className="space-y-1 text-sm font-medium">
         <span>Estado actual</span>
-        <p className="rounded-md border px-3 py-2 text-sm text-muted-foreground">{status === "published" ? "Publicado" : status === "archived" ? "Archivado" : "Borrador"}</p>
+        <div className={`rounded-md border px-3 py-2 text-sm ${statusTone(status)}`}>
+          <p className="font-semibold">{catalogStatusLabel(status)}</p>
+          <p className="mt-1 text-xs opacity-80">{row?.published_at ? `published_at: ${new Date(row.published_at).toLocaleString("es-MX")}` : "Sin fecha de publicación"}</p>
+        </div>
       </div>
       <label className="flex items-center gap-2 pt-7 text-sm font-medium">
         <input defaultChecked={row?.is_featured ?? false} name="is_featured" type="checkbox" /> Destacado
       </label>
-      <div className="pt-7 text-xs text-muted-foreground">Guardar crea/actualiza borrador. Publicar y despublicar son acciones separadas.</div>
+      <div className="pt-7 text-xs text-muted-foreground">Guardar conserva el estado actual. Publicar, mover a borrador y archivar son acciones explícitas.</div>
     </div>
   );
 }
@@ -66,7 +75,35 @@ function MediaPreview({ heroImageUrl, thumbnailImageUrl }: { heroImageUrl?: stri
           <p><span className="font-medium text-foreground">Thumbnail:</span> {thumbnail ?? "—"}</p>
         </div>
       </div>
-      <p>Media desde URL pública o ruta Storage de catalog-media.</p>
+      <p>Cards públicas prefieren thumbnail. Detalles públicos prefieren hero.</p>
+    </div>
+  );
+}
+
+function MediaField({ name, label, currentValue }: { name: "hero_image_url" | "thumbnail_image_url"; label: string; currentValue?: string | null }) {
+  const resolved = resolveCatalogMedia(currentValue);
+
+  return (
+    <div className="space-y-3 rounded-lg border p-3 md:col-span-2">
+      <div className="space-y-1">
+        <p className="text-sm font-semibold">{label}</p>
+        <p className="text-xs text-muted-foreground">Acepta URL absoluta o ref `storage://catalog-media/...`. Si subes un archivo, reemplaza el valor manual.</p>
+      </div>
+
+      <div className="rounded-md border bg-muted/20 p-3 text-xs text-muted-foreground">
+        <p><span className="font-medium text-foreground">Fuente actual:</span> {catalogMediaSourceLabel(currentValue)}</p>
+        <p className="break-all"><span className="font-medium text-foreground">Valor guardado:</span> {currentValue ?? "Sin media"}</p>
+        <p className="break-all"><span className="font-medium text-foreground">URL resuelta:</span> {resolved.url ?? "Sin preview"}</p>
+      </div>
+
+      <TextInput defaultValue={currentValue} label="URL pública o ref Storage" name={name} />
+      <label className="space-y-1 text-sm font-medium">
+        <span>Subir imagen</span>
+        <input accept={CATALOG_MEDIA_ACCEPT} className="w-full rounded-md border px-3 py-2 text-sm" name={`${name}_file`} type="file" />
+      </label>
+      <label className="flex items-center gap-2 text-sm font-medium">
+        <input name={`${name}_clear`} type="checkbox" /> Limpiar valor actual
+      </label>
     </div>
   );
 }
@@ -93,7 +130,7 @@ function CatalogForm({ resource, row, destinations, services }: { resource: Cata
   const promotion = row as PromotionRow | undefined;
 
   return (
-    <form action={upsertCatalogAction} className="space-y-5 rounded-lg border p-4">
+    <form action={upsertCatalogAction} className="space-y-5 rounded-lg border p-4" encType="multipart/form-data">
       <input name="resource" type="hidden" value={resource} />
       {row ? <input name="id" type="hidden" value={row.id} /> : null}
       <div className="grid gap-3 md:grid-cols-2">
@@ -102,8 +139,8 @@ function CatalogForm({ resource, row, destinations, services }: { resource: Cata
             <SharedBilingualFields row={destination} />
             <TextInput defaultValue={destination?.country} label="País" name="country" required />
             <TextInput defaultValue={destination?.region} label="Región" name="region" />
-            <TextInput defaultValue={destination?.hero_image_url} label="Hero image URL" name="hero_image_url" />
-            <TextInput defaultValue={destination?.thumbnail_image_url} label="Thumbnail image URL" name="thumbnail_image_url" />
+            <MediaField currentValue={destination?.hero_image_url} label="Hero image" name="hero_image_url" />
+            <MediaField currentValue={destination?.thumbnail_image_url} label="Thumbnail image" name="thumbnail_image_url" />
             <div className="md:col-span-2"><MediaPreview heroImageUrl={destination?.hero_image_url} thumbnailImageUrl={destination?.thumbnail_image_url} /></div>
           </>
         ) : null}
@@ -114,8 +151,8 @@ function CatalogForm({ resource, row, destinations, services }: { resource: Cata
             <TextInput defaultValue={service?.price_from_mxn} label="Precio desde MXN" name="price_from_mxn" type="number" />
             <TextInput defaultValue={service?.price_from_usd} label="Precio desde USD" name="price_from_usd" type="number" />
             <TextInput defaultValue={service?.sort_order ?? 0} label="Orden" name="sort_order" type="number" />
-            <TextInput defaultValue={service?.hero_image_url} label="Hero image URL" name="hero_image_url" />
-            <TextInput defaultValue={service?.thumbnail_image_url} label="Thumbnail image URL" name="thumbnail_image_url" />
+            <MediaField currentValue={service?.hero_image_url} label="Hero image" name="hero_image_url" />
+            <MediaField currentValue={service?.thumbnail_image_url} label="Thumbnail image" name="thumbnail_image_url" />
             <div className="md:col-span-2"><MediaPreview heroImageUrl={service?.hero_image_url} thumbnailImageUrl={service?.thumbnail_image_url} /></div>
           </>
         ) : null}
@@ -126,8 +163,8 @@ function CatalogForm({ resource, row, destinations, services }: { resource: Cata
             <TextInput defaultValue={packageRow?.price_from_mxn} label="Precio desde MXN" name="price_from_mxn" type="number" />
             <TextInput defaultValue={packageRow?.price_from_usd} label="Precio desde USD" name="price_from_usd" type="number" />
             <TextInput defaultValue={packageRow?.sort_order ?? 0} label="Orden" name="sort_order" type="number" />
-            <TextInput defaultValue={packageRow?.hero_image_url} label="Hero image URL" name="hero_image_url" />
-            <TextInput defaultValue={packageRow?.thumbnail_image_url} label="Thumbnail image URL" name="thumbnail_image_url" />
+            <MediaField currentValue={packageRow?.hero_image_url} label="Hero image" name="hero_image_url" />
+            <MediaField currentValue={packageRow?.thumbnail_image_url} label="Thumbnail image" name="thumbnail_image_url" />
             <div className="md:col-span-2"><MediaPreview heroImageUrl={packageRow?.hero_image_url} thumbnailImageUrl={packageRow?.thumbnail_image_url} /></div>
           </>
         ) : null}
@@ -160,23 +197,24 @@ function CatalogForm({ resource, row, destinations, services }: { resource: Cata
             <TextInput defaultValue={promotion?.price_from_usd} label="Precio desde USD" name="price_from_usd" type="number" />
             <TextInput defaultValue={promotion?.starts_at?.slice(0, 10)} label="Inicio" name="starts_at" type="date" />
             <TextInput defaultValue={promotion?.ends_at?.slice(0, 10)} label="Fin" name="ends_at" type="date" />
-            <TextInput defaultValue={promotion?.hero_image_url} label="Hero image URL" name="hero_image_url" />
-            <TextInput defaultValue={promotion?.thumbnail_image_url} label="Thumbnail image URL" name="thumbnail_image_url" />
+            <MediaField currentValue={promotion?.hero_image_url} label="Hero image" name="hero_image_url" />
+            <MediaField currentValue={promotion?.thumbnail_image_url} label="Thumbnail image" name="thumbnail_image_url" />
             <div className="md:col-span-2"><MediaPreview heroImageUrl={promotion?.hero_image_url} thumbnailImageUrl={promotion?.thumbnail_image_url} /></div>
           </>
         ) : null}
       </div>
       <StatusControls row={row} />
       <div className="flex flex-wrap gap-2">
-        <Button type="submit">{row ? "Guardar borrador" : "Crear borrador"}</Button>
+        <Button type="submit">{row ? "Guardar cambios" : "Crear borrador"}</Button>
         <Button formAction={publishCatalogAction} type="submit" variant="outline">
-          {row?.status === "published" ? "Re-publicar" : "Publicar"}
+          {row ? (row.status === "published" ? "Actualizar publicado" : "Publicar") : "Crear y publicar"}
         </Button>
-        {row?.status === "published" ? (
-          <Button formAction={unpublishCatalogAction} type="submit" variant="outline">
-            Despublicar
+        {row && row.status !== "draft" ? (
+          <Button formAction={moveCatalogToDraftAction} type="submit" variant="outline">
+            Mover a borrador
           </Button>
         ) : null}
+        {row && row.status !== "archived" ? <Button formAction={archiveCatalogAction} type="submit" variant="outline">Archivar</Button> : null}
         {row ? (
           <Button formAction={deleteCatalogAction} type="submit" variant="outline">
             Eliminar
@@ -196,13 +234,18 @@ export default async function CatalogPage({ params }: PageProps) {
   const [{ resource }] = await Promise.all([params, requireAdminRole(["admin", "marketing"])]);
   if (!isResource(resource)) notFound();
   const [{ rows, error }, options] = await Promise.all([getCatalogRows(resource), getCatalogOptions()]);
+  const counts = rows.reduce((summary, row) => {
+    const key = row.status === "published" || row.status === "archived" ? row.status : "draft";
+    summary[key] += 1;
+    return summary;
+  }, { draft: 0, published: 0, archived: 0 } as Record<"draft" | "published" | "archived", number>);
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--ac-blue)]">Catálogo</p>
         <h1 className="mt-2 text-3xl font-bold">{catalogResources[resource].label}</h1>
-        <p className="mt-2 text-muted-foreground">CRUD ligero con campos bilingües, estado y publicación. La subida de media queda diferida.</p>
+        <p className="mt-2 text-muted-foreground">CRUD bilingüe con media real, estados explícitos y publicación más segura.</p>
       </div>
 
       <nav className="flex flex-wrap gap-2">
@@ -214,6 +257,12 @@ export default async function CatalogPage({ params }: PageProps) {
       </nav>
 
       {error ? <Card className="border-amber-200 bg-amber-50"><CardContent className="pt-6 text-sm text-amber-900">No se pudo cargar catálogo: {error}</CardContent></Card> : null}
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <Card><CardContent className="pt-6 text-sm"><p className="font-semibold">Publicados</p><p className="mt-1 text-2xl font-bold">{counts.published}</p></CardContent></Card>
+        <Card><CardContent className="pt-6 text-sm"><p className="font-semibold">Borradores</p><p className="mt-1 text-2xl font-bold">{counts.draft}</p></CardContent></Card>
+        <Card><CardContent className="pt-6 text-sm"><p className="font-semibold">Archivados</p><p className="mt-1 text-2xl font-bold">{counts.archived}</p></CardContent></Card>
+      </div>
 
       <Card>
         <CardHeader><CardTitle>Nuevo registro</CardTitle></CardHeader>

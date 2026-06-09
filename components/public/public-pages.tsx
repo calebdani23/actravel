@@ -71,7 +71,7 @@ export function ItemGrid({ locale, items, section }: Readonly<{ locale: Locale; 
           note={item.detailNote?.[locale] ?? undefined}
           href={localizedPath(locale, section, item.slug[locale])}
           cta={locale === "es" ? "Ver detalle" : "View detail"}
-          imageUrl={item.media?.heroImageUrl ?? item.media?.thumbnailImageUrl ?? undefined}
+          imageUrl={item.media?.thumbnailImageUrl ?? item.media?.heroImageUrl ?? undefined}
         />
       ))}
     </div>
@@ -86,7 +86,7 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
     <PageShell>
       <section className="grid gap-8 rounded-[2rem] border bg-white p-6 shadow-sm lg:grid-cols-[1.1fr_0.9fr] lg:p-10">
         <div>
-          {item.media?.heroImageUrl ? <img alt="" className="mb-5 h-72 w-full rounded-[2rem] object-cover" loading="lazy" src={item.media.heroImageUrl} /> : null}
+          {item.media?.heroImageUrl ?? item.media?.thumbnailImageUrl ? <img alt="" className="mb-5 h-72 w-full rounded-[2rem] object-cover" loading="lazy" src={item.media?.heroImageUrl ?? item.media?.thumbnailImageUrl ?? ""} /> : null}
           <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-[var(--ac-blue)]">{item.eyebrow?.[locale] ?? "AC Travel"}</p>
           <h1 className="mt-3 text-4xl font-black text-[var(--ac-ink)] md:text-5xl">{item.title[locale]}</h1>
           <p className="mt-5 text-lg leading-8 text-muted-foreground">{item.description[locale]}</p>
