@@ -37,11 +37,15 @@ coverage/
 .vscode/
 
 # OpenCode / Gentle-AI local tooling and runtime state
+.opencode-bin/
 .gentle-ai-bin/
 .gentle-ai-runtime/
 .gentle-home/
-.opencode/
-.opencode-bin/
+.opencode/*
+!.opencode/prompts/
+.opencode/prompts/*
+!.opencode/prompts/sdd/
+!.opencode/prompts/sdd/*.md
 .opencode-runtime/
 .vercel/
 sdd/

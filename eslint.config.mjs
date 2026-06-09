@@ -11,9 +11,6 @@ const eslintConfig = defineConfig([
       ".opencode/**",
       ".opencode-runtime/**",
       ".gentle-home/**",
-      ".gentle-ai-runtime/**",
-      ".gentle-ai-bin/**",
-      ".opencode-bin/**",
   ]),
 ]);
 

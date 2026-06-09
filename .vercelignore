@@ -4,9 +4,6 @@
 .vercel/
 .opencode/
 .opencode-runtime/
-.opencode-bin/
-.gentle-ai-runtime/
-.gentle-ai-bin/
 .gentle-home/
 docs/
 db/

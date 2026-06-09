@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-REPO="$HOME/srv/projects/actravel"
-source "$REPO/scripts/ai-env.sh"
-
-exec "$REPO/.opencode-bin/opencode" "$@"
