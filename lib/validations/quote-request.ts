@@ -53,12 +53,35 @@ function isValidDateString(value: string) {
 }
 
 export function normalizeWhatsApp(value: string) {
-  return value.replace(/\D/g, "");
+  const normalized = value.normalize("NFKC").trim();
+  const withoutExtension = normalized.replace(/(?:ext\.?|extension|anexo|x|#)\s*\d+$/i, "");
+  let digits = withoutExtension.replace(/\D/g, "");
+  digits = digits.replace(/^00+/, "");
+  if (digits.startsWith("521") && digits.length === 13) {
+    digits = `52${digits.slice(3)}`;
+  }
+  return digits;
 }
 
 export function normalizeEmail(value?: string | null) {
-  const email = value?.trim().toLowerCase();
-  return email ? email : null;
+  const email = value?.normalize("NFKC").trim();
+  if (!email) return null;
+
+  const compact = email.replace(/\s+/g, "");
+  const [rawLocalPart, rawDomain, ...rest] = compact.split("@");
+  if (!rawLocalPart || !rawDomain || rest.length > 0) {
+    return compact.toLowerCase();
+  }
+
+  const domain = rawDomain.toLowerCase().replace(/\.+$/, "");
+  const localPart = rawLocalPart.toLowerCase();
+
+  if (domain === "gmail.com" || domain === "googlemail.com") {
+    const canonicalLocal = localPart.split("+")[0]?.replace(/\./g, "") ?? localPart;
+    return `${canonicalLocal}@gmail.com`;
+  }
+
+  return `${localPart}@${domain}`;
 }
 
 export function createQuoteRequestSchema(locale: Locale = "es") {

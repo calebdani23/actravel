@@ -233,7 +233,7 @@ export async function getLeads(filters: LeadFilters) {
 }
 
 function eventLabel(type: string) {
-  const labels: Record<string, string> = { status_changed: "Estado actualizado", assigned: "Asesor asignado", note_added: "Nota agregada", follow_up_registered: "Seguimiento registrado", quote_received: "Cotización recibida" };
+  const labels: Record<string, string> = { status_changed: "Estado actualizado", assigned: "Asesor asignado", note_added: "Nota agregada", follow_up_registered: "Seguimiento registrado", quote_received: "Cotización recibida", contact_identity_ambiguous: "Identidad ambigua" };
   return labels[type] ?? type.replaceAll("_", " ");
 }
 
