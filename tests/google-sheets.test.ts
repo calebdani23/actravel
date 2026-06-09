@@ -265,6 +265,19 @@ test("sheet retry skips terminal success without duplicate append", async () => 
   assert.equal(updated.length, 0);
 });
 
+test("sheet retry treats queued logs as retryable", async () => {
+  setSheetsEnv();
+  const { supabase, updated } = createSheetRetryMock("queued");
+  let appendCalls = 0;
+  const result = await retrySheetSyncLog("sheet-log", "actor-1", { supabase: supabase as never, now: () => "2026-05-27T00:00:00.000Z", append: async () => { appendCalls += 1; return { rowId: "Leads!A4:S4" }; } });
+
+  assert.equal(result.status, "success");
+  assert.equal(result.rowId, "Leads!A4:S4");
+  assert.equal(appendCalls, 1);
+  assert.equal(updated[0].status, "processing");
+  assert.equal(updated[1].status, "success");
+});
+
 test("sheet retry skips append when a concurrent retry already claimed the log", async () => {
   setSheetsEnv();
   const { supabase, log, updated } = createSheetRetryMock("failed");

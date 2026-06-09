@@ -15,6 +15,10 @@ export type SheetRetryResult = SheetSyncSummary & { logId: string };
 
 const RETRYABLE_STATUSES: SheetSyncStatus[] = ["failed", "queued"];
 
+function isRetryableSheetStatus(status: string): status is SheetSyncStatus {
+  return RETRYABLE_STATUSES.includes(status as SheetSyncStatus);
+}
+
 function sanitizeError(error: unknown) {
   const message = error instanceof Error ? error.message : "Google Sheets sync failed";
   return message.replace(/(key|token|secret|password|private[_-]?key)=[^\s]+/gi, "$1=[redacted]").slice(0, 500);
@@ -88,7 +92,9 @@ export async function retrySheetSyncLog(logId: string, actorId: string, dependen
 
   if (log.status === "success" && log.row_id) return { kind: "quote_request_sheet_sync", status: "success", logId, rowId: log.row_id, reason: "Google Sheets row already appended; retry skipped." };
   if (log.status === "processing" || log.status === "ambiguous" || log.status === "skipped") return { kind: "quote_request_sheet_sync", status: log.status, logId, rowId: log.row_id, reason: `Google Sheets log is ${log.status}; manual retry skipped.` };
-  if (!RETRYABLE_STATUSES.includes(log.status)) throw new Error(`Sheet sync status ${log.status} is not retryable`);
+  if (!isRetryableSheetStatus(log.status)) {
+    throw new Error(`Sheet sync status ${log.status} is not retryable`);
+  }
 
   const claimed = await claimLog(supabase, log, actorId, now);
   if (!claimed) {
