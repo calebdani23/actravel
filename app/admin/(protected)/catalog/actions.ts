@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { optionalFile, removeStoredObject, sameStorageObject } from "@/lib/admin/storage-uploads";
 import { requireAdminRole } from "@/lib/admin/auth";
+import { assertCatalogExistingRecord, assertCatalogMutation, buildCatalogAdminRedirectTarget, catalogActionErrorMessage, catalogActionSuccessMessage } from "@/lib/admin/catalog-actions";
 import { catalogMediaStorageObject, normalizeCatalogMediaValue, uploadCatalogMediaFile } from "@/lib/catalog-media";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCatalogWriteState, type CatalogResource, type CatalogStatus, type CatalogWriteIntent } from "@/lib/admin/catalog";
@@ -41,6 +43,7 @@ function resourceValue(formData: FormData): CatalogResource {
 }
 
 type ExistingCatalogRecord = {
+  id: string;
   slug_es: string | null;
   slug_en: string | null;
   status: CatalogStatus | null;
@@ -63,7 +66,7 @@ function uploadSlot(field: CatalogMediaField) {
 
 async function getExistingCatalogRecord(supabase: Awaited<ReturnType<typeof createClient>>, resource: CatalogResource, id?: string) {
   if (!id) return { data: null as ExistingCatalogRecord | null, error: null };
-  return supabase.from(resource).select("slug_es, slug_en, status, published_at, hero_image_url, thumbnail_image_url").eq("id", id).maybeSingle();
+  return supabase.from(resource).select("id, slug_es, slug_en, status, published_at, hero_image_url, thumbnail_image_url").eq("id", id).maybeSingle();
 }
 
 async function resolveCatalogMediaField(
@@ -88,7 +91,7 @@ async function resolveCatalogMediaField(
   }
 
   return {
-    value: normalizeCatalogMediaValue(text(formData, field)),
+    value: normalizeCatalogMediaValue(text(formData, field), { allowLegacyRelativePath: true }),
     upload: null as UploadedCatalogMedia | null,
   };
 }
@@ -237,12 +240,12 @@ async function cleanupFailedCatalogUploads(supabase: Awaited<ReturnType<typeof c
 }
 
 async function writeCatalogRecord(formData: FormData, intent: CatalogWriteIntent) {
-  await requireAdminRole(["admin", "marketing"]);
   const supabase = await createClient();
   const resource = resourceValue(formData);
   const id = text(formData, "id");
   const current = await getExistingCatalogRecord(supabase, resource, id);
   if (current.error) throw new Error(current.error.message);
+  if (id) assertCatalogExistingRecord(current.data, { resource, id });
 
   const media = await resolveCatalogMediaFields(supabase, formData, resource);
   const publication = resolveCatalogWriteState(current.data, intent);
@@ -250,40 +253,78 @@ async function writeCatalogRecord(formData: FormData, intent: CatalogWriteIntent
   try {
     if (resource === "destinations") {
       const payload = destinationPayload(formData, publication, media);
-      const { error } = id ? await supabase.from("destinations").update(payload).eq("id", id) : await supabase.from("destinations").insert(payload);
-      if (error) throw new Error(error.message);
+      const saved = assertCatalogMutation(
+        id
+          ? await supabase.from("destinations").update(payload).eq("id", id).select("id, slug_es, slug_en").maybeSingle()
+          : await supabase.from("destinations").insert(payload).select("id, slug_es, slug_en").single(),
+        { resource, action: intent, id },
+      );
       await cleanupReplacedCatalogMedia(supabase, current.data, media);
-      revalidateCatalog(resource, [current.data?.slug_es, current.data?.slug_en, payload.slug_es, payload.slug_en]);
-      return;
+      revalidateCatalog(resource, [current.data?.slug_es, current.data?.slug_en, saved.slug_es, saved.slug_en]);
+      return { resource, focusId: saved.id, message: catalogActionSuccessMessage(resource, intent, Boolean(id)) };
     }
 
     if (resource === "services") {
       const payload = servicePayload(formData, publication, media);
-      const { error } = id ? await supabase.from("services").update(payload).eq("id", id) : await supabase.from("services").insert(payload);
-      if (error) throw new Error(error.message);
+      const saved = assertCatalogMutation(
+        id
+          ? await supabase.from("services").update(payload).eq("id", id).select("id, slug_es, slug_en").maybeSingle()
+          : await supabase.from("services").insert(payload).select("id, slug_es, slug_en").single(),
+        { resource, action: intent, id },
+      );
       await cleanupReplacedCatalogMedia(supabase, current.data, media);
       revalidateCatalog(resource);
-      return;
+      return { resource, focusId: saved.id, message: catalogActionSuccessMessage(resource, intent, Boolean(id)) };
     }
 
     if (resource === "packages") {
       const payload = packagePayload(formData, publication, media);
-      const { error } = id ? await supabase.from("packages").update(payload).eq("id", id) : await supabase.from("packages").insert(payload);
-      if (error) throw new Error(error.message);
+      const saved = assertCatalogMutation(
+        id
+          ? await supabase.from("packages").update(payload).eq("id", id).select("id, slug_es, slug_en").maybeSingle()
+          : await supabase.from("packages").insert(payload).select("id, slug_es, slug_en").single(),
+        { resource, action: intent, id },
+      );
       await cleanupReplacedCatalogMedia(supabase, current.data, media);
       revalidateCatalog(resource);
-      return;
+      return { resource, focusId: saved.id, message: catalogActionSuccessMessage(resource, intent, Boolean(id)) };
     }
 
     const payload = promotionPayload(formData, publication, media);
-    const { error } = id ? await supabase.from("promotions").update(payload).eq("id", id) : await supabase.from("promotions").insert(payload);
-    if (error) throw new Error(error.message);
+    const saved = assertCatalogMutation(
+      id
+        ? await supabase.from("promotions").update(payload).eq("id", id).select("id, slug_es, slug_en").maybeSingle()
+        : await supabase.from("promotions").insert(payload).select("id, slug_es, slug_en").single(),
+      { resource, action: intent, id },
+    );
     await cleanupReplacedCatalogMedia(supabase, current.data, media);
-    revalidateCatalog(resource, [current.data?.slug_es, current.data?.slug_en, payload.slug_es, payload.slug_en]);
+    revalidateCatalog(resource, [current.data?.slug_es, current.data?.slug_en, saved.slug_es, saved.slug_en]);
+    return { resource, focusId: saved.id, message: catalogActionSuccessMessage(resource, intent, Boolean(id)) };
   } catch (error) {
     await cleanupFailedCatalogUploads(supabase, media.uploads);
     throw error;
   }
+}
+
+async function finishCatalogAction(formData: FormData, action: () => Promise<{ resource: CatalogResource; focusId?: string | null; message: string }>) {
+  const fallbackResource = resources.includes(String(formData.get("resource")) as CatalogResource)
+    ? (String(formData.get("resource")) as CatalogResource)
+    : "destinations";
+  const focusId = text(formData, "id");
+  let targetResource = fallbackResource;
+
+  let feedback: { status: "success" | "error"; message: string; focusId?: string | null };
+
+  try {
+    const result = await action();
+    targetResource = result.resource;
+    feedback = { status: "success", message: result.message, focusId: result.focusId };
+  } catch (error) {
+    console.error("[catalog] admin action failed", error);
+    feedback = { status: "error", message: catalogActionErrorMessage(error), focusId };
+  }
+
+  redirect(buildCatalogAdminRedirectTarget(targetResource, feedback));
 }
 
 function revalidateCatalog(resource: CatalogResource, slugs: Array<string | null | undefined> = []) {
@@ -293,54 +334,71 @@ function revalidateCatalog(resource: CatalogResource, slugs: Array<string | null
 }
 
 export async function upsertCatalogAction(formData: FormData) {
-  await writeCatalogRecord(formData, "save");
+  await requireAdminRole(["admin", "marketing"]);
+  await finishCatalogAction(formData, () => writeCatalogRecord(formData, "save"));
 }
 
 export async function publishCatalogAction(formData: FormData) {
-  await writeCatalogRecord(formData, "publish");
+  await requireAdminRole(["admin", "marketing"]);
+  await finishCatalogAction(formData, () => writeCatalogRecord(formData, "publish"));
 }
 
 export async function moveCatalogToDraftAction(formData: FormData) {
   await requireAdminRole(["admin", "marketing"]);
-  const supabase = await createClient();
-  const resource = resourceValue(formData);
-  const id = text(formData, "id", true);
-  const current = await supabase.from(resource).select("slug_es, slug_en").eq("id", id).maybeSingle();
-  if (current.error) throw new Error(current.error.message);
-  const { error } = await supabase.from(resource).update({ status: "draft", published_at: null }).eq("id", id);
-  if (error) throw new Error(error.message);
-  revalidateCatalog(resource, [current.data?.slug_es, current.data?.slug_en]);
+  await finishCatalogAction(formData, async () => {
+    const supabase = await createClient();
+    const resource = resourceValue(formData);
+    const id = text(formData, "id", true);
+    const current = await supabase.from(resource).select("id, slug_es, slug_en").eq("id", id).maybeSingle();
+    if (current.error) throw new Error(current.error.message);
+    const loaded = assertCatalogExistingRecord(current.data, { resource, id });
+    assertCatalogMutation(
+      await supabase.from(resource).update({ status: "draft", published_at: null }).eq("id", id).select("id, slug_es, slug_en").maybeSingle(),
+      { resource, action: "draft", id },
+    );
+    revalidateCatalog(resource, [loaded.slug_es, loaded.slug_en]);
+    return { resource, focusId: id, message: catalogActionSuccessMessage(resource, "draft", true) };
+  });
 }
 
 export async function archiveCatalogAction(formData: FormData) {
   await requireAdminRole(["admin", "marketing"]);
-  const supabase = await createClient();
-  const resource = resourceValue(formData);
-  const id = text(formData, "id", true);
-  const current = await supabase.from(resource).select("slug_es, slug_en, published_at").eq("id", id).maybeSingle();
-  if (current.error) throw new Error(current.error.message);
-  const { error } = await supabase.from(resource).update({ status: "archived", published_at: current.data?.published_at ?? null }).eq("id", id);
-  if (error) throw new Error(error.message);
-  revalidateCatalog(resource, [current.data?.slug_es, current.data?.slug_en]);
+  await finishCatalogAction(formData, async () => {
+    const supabase = await createClient();
+    const resource = resourceValue(formData);
+    const id = text(formData, "id", true);
+    const current = await supabase.from(resource).select("id, slug_es, slug_en, published_at").eq("id", id).maybeSingle();
+    if (current.error) throw new Error(current.error.message);
+    const loaded = assertCatalogExistingRecord(current.data, { resource, id });
+    assertCatalogMutation(
+      await supabase.from(resource).update({ status: "archived", published_at: loaded.published_at ?? null }).eq("id", id).select("id, slug_es, slug_en").maybeSingle(),
+      { resource, action: "archive", id },
+    );
+    revalidateCatalog(resource, [loaded.slug_es, loaded.slug_en]);
+    return { resource, focusId: id, message: catalogActionSuccessMessage(resource, "archive", true) };
+  });
 }
 
 export async function deleteCatalogAction(formData: FormData) {
   await requireAdminRole(["admin", "marketing"]);
-  const resource = resourceValue(formData);
-  const id = text(formData, "id", true);
-  const supabase = await createClient();
-  const current = await supabase.from(resource).select("slug_es, slug_en, hero_image_url, thumbnail_image_url").eq("id", id).maybeSingle();
-  if (current.error) throw new Error(current.error.message);
-  const { error } = await supabase.from(resource).delete().eq("id", id);
-  if (error) throw new Error(error.message);
-  for (const value of [current.data?.hero_image_url, current.data?.thumbnail_image_url]) {
-    const file = catalogMediaStorageObject(value, { allowLegacyRelativePath: true });
-    if (!file) continue;
-    try {
-      await removeStoredObject(supabase, file);
-    } catch (cleanupError) {
-      console.error("[catalog] deleted media cleanup failed", cleanupError);
+  await finishCatalogAction(formData, async () => {
+    const resource = resourceValue(formData);
+    const id = text(formData, "id", true);
+    const supabase = await createClient();
+    const current = await supabase.from(resource).select("id, slug_es, slug_en, hero_image_url, thumbnail_image_url").eq("id", id).maybeSingle();
+    if (current.error) throw new Error(current.error.message);
+    const loaded = assertCatalogExistingRecord(current.data, { resource, id });
+    assertCatalogMutation(await supabase.from(resource).delete().eq("id", id).select("id").maybeSingle(), { resource, action: "delete", id });
+    for (const value of [loaded.hero_image_url, loaded.thumbnail_image_url]) {
+      const file = catalogMediaStorageObject(value, { allowLegacyRelativePath: true });
+      if (!file) continue;
+      try {
+        await removeStoredObject(supabase, file);
+      } catch (cleanupError) {
+        console.error("[catalog] deleted media cleanup failed", cleanupError);
+      }
     }
-  }
-  revalidateCatalog(resource, [current.data?.slug_es, current.data?.slug_en]);
+    revalidateCatalog(resource, [loaded.slug_es, loaded.slug_en]);
+    return { resource, focusId: id, message: catalogActionSuccessMessage(resource, "delete", true) };
+  });
 }

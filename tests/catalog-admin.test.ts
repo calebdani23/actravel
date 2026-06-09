@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { resolveCatalogWriteState } from "@/lib/admin/catalog";
+import { assertCatalogMutation, CatalogAdminActionError, buildCatalogAdminRedirectTarget, catalogActionSuccessMessage } from "@/lib/admin/catalog-actions";
 import { buildCatalogMediaStoragePath, normalizeCatalogMediaValue, parseCatalogMediaStorageRef, validateCatalogMediaUploadFile } from "@/lib/catalog-media";
 
 test("catalog status workflow preserves published items on save and keeps explicit transitions", () => {
@@ -19,6 +20,7 @@ test("catalog status workflow preserves published items on save and keeps explic
 test("catalog media validation accepts absolute urls and normalized catalog-media refs", () => {
   assert.equal(normalizeCatalogMediaValue(" https://example.com/hero.jpg "), "https://example.com/hero.jpg");
   assert.equal(normalizeCatalogMediaValue("catalog-media/destinations/hero.jpg"), "storage://catalog-media/destinations/hero.jpg");
+  assert.equal(normalizeCatalogMediaValue("destinations/legacy/hero.jpg", { allowLegacyRelativePath: true }), "storage://catalog-media/destinations/legacy/hero.jpg");
   assert.deepEqual(parseCatalogMediaStorageRef("storage://catalog-media/services/thumb.webp"), {
     bucket: "catalog-media",
     path: "services/thumb.webp",
@@ -38,6 +40,33 @@ test("catalog media uploads validate image files and use normalized storage path
   assert.throws(() => validateCatalogMediaUploadFile(new File(["bad"], "script.svg", { type: "image/svg+xml" })), /Tipo de imagen no permitido/);
 });
 
+test("catalog admin mutation guards confirm existing-item save/publish writes", () => {
+  const saved = assertCatalogMutation(
+    { data: { id: "dest-1", slug_es: "cancun", slug_en: "cancun" }, error: null },
+    { resource: "destinations", action: "save", id: "dest-1" },
+  );
+
+  assert.equal(saved.id, "dest-1");
+  assert.equal(catalogActionSuccessMessage("destinations", "save", true), "Destinos: cambios guardados.");
+  assert.equal(catalogActionSuccessMessage("destinations", "publish", true), "Destinos: publicación actualizada correctamente.");
+  assert.equal(
+    buildCatalogAdminRedirectTarget("destinations", { status: "success", message: "ok", focusId: "dest-1" }),
+    "/admin/catalog/destinations?status=success&message=ok&focus=dest-1",
+  );
+});
+
+test("catalog admin mutation guards detect zero-row controlled failures", () => {
+  assert.throws(
+    () => assertCatalogMutation({ data: null, error: null }, { resource: "destinations", action: "publish", id: "missing-row" }),
+    (error) => {
+      assert.ok(error instanceof CatalogAdminActionError);
+      assert.match(String(error.message), /No se pudo publicar el destino/);
+      assert.match(String(error.message), /No se encontró el destino a editar/);
+      return true;
+    },
+  );
+});
+
 test("catalog admin UI exposes real media upload and explicit state actions", () => {
   const page = readFileSync("app/admin/(protected)/catalog/[resource]/page.tsx", "utf8");
   const actions = readFileSync("app/admin/(protected)/catalog/actions.ts", "utf8");
@@ -47,8 +76,13 @@ test("catalog admin UI exposes real media upload and explicit state actions", ()
   assert.match(page, /CATALOG_MEDIA_ACCEPT/);
   assert.match(page, /Mover a borrador/);
   assert.match(page, /Archivar/);
+  assert.match(page, /searchParams/);
+  assert.match(page, /feedbackMessage/);
   assert.match(actions, /uploadCatalogMediaFile/);
   assert.match(actions, /normalizeCatalogMediaValue/);
+  assert.match(actions, /allowLegacyRelativePath: true/);
   assert.match(actions, /cleanupReplacedCatalogMedia/);
+  assert.match(actions, /assertCatalogMutation/);
+  assert.match(actions, /buildCatalogAdminRedirectTarget/);
   assert.match(actions, /deleted media cleanup failed/);
 });

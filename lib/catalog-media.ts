@@ -115,7 +115,7 @@ export function parseCatalogMediaStorageRef(value?: string | null, options?: { b
   return null;
 }
 
-export function normalizeCatalogMediaValue(value?: string | null, options?: { bucket?: string }) {
+export function normalizeCatalogMediaValue(value?: string | null, options?: { bucket?: string; allowLegacyRelativePath?: boolean }) {
   const trimmed = value?.trim() ?? "";
   if (!trimmed) return null;
   if (isAbsoluteUrl(trimmed)) return new URL(trimmed).toString();

@@ -7,7 +7,7 @@ import { catalogResources, catalogStatusLabel, getCatalogOptions, getCatalogRows
 import { requireAdminRole } from "@/lib/admin/auth";
 import { archiveCatalogAction, deleteCatalogAction, moveCatalogToDraftAction, publishCatalogAction, upsertCatalogAction } from "../actions";
 
-type PageProps = { params: Promise<{ resource: string }> };
+type PageProps = { params: Promise<{ resource: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 type CatalogRow = DestinationRow | ServiceRow | PackageRow | PromotionRow;
 
 function isResource(value: string): value is CatalogResource {
@@ -36,6 +36,16 @@ function statusTone(status?: string | null) {
   if (status === "published") return "border-emerald-200 bg-emerald-50 text-emerald-800";
   if (status === "archived") return "border-zinc-300 bg-zinc-100 text-zinc-700";
   return "border-amber-200 bg-amber-50 text-amber-800";
+}
+
+function value(params: Record<string, string | string[] | undefined>, key: string) {
+  const raw = params[key];
+  return Array.isArray(raw) ? raw[0] : raw;
+}
+
+function feedbackTone(status?: string) {
+  if (status === "success") return "border-emerald-200 bg-emerald-50 text-emerald-900";
+  return "border-amber-200 bg-amber-50 text-amber-900";
 }
 
 function StatusControls({ row }: { row?: CatalogRow }) {
@@ -230,9 +240,12 @@ function rowTitle(resource: CatalogResource, row: CatalogRow) {
   return (row as DestinationRow | ServiceRow | PackageRow).name_es;
 }
 
-export default async function CatalogPage({ params }: PageProps) {
-  const [{ resource }] = await Promise.all([params, requireAdminRole(["admin", "marketing"])]);
+export default async function CatalogPage({ params, searchParams }: PageProps) {
+  const [{ resource }, rawParams] = await Promise.all([params, searchParams, requireAdminRole(["admin", "marketing"])]);
   if (!isResource(resource)) notFound();
+  const feedbackStatus = value(rawParams, "status");
+  const feedbackMessage = value(rawParams, "message");
+  const feedbackFocus = value(rawParams, "focus");
   const [{ rows, error }, options] = await Promise.all([getCatalogRows(resource), getCatalogOptions()]);
   const counts = rows.reduce((summary, row) => {
     const key = row.status === "published" || row.status === "archived" ? row.status : "draft";
@@ -256,6 +269,7 @@ export default async function CatalogPage({ params }: PageProps) {
         ))}
       </nav>
 
+      {feedbackMessage ? <Card className={feedbackTone(feedbackStatus)}><CardContent className="pt-6 text-sm">{feedbackMessage}</CardContent></Card> : null}
       {error ? <Card className="border-amber-200 bg-amber-50"><CardContent className="pt-6 text-sm text-amber-900">No se pudo cargar catálogo: {error}</CardContent></Card> : null}
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -273,7 +287,7 @@ export default async function CatalogPage({ params }: PageProps) {
         <CardHeader><CardTitle>{rows.length} registros visibles</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           {rows.length ? rows.map((row) => (
-            <details className="rounded-lg border p-4" key={row.id}>
+            <details className="rounded-lg border p-4" key={row.id} open={feedbackFocus === row.id}>
               <summary className="cursor-pointer font-semibold">
                 {rowTitle(resource, row)} <span className="ml-2 text-xs font-normal text-muted-foreground">{row.status === "published" ? "Publicado" : row.status === "archived" ? "Archivado" : "Borrador"} · {row.published_at ? new Date(row.published_at).toLocaleDateString("es-MX") : "sin publicar"}</span>
               </summary>
