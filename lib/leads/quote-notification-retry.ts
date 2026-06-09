@@ -34,6 +34,10 @@ function numberValue(value: unknown) {
   return typeof value === "number" ? value : Number(value ?? 0);
 }
 
+function incidentStatusForNotification(status: NotificationStatus) {
+  return status === "sent" || status === "skipped" ? "resolved" : "open";
+}
+
 function inputFromPayload(payload: Json): QuoteRequestInput {
   const data = asRecord(payload);
   return {
@@ -66,13 +70,14 @@ async function loadQuoteRequest(supabase: SupabaseAdminClient, log: Notification
 }
 
 async function claimLog(supabase: SupabaseAdminClient, log: NotificationLog, actorId: string, now: string) {
-  const { data, error } = await supabase.from("notification_logs").update({ status: "processing", attempt_count: (log.attempt_count ?? 0) + 1, last_attempt_at: now, locked_at: now, last_retried_by: actorId, error_message: null }).eq("id", log.id).in("status", RETRYABLE_STATUSES).select("*").maybeSingle();
+  const { data, error } = await supabase.from("notification_logs").update({ status: "processing", attempt_count: (log.attempt_count ?? 0) + 1, last_attempt_at: now, locked_at: now, last_retried_by: actorId, error_message: null, incident_status: "open", incident_updated_at: now, incident_updated_by: actorId }).eq("id", log.id).in("status", RETRYABLE_STATUSES).select("*").maybeSingle();
   if (error) throw new Error(error.message);
   return data as NotificationLog | null;
 }
 
-async function finishLog(supabase: SupabaseAdminClient, id: string, input: Partial<NotificationLog>) {
-  const { error } = await supabase.from("notification_logs").update({ ...input, locked_at: null, last_attempt_at: new Date().toISOString() }).eq("id", id);
+async function finishLog(supabase: SupabaseAdminClient, id: string, actorId: string, input: Partial<NotificationLog>) {
+  const nextStatus = typeof input.status === "string" ? (input.status as NotificationStatus) : null;
+  const { error } = await supabase.from("notification_logs").update({ ...input, locked_at: null, last_attempt_at: new Date().toISOString(), ...(nextStatus ? { incident_status: incidentStatusForNotification(nextStatus), incident_updated_at: new Date().toISOString(), incident_updated_by: actorId } : {}) }).eq("id", id);
   if (error) throw new Error(error.message);
 }
 
@@ -104,18 +109,18 @@ export async function retryNotificationLog(logId: string, actorId: string, depen
     const result = await (dependencies.send ?? sendEmail)({ to: claimed.recipient, subject: rendered.subject, text: rendered.text, html: rendered.html });
     const payload = baseNotificationPayload({ quoteRequestId: quote.id, leadId: claimed.lead_id ?? "", locale: quote.input.locale, destination: quote.input.mainDestination, template: rendered.metadata, provider: { name: result.provider, messageId: result.messageId ?? null, raw: result.raw ?? null } });
     try {
-      await finishLog(supabase, logId, { status: "sent", error_message: null, provider_message_id: result.messageId ?? null, sent_at: now, payload });
-    } catch (updateError) {
-      const reason = `Log update failed after send: ${sanitizeError(updateError)}`;
-      try {
-        await finishLog(supabase, logId, { status: "ambiguous", error_message: reason, provider_message_id: result.messageId ?? null, payload });
-      } catch {}
-      return { kind: "notification_retry", status: "ambiguous", logId, recipient: claimed.recipient, reason };
-    }
-    return { kind: "notification_retry", status: "sent", logId, recipient: claimed.recipient };
+        await finishLog(supabase, logId, actorId, { status: "sent", error_message: null, provider_message_id: result.messageId ?? null, sent_at: now, payload });
+      } catch (updateError) {
+        const reason = `Log update failed after send: ${sanitizeError(updateError)}`;
+        try {
+          await finishLog(supabase, logId, actorId, { status: "ambiguous", error_message: reason, provider_message_id: result.messageId ?? null, payload });
+        } catch {}
+        return { kind: "notification_retry", status: "ambiguous", logId, recipient: claimed.recipient, reason };
+      }
+      return { kind: "notification_retry", status: "sent", logId, recipient: claimed.recipient };
   } catch (sendError) {
     const reason = sanitizeError(sendError);
-    await finishLog(supabase, logId, { status: "failed", error_message: reason });
+    await finishLog(supabase, logId, actorId, { status: "failed", error_message: reason });
     return { kind: "notification_retry", status: "failed", logId, recipient: claimed.recipient, reason };
   }
 }

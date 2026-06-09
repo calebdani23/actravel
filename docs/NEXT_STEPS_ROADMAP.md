@@ -290,6 +290,10 @@ Objetivo: tener visibilidad real del estado operativo del MVP.
 
 ### Bloque P2.1 — Observabilidad operativa
 
+#### Estado
+
+- ✅ Implementado para operación MVP: dashboard con leads hoy (UTC), incidents abiertos de email/Sheets en ventana de 7 días, clicks WhatsApp de 7 días, alertas mínimas y vista de incidentes recientes.
+
 #### Implementar
 
 - Dashboard de salud operativa:
@@ -301,6 +305,10 @@ Objetivo: tener visibilidad real del estado operativo del MVP.
 - Señales mínimas de alerta.
 
 ### Bloque P2.2 — Retry y mantenimiento operativo
+
+#### Estado
+
+- ✅ Implementado para operación MVP: retry manual de emails/Sheets desde admin logs y estado persistente abierto/resuelto con opción de marcar resuelto o reabrir.
 
 #### Implementar
 

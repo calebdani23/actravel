@@ -251,6 +251,8 @@ test("sheet retry claims failed log and appends exactly once", async () => {
   assert.equal(updated[0].status, "processing");
   assert.equal(updated[1].status, "success");
   assert.equal(updated[0].last_retried_by, "actor-1");
+  assert.equal(updated[0].incident_status, "open");
+  assert.equal(updated[1].incident_status, "resolved");
 });
 
 test("sheet retry skips terminal success without duplicate append", async () => {

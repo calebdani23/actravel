@@ -36,6 +36,10 @@ function numberValue(value: unknown) {
   return typeof value === "number" ? value : Number(value ?? 0);
 }
 
+function incidentStatusForSheet(status: SheetSyncStatus) {
+  return status === "success" || status === "skipped" ? "resolved" : "open";
+}
+
 function inputFromPayload(payload: Json): QuoteRequestInput {
   const data = asRecord(payload);
   return {
@@ -72,13 +76,14 @@ async function loadQuoteRequest(supabase: SupabaseAdminClient, log: SheetLog) {
 }
 
 async function claimLog(supabase: SupabaseAdminClient, log: SheetLog, actorId: string, now: string) {
-  const { data, error } = await supabase.from("sheet_sync_logs").update({ status: "processing", attempt_count: (log.attempt_count ?? 0) + 1, last_attempt_at: now, locked_at: now, last_retried_by: actorId, error_message: null }).eq("id", log.id).in("status", RETRYABLE_STATUSES).select("*").maybeSingle();
+  const { data, error } = await supabase.from("sheet_sync_logs").update({ status: "processing", attempt_count: (log.attempt_count ?? 0) + 1, last_attempt_at: now, locked_at: now, last_retried_by: actorId, error_message: null, incident_status: "open", incident_updated_at: now, incident_updated_by: actorId }).eq("id", log.id).in("status", RETRYABLE_STATUSES).select("*").maybeSingle();
   if (error) throw new Error(error.message);
   return data as SheetLog | null;
 }
 
-async function finishLog(supabase: SupabaseAdminClient, id: string, input: Partial<SheetLog>) {
-  const { error } = await supabase.from("sheet_sync_logs").update({ ...input, locked_at: null, last_attempt_at: new Date().toISOString() }).eq("id", id);
+async function finishLog(supabase: SupabaseAdminClient, id: string, actorId: string, input: Partial<SheetLog>) {
+  const nextStatus = typeof input.status === "string" ? (input.status as SheetSyncStatus) : null;
+  const { error } = await supabase.from("sheet_sync_logs").update({ ...input, locked_at: null, last_attempt_at: new Date().toISOString(), ...(nextStatus ? { incident_status: incidentStatusForSheet(nextStatus), incident_updated_at: new Date().toISOString(), incident_updated_by: actorId } : {}) }).eq("id", id);
   if (error) throw new Error(error.message);
 }
 
@@ -109,25 +114,25 @@ export async function retrySheetSyncLog(logId: string, actorId: string, dependen
     const config = getGoogleSheetsConfig();
     if ("missing" in config) {
       const reason = `Google Sheets sync retry failed: missing ${config.missing.join(", ")}.`;
-      await finishLog(supabase, logId, { status: "failed", error_message: reason, payload: basePayload({ log: claimed, input: quote.input, metadata: { missing: config.missing } }) });
-      return { kind: "quote_request_sheet_sync", status: "failed", logId, rowId: null, reason };
+        await finishLog(supabase, logId, actorId, { status: "failed", error_message: reason, payload: basePayload({ log: claimed, input: quote.input, metadata: { missing: config.missing } }) });
+        return { kind: "quote_request_sheet_sync", status: "failed", logId, rowId: null, reason };
     }
     const row = buildLeadSheetRow({ leadId: claimed.lead_id ?? "", input: quote.input, normalizedEmail: normalizeEmail(quote.input.email), normalizedWhatsapp: normalizeWhatsApp(quote.input.whatsapp) });
     const result = await (dependencies.append ?? appendLeadToSheet)({ config, row });
     const payload = basePayload({ log: claimed, input: quote.input, metadata: { rowId: result.rowId, provider: result.raw ?? null } });
     try {
-      await finishLog(supabase, logId, { status: "success", error_message: null, row_id: result.rowId, payload });
-    } catch (updateError) {
-      const reason = `Log update failed after append: ${sanitizeError(updateError)}`;
-      try {
-        await finishLog(supabase, logId, { status: "ambiguous", error_message: reason, row_id: result.rowId, payload });
-      } catch {}
-      return { kind: "quote_request_sheet_sync", status: "ambiguous", logId, rowId: result.rowId, reason };
+        await finishLog(supabase, logId, actorId, { status: "success", error_message: null, row_id: result.rowId, payload });
+      } catch (updateError) {
+        const reason = `Log update failed after append: ${sanitizeError(updateError)}`;
+        try {
+          await finishLog(supabase, logId, actorId, { status: "ambiguous", error_message: reason, row_id: result.rowId, payload });
+        } catch {}
+        return { kind: "quote_request_sheet_sync", status: "ambiguous", logId, rowId: result.rowId, reason };
     }
     return { kind: "quote_request_sheet_sync", status: "success", logId, rowId: result.rowId };
   } catch (appendError) {
     const reason = sanitizeError(appendError);
-    await finishLog(supabase, logId, { status: "failed", error_message: reason, payload: quote ? basePayload({ log: claimed, input: quote.input }) : claimed.payload });
+    await finishLog(supabase, logId, actorId, { status: "failed", error_message: reason, payload: quote ? basePayload({ log: claimed, input: quote.input }) : claimed.payload });
     return { kind: "quote_request_sheet_sync", status: "failed", logId, rowId: null, reason };
   }
 }

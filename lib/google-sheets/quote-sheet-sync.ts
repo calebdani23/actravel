@@ -22,6 +22,10 @@ type ProcessQuoteSheetSyncInput = {
 
 type AppendValues = (input: { config: GoogleSheetsConfig; row: string[] }) => Promise<{ rowId: string | null; raw?: Json }>;
 
+function incidentStatusForSheet(status: "queued" | "processing" | "success" | "skipped" | "failed" | "ambiguous") {
+  return status === "success" || status === "skipped" ? "resolved" : "open";
+}
+
 function sanitizeError(error: unknown) {
   const message = error instanceof Error ? error.message : "Google Sheets sync failed";
   return message.replace(/(key|token|secret|password|private[_-]?key)=[^\s]+/gi, "$1=[redacted]").slice(0, 500);
@@ -58,6 +62,8 @@ async function insertLog(supabase: SupabaseAdminClient, values: { leadId: string
       status: values.status,
       error_message: values.reason ?? null,
       payload: values.payload,
+      incident_status: incidentStatusForSheet(values.status),
+      incident_updated_at: new Date().toISOString(),
     })
     .select("id")
     .single();
@@ -74,7 +80,7 @@ async function insertLog(supabase: SupabaseAdminClient, values: { leadId: string
 async function updateLog(supabase: SupabaseAdminClient, id: string, values: { status: SheetSyncStatus; error?: string | null; rowId?: string | null; payload: Json }) {
   const { error } = await supabase
     .from("sheet_sync_logs")
-    .update({ status: values.status, error_message: values.error ?? null, row_id: values.rowId ?? null, payload: values.payload, last_attempt_at: new Date().toISOString(), locked_at: null })
+    .update({ status: values.status, error_message: values.error ?? null, row_id: values.rowId ?? null, payload: values.payload, last_attempt_at: new Date().toISOString(), locked_at: null, incident_status: incidentStatusForSheet(values.status), incident_updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) throw new Error(error.message);
 }

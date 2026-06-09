@@ -19,6 +19,10 @@ type ProcessQuoteNotificationsInput = {
   whatsappHref: string;
 };
 
+function incidentStatusForNotification(status: "queued" | "skipped" | "sent" | "failed" | "ambiguous") {
+  return status === "sent" || status === "skipped" ? "resolved" : "open";
+}
+
 async function insertLog(supabase: SupabaseAdminClient, values: { leadId: string; contactId: string; recipient: string | null; templateName: string; status: "queued" | "skipped"; reason?: string; payload: Json }): Promise<InsertLogResult> {
   const row = {
     lead_id: values.leadId,
@@ -30,6 +34,8 @@ async function insertLog(supabase: SupabaseAdminClient, values: { leadId: string
     status: values.status,
     error_message: values.reason ?? null,
     payload: values.payload,
+    incident_status: incidentStatusForNotification(values.status),
+    incident_updated_at: new Date().toISOString(),
   };
   const inserted = await supabase.from("notification_logs").insert(row).select("id").single();
   if (!inserted.error && inserted.data?.id) return { id: inserted.data.id as string };
@@ -54,7 +60,7 @@ async function insertLog(supabase: SupabaseAdminClient, values: { leadId: string
 async function updateLog(supabase: SupabaseAdminClient, id: string, values: { status: "sent" | "failed" | "skipped" | "ambiguous"; error?: string | null; providerMessageId?: string; payload: Json }) {
   const { error } = await supabase
     .from("notification_logs")
-    .update({ status: values.status, error_message: values.error ?? null, provider_message_id: values.providerMessageId ?? null, sent_at: values.status === "sent" ? new Date().toISOString() : null, payload: values.payload, last_attempt_at: new Date().toISOString(), locked_at: null })
+    .update({ status: values.status, error_message: values.error ?? null, provider_message_id: values.providerMessageId ?? null, sent_at: values.status === "sent" ? new Date().toISOString() : null, payload: values.payload, last_attempt_at: new Date().toISOString(), locked_at: null, incident_status: incidentStatusForNotification(values.status), incident_updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) throw new Error(error.message);
 }

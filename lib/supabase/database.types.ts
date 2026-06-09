@@ -558,6 +558,9 @@ export type Database = {
           created_at: string
           error_message: string | null
           id: string
+          incident_status: string
+          incident_updated_at: string
+          incident_updated_by: string | null
           last_attempt_at: string | null
           last_retried_by: string | null
           lead_id: string | null
@@ -578,6 +581,9 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          incident_status?: string
+          incident_updated_at?: string
+          incident_updated_by?: string | null
           last_attempt_at?: string | null
           last_retried_by?: string | null
           lead_id?: string | null
@@ -598,6 +604,9 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          incident_status?: string
+          incident_updated_at?: string
+          incident_updated_by?: string | null
           last_attempt_at?: string | null
           last_retried_by?: string | null
           lead_id?: string | null
@@ -1231,6 +1240,9 @@ export type Database = {
           error_message: string | null
           id: string
           idempotency_key: string | null
+          incident_status: string
+          incident_updated_at: string
+          incident_updated_by: string | null
           last_attempt_at: string | null
           last_retried_by: string | null
           lead_id: string | null
@@ -1249,6 +1261,9 @@ export type Database = {
           error_message?: string | null
           id?: string
           idempotency_key?: string | null
+          incident_status?: string
+          incident_updated_at?: string
+          incident_updated_by?: string | null
           last_attempt_at?: string | null
           last_retried_by?: string | null
           lead_id?: string | null
@@ -1267,6 +1282,9 @@ export type Database = {
           error_message?: string | null
           id?: string
           idempotency_key?: string | null
+          incident_status?: string
+          incident_updated_at?: string
+          incident_updated_by?: string | null
           last_attempt_at?: string | null
           last_retried_by?: string | null
           lead_id?: string | null
