@@ -11,6 +11,7 @@ import { type Locale, locales } from "@/lib/i18n/config";
 
 const siteName = "AC Travel";
 const defaultSocialImage: string | undefined = undefined;
+const defaultSiteUrl = "http://localhost:3000";
 
 type PublicRouteKey = Parameters<typeof localizedPath>[1];
 type ListingRouteKey = Extract<PublicRouteKey, "services" | "packages" | "deals" | "destinations">;
@@ -25,8 +26,21 @@ type SeoInput = {
   alternatePaths: Record<Locale, string>;
 };
 
+function parseSiteUrl(value: string | undefined) {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url;
+  } catch {
+    return null;
+  }
+}
+
 export function getSiteUrl() {
-  return new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000");
+  return parseSiteUrl(process.env.NEXT_PUBLIC_SITE_URL) ?? new URL(defaultSiteUrl);
 }
 
 export function absoluteUrl(path: string) {
