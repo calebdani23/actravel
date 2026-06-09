@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { optionalFile, removeStoredObject, sameStorageObject } from "@/lib/admin/storage-uploads";
 import { requireAdminRole } from "@/lib/admin/auth";
-import { assertCatalogExistingRecord, assertCatalogMutation, buildCatalogAdminRedirectTarget, catalogActionErrorMessage, catalogActionSuccessMessage } from "@/lib/admin/catalog-actions";
+import { assertCatalogExistingRecord, assertCatalogMutation, buildCatalogAdminRedirectTarget, catalogActionErrorMessage, catalogActionSuccessMessage, sanitizeCatalogMutationPayload } from "@/lib/admin/catalog-actions";
 import { catalogMediaStorageObject, normalizeCatalogMediaValue, uploadCatalogMediaFile } from "@/lib/catalog-media";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCatalogWriteState, type CatalogResource, type CatalogStatus, type CatalogWriteIntent } from "@/lib/admin/catalog";
@@ -107,8 +107,10 @@ async function resolveCatalogMediaFields(
   ]);
 
   return {
-    hero_image_url: hero.value,
-    thumbnail_image_url: thumbnail.value,
+    fields: {
+      hero_image_url: hero.value,
+      thumbnail_image_url: thumbnail.value,
+    },
     uploads: [hero.upload, thumbnail.upload].filter((upload): upload is UploadedCatalogMedia => Boolean(upload)),
   };
 }
@@ -252,52 +254,52 @@ async function writeCatalogRecord(formData: FormData, intent: CatalogWriteIntent
 
   try {
     if (resource === "destinations") {
-      const payload = destinationPayload(formData, publication, media);
+      const payload = sanitizeCatalogMutationPayload("destinations", destinationPayload(formData, publication, media.fields));
       const saved = assertCatalogMutation(
         id
           ? await supabase.from("destinations").update(payload).eq("id", id).select("id, slug_es, slug_en").maybeSingle()
           : await supabase.from("destinations").insert(payload).select("id, slug_es, slug_en").single(),
         { resource, action: intent, id },
       );
-      await cleanupReplacedCatalogMedia(supabase, current.data, media);
+      await cleanupReplacedCatalogMedia(supabase, current.data, media.fields);
       revalidateCatalog(resource, [current.data?.slug_es, current.data?.slug_en, saved.slug_es, saved.slug_en]);
       return { resource, focusId: saved.id, message: catalogActionSuccessMessage(resource, intent, Boolean(id)) };
     }
 
     if (resource === "services") {
-      const payload = servicePayload(formData, publication, media);
+      const payload = sanitizeCatalogMutationPayload("services", servicePayload(formData, publication, media.fields));
       const saved = assertCatalogMutation(
         id
           ? await supabase.from("services").update(payload).eq("id", id).select("id, slug_es, slug_en").maybeSingle()
           : await supabase.from("services").insert(payload).select("id, slug_es, slug_en").single(),
         { resource, action: intent, id },
       );
-      await cleanupReplacedCatalogMedia(supabase, current.data, media);
+      await cleanupReplacedCatalogMedia(supabase, current.data, media.fields);
       revalidateCatalog(resource);
       return { resource, focusId: saved.id, message: catalogActionSuccessMessage(resource, intent, Boolean(id)) };
     }
 
     if (resource === "packages") {
-      const payload = packagePayload(formData, publication, media);
+      const payload = sanitizeCatalogMutationPayload("packages", packagePayload(formData, publication, media.fields));
       const saved = assertCatalogMutation(
         id
           ? await supabase.from("packages").update(payload).eq("id", id).select("id, slug_es, slug_en").maybeSingle()
           : await supabase.from("packages").insert(payload).select("id, slug_es, slug_en").single(),
         { resource, action: intent, id },
       );
-      await cleanupReplacedCatalogMedia(supabase, current.data, media);
+      await cleanupReplacedCatalogMedia(supabase, current.data, media.fields);
       revalidateCatalog(resource);
       return { resource, focusId: saved.id, message: catalogActionSuccessMessage(resource, intent, Boolean(id)) };
     }
 
-    const payload = promotionPayload(formData, publication, media);
+    const payload = sanitizeCatalogMutationPayload("promotions", promotionPayload(formData, publication, media.fields));
     const saved = assertCatalogMutation(
       id
         ? await supabase.from("promotions").update(payload).eq("id", id).select("id, slug_es, slug_en").maybeSingle()
         : await supabase.from("promotions").insert(payload).select("id, slug_es, slug_en").single(),
       { resource, action: intent, id },
     );
-    await cleanupReplacedCatalogMedia(supabase, current.data, media);
+    await cleanupReplacedCatalogMedia(supabase, current.data, media.fields);
     revalidateCatalog(resource, [current.data?.slug_es, current.data?.slug_en, saved.slug_es, saved.slug_en]);
     return { resource, focusId: saved.id, message: catalogActionSuccessMessage(resource, intent, Boolean(id)) };
   } catch (error) {

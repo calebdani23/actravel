@@ -1,6 +1,13 @@
 type CatalogResource = "destinations" | "services" | "packages" | "promotions";
 type CatalogWriteIntent = "save" | "publish" | "draft" | "archive";
 
+type CatalogMutationPayloadMap = {
+  destinations: import("@/lib/supabase/database.types").TablesInsert<"destinations">;
+  services: import("@/lib/supabase/database.types").TablesInsert<"services">;
+  packages: import("@/lib/supabase/database.types").TablesInsert<"packages">;
+  promotions: import("@/lib/supabase/database.types").TablesInsert<"promotions">;
+};
+
 const catalogResources = {
   destinations: { label: "Destinos" },
   services: { label: "Servicios" },
@@ -14,6 +21,83 @@ const catalogResourceSingular = {
   packages: "paquete",
   promotions: "promoción",
 } satisfies Record<CatalogResource, string>;
+
+const catalogMutationColumns = {
+  destinations: [
+    "country",
+    "description_en",
+    "description_es",
+    "hero_image_url",
+    "is_featured",
+    "name_en",
+    "name_es",
+    "published_at",
+    "region",
+    "slug_en",
+    "slug_es",
+    "status",
+    "summary_en",
+    "summary_es",
+    "thumbnail_image_url",
+  ],
+  services: [
+    "description_en",
+    "description_es",
+    "hero_image_url",
+    "is_featured",
+    "name_en",
+    "name_es",
+    "price_from_mxn",
+    "price_from_usd",
+    "published_at",
+    "slug_en",
+    "slug_es",
+    "sort_order",
+    "status",
+    "summary_en",
+    "summary_es",
+    "thumbnail_image_url",
+  ],
+  packages: [
+    "description_en",
+    "description_es",
+    "hero_image_url",
+    "is_featured",
+    "name_en",
+    "name_es",
+    "price_from_mxn",
+    "price_from_usd",
+    "published_at",
+    "slug_en",
+    "slug_es",
+    "sort_order",
+    "status",
+    "summary_en",
+    "summary_es",
+    "thumbnail_image_url",
+  ],
+  promotions: [
+    "destination_id",
+    "details_en",
+    "details_es",
+    "ends_at",
+    "hero_image_url",
+    "is_featured",
+    "price_from_mxn",
+    "price_from_usd",
+    "published_at",
+    "service_id",
+    "slug_en",
+    "slug_es",
+    "starts_at",
+    "status",
+    "summary_en",
+    "summary_es",
+    "thumbnail_image_url",
+    "title_en",
+    "title_es",
+  ],
+} satisfies Record<CatalogResource, readonly string[]>;
 
 type CatalogMutationRow = {
   id: string;
@@ -63,6 +147,19 @@ export function assertCatalogMutation<Row extends CatalogMutationRow>(
   }
 
   return result.data;
+}
+
+export function sanitizeCatalogMutationPayload<Resource extends CatalogResource>(
+  resource: Resource,
+  payload: Record<string, unknown>,
+): CatalogMutationPayloadMap[Resource] {
+  const sanitized = Object.fromEntries(
+    catalogMutationColumns[resource]
+      .filter((key) => payload[key] !== undefined)
+      .map((key) => [key, payload[key]]),
+  );
+
+  return sanitized as CatalogMutationPayloadMap[Resource];
 }
 
 export function assertCatalogExistingRecord<Row>(
