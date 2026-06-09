@@ -1,6 +1,11 @@
 import "server-only";
 
-type UploadBucket = "documents" | "payment-proofs";
+export type UploadBucket = "documents" | "payment-proofs";
+
+export type StoredObjectRef = {
+  bucket?: string | null;
+  path?: string | null;
+};
 
 type StorageClient = {
   storage: {
@@ -92,6 +97,38 @@ export function buildStoragePath(bucket: UploadBucket, file: File, context: Uplo
   return `${bucket}/${uploadScope(context)}/${year}/${month}/${uuid}-${slug}.${extension}`;
 }
 
+export function sameStorageObject(current?: StoredObjectRef | null, next?: StoredObjectRef | null) {
+  return Boolean(current?.bucket && current?.path && current.bucket === next?.bucket && current.path === next?.path);
+}
+
+export async function removeStoredObject(supabase: StorageClient, file?: StoredObjectRef | null) {
+  if (!file?.bucket || !file.path) return false;
+  const { error } = await supabase.storage.from(file.bucket).remove([file.path]);
+  if (error) throw new Error(`No se pudo limpiar el archivo anterior: ${error.message}`);
+  return true;
+}
+
+export async function removeStoredObjects(supabase: StorageClient, files: Array<StoredObjectRef | null | undefined>) {
+  const grouped = new Map<string, string[]>();
+
+  for (const file of files) {
+    if (!file?.bucket || !file.path) continue;
+    const paths = grouped.get(file.bucket) ?? [];
+    if (!paths.includes(file.path)) paths.push(file.path);
+    grouped.set(file.bucket, paths);
+  }
+
+  let removedAny = false;
+
+  for (const [bucket, paths] of grouped.entries()) {
+    const { error } = await supabase.storage.from(bucket).remove(paths);
+    if (error) throw new Error(`No se pudo limpiar el archivo anterior: ${error.message}`);
+    removedAny = true;
+  }
+
+  return removedAny;
+}
+
 export async function uploadPrivateFile(supabase: StorageClient, bucket: UploadBucket, file: File, context: UploadContext) {
   const { contentType } = validateUploadFile(file, bucket);
   const path = buildStoragePath(bucket, file, context);
@@ -102,7 +139,7 @@ export async function uploadPrivateFile(supabase: StorageClient, bucket: UploadB
     bucket,
     path,
     cleanup: async () => {
-      await supabase.storage.from(bucket).remove([path]);
+      await removeStoredObject(supabase, { bucket, path });
     },
   };
 }

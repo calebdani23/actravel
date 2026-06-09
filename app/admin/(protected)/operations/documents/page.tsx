@@ -27,15 +27,11 @@ function DocumentForm({ document, options }: { document?: DocumentRow; options: 
         <label className="space-y-1 text-sm font-medium"><span>Contacto</span><select className="w-full rounded-md border px-3 py-2 text-sm" defaultValue={document?.contact_id ?? ""} name="contact_id"><option value="">Sin contacto</option>{options.contacts.map((contact) => <option key={contact.id} value={contact.id}>{contactName(contact)}</option>)}</select></label>
         <label className="space-y-1 text-sm font-medium"><span>Lead</span><select className="w-full rounded-md border px-3 py-2 text-sm" defaultValue={document?.lead_id ?? ""} name="lead_id"><option value="">Sin lead</option>{options.leads.map((lead) => <option key={lead.id} value={lead.id}>{lead.summary ?? lead.id.slice(0, 8)}</option>)}</select></label>
         <label className="space-y-1 text-sm font-medium"><span>Reserva</span><select className="w-full rounded-md border px-3 py-2 text-sm" defaultValue={document?.booking_id ?? ""} name="booking_id"><option value="">Sin reserva</option>{options.bookings.map((booking) => <option key={booking.id} value={booking.id}>{booking.booking_code ?? booking.id.slice(0, 8)} · {booking.status}</option>)}</select></label>
-        {!document ? (
-          <label className="space-y-1 text-sm font-medium md:col-span-3">
-            <span>Archivo</span>
-            <input accept={STORAGE_UPLOAD_ACCEPT} className="w-full rounded-md border px-3 py-2 text-sm" name="document_file" required type="file" />
-            <span className="block text-xs font-normal text-muted-foreground">{STORAGE_UPLOAD_CONFIG.documents.helpText}. La ruta segura se genera automáticamente.</span>
-          </label>
-        ) : (
-          <p className="text-xs text-muted-foreground md:col-span-3">Este primer corte permite editar metadatos; reemplazar archivo se atenderá después. {document.document_preview_url ? "El archivo actual tiene enlace firmado disponible." : "Sin archivo firmado disponible."}</p>
-        )}
+        <label className="space-y-1 text-sm font-medium md:col-span-3">
+          <span>{document ? "Reemplazar archivo (opcional)" : "Archivo"}</span>
+          <input accept={STORAGE_UPLOAD_ACCEPT} className="w-full rounded-md border px-3 py-2 text-sm" name="document_file" required={!document} type="file" />
+          <span className="block text-xs font-normal text-muted-foreground">{STORAGE_UPLOAD_CONFIG.documents.helpText}. {document ? "Si eliges uno nuevo, el archivo anterior se limpia automáticamente después de guardar." : "La ruta segura se genera automáticamente."}</span>
+        </label>
       </div>
       <div className="flex flex-wrap gap-2"><Button type="submit">{document ? "Guardar documento" : "Crear documento"}</Button>{document ? <Button formAction={deleteDocumentAction} type="submit" variant="outline">Eliminar</Button> : null}</div>
     </form>

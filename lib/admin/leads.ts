@@ -58,10 +58,21 @@ function cleanText(value?: string) {
   return trimmed ? trimmed.slice(0, 120) : undefined;
 }
 
+function unique<T>(values: T[]) {
+  return Array.from(new Set(values));
+}
+
 function validDate(value?: string) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
   const parsed = new Date(`${value}T00:00:00.000Z`);
-  return Number.isNaN(parsed.getTime()) ? undefined : value;
+  return Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value ? undefined : value;
+}
+
+function resolveCreatedAtRange(filters: Pick<LeadFilters, "from" | "to">) {
+  const from = validDate(filters.from);
+  const to = validDate(filters.to);
+  if (from && to && from > to) return {};
+  return { from, to };
 }
 
 function jsonObject(value: unknown): JsonRecord {
@@ -101,24 +112,95 @@ export async function getLeadSources() {
   return Array.from(new Set((data ?? []).map((row) => row.source).filter(Boolean))).sort();
 }
 
-async function findSearchMatches(supabase: Awaited<ReturnType<typeof createClient>>, q?: string) {
-  const term = cleanText(q)?.replace(/[(),]/g, " ").replace(/\s+/g, " ").trim();
-  if (!term) return null;
-  const like = `%${escapeSearch(term)}%`;
-  const digits = term.replace(/\D/g, "");
-  const phoneLike = digits.length >= 4 ? `%${digits}%` : like;
+type LeadSearchPlan = {
+  term: string;
+  terms: string[];
+  exactIds: string[];
+};
 
-  const [{ data: contacts }, { data: destinations }, { data: quoteRequests }] = await Promise.all([
-    supabase.from("contacts").select("id").or(`first_name.ilike.${like},last_name.ilike.${like},email.ilike.${like},phone.ilike.${phoneLike}`).limit(100),
-    supabase.from("destinations").select("id").or(`name_es.ilike.${like},name_en.ilike.${like}`).limit(100),
-    supabase.from("quote_requests").select("lead_id, contact_id").filter("payload->>mainDestination", "ilike", like).limit(100),
+function splitSearchTerms(q?: string) {
+  const normalized = cleanText(q)?.replace(/[(),]/g, " ").replace(/\s+/g, " ").trim();
+  if (!normalized) return [];
+  const parts = normalized.split(" ").map((term) => term.trim()).filter((term) => term.length >= 2);
+  return unique(parts.length ? parts : [normalized]).slice(0, 5);
+}
+
+function buildLeadSearchPlan(q?: string): LeadSearchPlan | null {
+  const terms = splitSearchTerms(q);
+  if (!terms.length) return null;
+  return {
+    term: terms.join(" "),
+    terms,
+    exactIds: terms.filter((term) => /^[0-9a-f-]{8,}$/i.test(term)),
+  };
+}
+
+function buildLeadSearchClauses(search: LeadSearchPlan, ids: { contactIds: string[]; destinationIds: string[]; leadIds: string[] }) {
+  return unique([
+    ...search.terms.flatMap((term) => {
+      const escaped = escapeSearch(term);
+      return [`summary.ilike.%${escaped}%`, `source.ilike.%${escaped}%`];
+    }),
+    ...search.exactIds.map((id) => `id.eq.${id}`),
+    ...(ids.contactIds.length ? [`contact_id.in.(${ids.contactIds.join(",")})`] : []),
+    ...(ids.destinationIds.length ? [`destination_id.in.(${ids.destinationIds.join(",")})`] : []),
+    ...(ids.leadIds.length ? [`id.in.(${ids.leadIds.join(",")})`] : []),
+  ]);
+}
+
+function buildQuoteRequestSearchClauses(search: LeadSearchPlan) {
+  return search.terms.flatMap((term) => {
+    const like = `%${escapeSearch(term)}%`;
+    const digits = term.replace(/\D/g, "");
+    const phoneLike = digits.length >= 4 ? `%${digits}%` : like;
+    return [
+      `payload->>holderName.ilike.${like}`,
+      `payload->>email.ilike.${like}`,
+      `payload->>whatsapp.ilike.${phoneLike}`,
+      `payload->>origin.ilike.${like}`,
+      `payload->>mainDestination.ilike.${like}`,
+      `payload->>serviceInterest.ilike.${like}`,
+      `payload->>campaignContext.ilike.${like}`,
+      `payload->>notes.ilike.${like}`,
+    ];
+  }).join(",");
+}
+
+async function findSearchMatches(supabase: Awaited<ReturnType<typeof createClient>>, q?: string) {
+  const search = buildLeadSearchPlan(q);
+  if (!search) return null;
+
+  const contactFilters = search.terms.flatMap((term) => {
+    const like = `%${escapeSearch(term)}%`;
+    const digits = term.replace(/\D/g, "");
+    const phoneLike = digits.length >= 4 ? `%${digits}%` : like;
+    return [`first_name.ilike.${like}`, `last_name.ilike.${like}`, `email.ilike.${like}`, `phone.ilike.${phoneLike}`];
+  }).join(",");
+
+  const destinationFilters = search.terms.flatMap((term) => {
+    const like = `%${escapeSearch(term)}%`;
+    return [`name_es.ilike.${like}`, `name_en.ilike.${like}`];
+  }).join(",");
+
+  const leadFilters = search.terms.flatMap((term) => {
+    const like = `%${escapeSearch(term)}%`;
+    return [`summary.ilike.${like}`, `source.ilike.${like}`];
+  }).join(",");
+
+  const quoteFilters = buildQuoteRequestSearchClauses(search);
+
+  const [{ data: contacts }, { data: destinations }, { data: leads }, { data: quoteRequests }] = await Promise.all([
+    supabase.from("contacts").select("id").or(contactFilters).limit(100),
+    supabase.from("destinations").select("id").or(destinationFilters).limit(100),
+    supabase.from("leads").select("id, contact_id").or(leadFilters).limit(100),
+    supabase.from("quote_requests").select("lead_id, contact_id").or(quoteFilters).limit(100),
   ]);
 
   return {
-    term,
-    contactIds: Array.from(new Set([...(contacts ?? []).map((row) => row.id), ...(quoteRequests ?? []).map((row) => row.contact_id).filter(Boolean)])),
-    destinationIds: Array.from(new Set((destinations ?? []).map((row) => row.id))),
-    leadIds: Array.from(new Set((quoteRequests ?? []).map((row) => row.lead_id).filter(Boolean))),
+    ...search,
+    contactIds: unique([...(contacts ?? []).map((row) => row.id), ...(leads ?? []).map((row) => row.contact_id).filter(Boolean), ...(quoteRequests ?? []).map((row) => row.contact_id).filter(Boolean)]),
+    destinationIds: unique((destinations ?? []).map((row) => row.id)),
+    leadIds: unique([...(leads ?? []).map((row) => row.id), ...(quoteRequests ?? []).map((row) => row.lead_id).filter(Boolean)]),
   };
 }
 
@@ -138,16 +220,12 @@ export async function getLeads(filters: LeadFilters) {
   else if (filters.advisor) query = query.eq("assigned_to", filters.advisor);
   if (filters.currency === "MXN") query = query.not("budget_mxn", "is", null);
   if (filters.currency === "USD") query = query.not("budget_usd", "is", null);
-  const from = validDate(filters.from);
-  const to = validDate(filters.to);
+  const { from, to } = resolveCreatedAtRange(filters);
   if (from) query = query.gte("created_at", from);
   if (to) query = query.lte("created_at", `${to}T23:59:59`);
   if (search) {
-    const clauses = [`summary.ilike.%${escapeSearch(search.term)}%`];
-    if (search.contactIds.length) clauses.push(`contact_id.in.(${search.contactIds.join(",")})`);
-    if (search.destinationIds.length) clauses.push(`destination_id.in.(${search.destinationIds.join(",")})`);
-    if (search.leadIds.length) clauses.push(`id.in.(${search.leadIds.join(",")})`);
-    query = query.or(clauses.join(","));
+    const clauses = buildLeadSearchClauses(search, search);
+    if (clauses.length) query = query.or(clauses.join(","));
   }
 
   const { data, error } = await query;
@@ -226,3 +304,5 @@ export async function getLeadDetail(id: string) {
   const timeline = buildTimeline({ events: events ?? [], notes: notes ?? [], whatsappClicks: whatsappClicks ?? [], notifications: notifications ?? [], sheetLogs: sheetLogs ?? [] });
   return { lead: (lead ?? null) as unknown as LeadDetail | null, notes: notes ?? [], events: events ?? [], timeline, payments: payments ?? [], bookings: bookings ?? [], documents: documents ?? [], error: error?.message ?? null };
 }
+
+export const leadSearchInternals = { splitSearchTerms, buildLeadSearchPlan, buildLeadSearchClauses, buildQuoteRequestSearchClauses, validDate, resolveCreatedAtRange };

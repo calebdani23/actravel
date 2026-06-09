@@ -6,7 +6,7 @@ import {
   type LegalKey,
   type PublicItem,
 } from "@/lib/content/public-site";
-import { getLivePublicCatalogContent } from "@/lib/content/public-catalog";
+import { getPublicCatalogContent } from "@/lib/content/public-catalog";
 import { type Locale, locales } from "@/lib/i18n/config";
 
 const siteName = "AC Travel";
@@ -139,7 +139,7 @@ export function buildLegalMetadata(locale: Locale, legalKey: LegalKey) {
 }
 
 export async function buildDetailMetadata(locale: Locale, kind: DetailKind, slug: string) {
-  const catalog = await getLivePublicCatalogContent(locale).catch(() => null);
+  const catalog = await getPublicCatalogContent(locale).catch(() => null);
   const item = catalog ? (kind === "deal" ? catalog.promotions : catalog.destinations).find((entry) => entry.slug[locale] === slug) : null;
   const listKey = kind === "deal" ? "deals" : "destinations";
 
@@ -200,7 +200,7 @@ export async function getPublicSeoSitemapEntries(): Promise<MetadataRoute.Sitema
     for (const locale of locales) addEntry(localizedPath(locale, routeKey), { es: localizedPath("es", routeKey), en: localizedPath("en", routeKey) });
   }
 
-  const catalog = await getLivePublicCatalogContent("es").catch(() => null);
+  const catalog = await getPublicCatalogContent("es").catch(() => null);
   for (const item of catalog?.promotions ?? []) {
     for (const locale of locales) addEntry(localizedPath(locale, "deals", item.slug[locale]), { es: localizedPath("es", "deals", item.slug.es), en: localizedPath("en", "deals", item.slug.en) });
   }

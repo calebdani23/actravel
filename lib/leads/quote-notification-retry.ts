@@ -18,6 +18,10 @@ export type NotificationRetryResult = { kind: "notification_retry"; status: Noti
 const WHATSAPP_PHONE = "529988453455" as const;
 const RETRYABLE_STATUSES: NotificationStatus[] = ["failed", "queued"];
 
+function isRetryableStatus(status: string): status is NotificationStatus {
+  return RETRYABLE_STATUSES.includes(status as NotificationStatus);
+}
+
 function asRecord(value: Json): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
@@ -82,7 +86,7 @@ export async function retryNotificationLog(logId: string, actorId: string, depen
 
   if (log.status === "sent") return { kind: "notification_retry", status: "sent", logId, recipient: log.recipient, reason: "Notification already sent; retry skipped." };
   if (log.status === "processing" || log.status === "ambiguous" || log.status === "skipped") return { kind: "notification_retry", status: log.status, logId, recipient: log.recipient, reason: `Notification log is ${log.status}; manual retry skipped.` };
-  if (!RETRYABLE_STATUSES.includes(log.status)) throw new Error(`Notification status ${log.status} is not retryable`);
+  if (!isRetryableStatus(log.status)) throw new Error(`Notification status ${log.status} is not retryable`);
 
   const claimed = await claimLog(supabase, log, actorId, now);
   if (!claimed) {

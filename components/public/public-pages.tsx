@@ -17,7 +17,7 @@ import {
   type PublicItem,
   waMessage,
 } from "@/lib/content/public-site";
-import { getLivePublicCatalogContent } from "@/lib/content/public-catalog";
+import { getPublicCatalogContent, getPublicCatalogItem } from "@/lib/content/public-catalog";
 
 function PageShell({ children }: Readonly<{ children: ReactNode }>) {
   return <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-10 sm:px-6 lg:px-8">{children}</main>;
@@ -26,16 +26,7 @@ function PageShell({ children }: Readonly<{ children: ReactNode }>) {
 export async function ListingPage({ locale, kind }: Readonly<{ locale: Locale; kind: "services" | "packages" | "deals" | "destinations" }>) {
   const staticContent = getPublicSiteContent(locale);
   const page = staticContent.t.listingPages[kind];
-  const catalog = await getLivePublicCatalogContent(locale);
-
-  console.log("[public-pages] ListingPage catalog counts", {
-    locale,
-    kind,
-    services: catalog?.services.length ?? 0,
-    packages: catalog?.packages.length ?? 0,
-    destinations: catalog?.destinations.length ?? 0,
-    promotions: catalog?.promotions.length ?? 0,
-  });
+  const catalog = await getPublicCatalogContent(locale);
 
   const serviceItems = catalog?.services ?? [];
   const packageItems = catalog?.packages ?? [];
@@ -88,16 +79,7 @@ export function ItemGrid({ locale, items, section }: Readonly<{ locale: Locale; 
 }
 
 export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Locale; slug: string; kind: "deal" | "destination" }>) {
-  const catalog = await getLivePublicCatalogContent(locale);
-
-  console.log("[public-pages] DetailPage catalog counts", {
-    locale,
-    kind,
-    slug,
-    destinations: catalog?.destinations.length ?? 0,
-    promotions: catalog?.promotions.length ?? 0,
-  });
-  const item = catalog ? (kind === "deal" ? catalog.promotions : catalog.destinations).find((entry) => entry.slug[locale] === slug) : null;
+  const item = await getPublicCatalogItem(locale, kind === "deal" ? "promotions" : "destinations", slug);
   if (!item) notFound();
   const back = kind === "deal" ? "deals" : "destinations";
   return (

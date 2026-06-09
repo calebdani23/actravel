@@ -1,17 +1,23 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { getPublicSiteContent } from "@/lib/content/public-site";
 import { type Locale } from "@/lib/i18n/config";
+import { buildAbandonmentSnapshot, buildDraftSnapshot, mergeRecoveredDraft, QUOTE_FORM_RECOVERY_TTL_MS, quoteFormStorageKey, readStoredRecovery, safeStorageRemoveItem, safeStorageSetItem, type QuoteFormAbandonmentSnapshot, type QuoteFormRecoveryDraft } from "@/lib/quote-form-recovery";
 import { createQuoteRequestSchema, type QuoteRequestInput, type QuoteRequestResponse } from "@/lib/validations/quote-request";
 
 export type QuoteFormInitialContext = Partial<Pick<QuoteRequestInput, "mainDestination" | "serviceInterest" | "sourceChannel" | "preferredCurrency" | "campaignContext">>;
 
 type Props = Readonly<{ locale: Locale; initialContext?: QuoteFormInitialContext }>;
+
+type RecoveryNotice = {
+  restoredDraft: boolean;
+  abandonment?: QuoteFormAbandonmentSnapshot | null;
+};
 
 function defaultValues(locale: Locale, initialContext: QuoteFormInitialContext = {}): QuoteRequestInput {
   return {
@@ -41,7 +47,18 @@ export function QuoteForm({ locale, initialContext }: Props) {
   const copy = t.quoteForm;
   const schema = useMemo(() => createQuoteRequestSchema(locale), [locale]);
   const [result, setResult] = useState<QuoteRequestResponse | null>(null);
+  const [recoveryNotice, setRecoveryNotice] = useState<RecoveryNotice | null>(null);
   const formDefaults = useMemo(() => defaultValues(locale, initialContext), [locale, initialContext]);
+  const recoveryPriorityFields = useMemo(() => ([
+    initialContext?.mainDestination ? "mainDestination" : null,
+    initialContext?.serviceInterest ? "serviceInterest" : null,
+    initialContext?.sourceChannel ? "sourceChannel" : null,
+    initialContext?.preferredCurrency ? "preferredCurrency" : null,
+    initialContext?.campaignContext ? "campaignContext" : null,
+  ].filter((field): field is "mainDestination" | "serviceInterest" | "sourceChannel" | "preferredCurrency" | "campaignContext" => Boolean(field))), [initialContext]);
+  const recoveryLoaded = useRef(false);
+  const draftStorageKey = useMemo(() => quoteFormStorageKey(locale, "draft"), [locale]);
+  const abandonmentStorageKey = useMemo(() => quoteFormStorageKey(locale, "abandonment"), [locale]);
 
   const form = useForm<QuoteRequestInput>({
     resolver: zodResolver(schema),
@@ -49,8 +66,56 @@ export function QuoteForm({ locale, initialContext }: Props) {
     mode: "onBlur",
   });
   const preferredCurrency = useWatch({ control: form.control, name: "preferredCurrency" });
+  const watchedValues = useWatch({ control: form.control });
   const serviceOptions = optionList(copy.serviceOptions, formDefaults.serviceInterest);
   const sourceOptions = optionList(copy.sourceOptions, formDefaults.sourceChannel);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || recoveryLoaded.current) return;
+    recoveryLoaded.current = true;
+
+    let restoredDraft = false;
+    let abandonment: QuoteFormAbandonmentSnapshot | null = null;
+
+    const savedDraft = readStoredRecovery<QuoteFormRecoveryDraft>(window.localStorage, draftStorageKey, QUOTE_FORM_RECOVERY_TTL_MS.draft);
+    if (savedDraft) {
+      form.reset(mergeRecoveredDraft(formDefaults, savedDraft, { preferDefaultFields: recoveryPriorityFields }));
+      restoredDraft = true;
+    }
+
+    abandonment = readStoredRecovery<QuoteFormAbandonmentSnapshot>(window.localStorage, abandonmentStorageKey, QUOTE_FORM_RECOVERY_TTL_MS.abandonment);
+
+    if (restoredDraft || abandonment) setRecoveryNotice({ restoredDraft, abandonment });
+  }, [abandonmentStorageKey, draftStorageKey, form, formDefaults, recoveryPriorityFields]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !form.formState.isDirty) return;
+    safeStorageSetItem(window.localStorage, draftStorageKey, JSON.stringify(buildDraftSnapshot(watchedValues as QuoteRequestInput)));
+  }, [draftStorageKey, form.formState.isDirty, watchedValues]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const saveAbandonment = () => {
+      if (result?.ok || !form.formState.isDirty) return;
+      safeStorageSetItem(window.localStorage, draftStorageKey, JSON.stringify(buildDraftSnapshot(form.getValues())));
+      safeStorageSetItem(window.localStorage, abandonmentStorageKey, JSON.stringify(buildAbandonmentSnapshot(form.getValues(), form.formState.errors, form.formState.dirtyFields)));
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") saveAbandonment();
+    };
+
+    window.addEventListener("pagehide", saveAbandonment);
+    window.addEventListener("beforeunload", saveAbandonment);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("pagehide", saveAbandonment);
+      window.removeEventListener("beforeunload", saveAbandonment);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [abandonmentStorageKey, draftStorageKey, form, form.formState.dirtyFields, form.formState.errors, form.formState.isDirty, result?.ok]);
 
   async function onSubmit(values: QuoteRequestInput) {
     setResult(null);
@@ -66,6 +131,11 @@ export function QuoteForm({ locale, initialContext }: Props) {
       }
     }
     setResult(data);
+    if (data.ok && typeof window !== "undefined") {
+      safeStorageRemoveItem(window.localStorage, draftStorageKey);
+      safeStorageRemoveItem(window.localStorage, abandonmentStorageKey);
+      setRecoveryNotice(null);
+    }
   }
 
   if (result?.ok) {
@@ -85,7 +155,7 @@ export function QuoteForm({ locale, initialContext }: Props) {
             <Button asChild className="rounded-full">
               <a href={result.whatsapp.href} target="_blank" rel="noreferrer">{copy.whatsappCta}</a>
             </Button>
-            <Button type="button" variant="outline" className="rounded-full" onClick={() => { form.reset(formDefaults); setResult(null); }}>
+            <Button type="button" variant="outline" className="rounded-full" onClick={() => { form.reset(formDefaults); setResult(null); setRecoveryNotice(null); }}>
               {copy.reset}
             </Button>
           </div>
@@ -101,6 +171,7 @@ export function QuoteForm({ locale, initialContext }: Props) {
         <h1 className="mt-3 text-4xl font-black text-[var(--ac-ink)] md:text-5xl">{copy.title}</h1>
         <p className="mt-5 text-lg leading-8 text-muted-foreground">{copy.description}</p>
         <p className="mt-6 rounded-2xl bg-[var(--ac-light-bg)] p-4 text-sm leading-6 text-zinc-700">{t.quoteText}</p>
+        {recoveryNotice ? <QuoteRecoveryNotice locale={locale} notice={recoveryNotice} /> : null}
       </div>
 
       <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)} noValidate>
@@ -152,6 +223,27 @@ export function QuoteForm({ locale, initialContext }: Props) {
         </Button>
       </form>
     </section>
+  );
+}
+
+function QuoteRecoveryNotice({ locale, notice }: Readonly<{ locale: Locale; notice: RecoveryNotice }>) {
+  const frictionCount = notice.abandonment?.frictionFields.length ?? 0;
+  const dirtyCount = notice.abandonment?.dirtyFields.length ?? 0;
+
+  return (
+    <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+      <p className="font-semibold">{locale === "es" ? "Recuperamos tu avance reciente." : "We recovered your recent progress."}</p>
+      <p className="mt-1">
+        {locale === "es"
+          ? notice.restoredDraft
+            ? `Este dispositivo guardó un borrador local para retomarlo. Campos con interacción previa: ${dirtyCount}.`
+            : "Detectamos un intento reciente que quedó pendiente en este dispositivo."
+          : notice.restoredDraft
+            ? `This device saved a local draft so you can continue it. Previously touched fields: ${dirtyCount}.`
+            : "We detected a recent unfinished attempt on this device."}
+      </p>
+      {frictionCount ? <p className="mt-1">{locale === "es" ? `Últimos campos con fricción o validación pendiente: ${frictionCount}.` : `Last fields with friction or pending validation: ${frictionCount}.`}</p> : null}
+    </div>
   );
 }
 

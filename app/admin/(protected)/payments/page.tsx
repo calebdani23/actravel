@@ -36,7 +36,7 @@ function PaymentForm({ payment, options }: { payment?: PaymentRow; options: Opti
         <label className="space-y-1 text-sm font-medium md:col-span-2">
           <span>Comprobante (opcional)</span>
           <input accept={STORAGE_UPLOAD_ACCEPT} className="w-full rounded-md border px-3 py-2 text-sm" name="proof_file" type="file" />
-          <span className="block text-xs font-normal text-muted-foreground">{STORAGE_UPLOAD_CONFIG["payment-proofs"].helpText}. Si no eliges archivo, se conserva el comprobante actual.</span>
+          <span className="block text-xs font-normal text-muted-foreground">{STORAGE_UPLOAD_CONFIG["payment-proofs"].helpText}. Si no eliges archivo, se conserva el comprobante actual; si subes uno nuevo, el anterior se limpia automáticamente.</span>
         </label>
         <label className="space-y-1 text-sm font-medium"><span>Notas</span><textarea className="min-h-20 w-full rounded-md border px-3 py-2 text-sm" defaultValue={payment?.notes ?? ""} name="notes" /></label>
       </div>

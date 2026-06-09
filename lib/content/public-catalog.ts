@@ -1,9 +1,59 @@
 import "server-only";
 
 import { createPublicSupabaseClient } from "@/lib/supabase/public-server";
-import { buildPublicCatalogContent, type CatalogRowLike } from "@/lib/content/public-site";
+import { buildFallbackCatalogContent, buildPublicCatalogContent, type CatalogRowLike } from "@/lib/content/public-site";
 import { buildPublicCatalogStaticParams } from "@/lib/content/public-catalog-utils";
 import type { Locale } from "@/lib/i18n/config";
+
+type CatalogQueryError = {
+  message: string;
+  code?: string | null;
+  details?: string | null;
+  hint?: string | null;
+};
+
+type CatalogQueryResult = {
+  data: CatalogRowLike[] | null;
+  error: CatalogQueryError | null;
+};
+
+type CatalogQueryResults = {
+  destinations: CatalogQueryResult;
+  services: CatalogQueryResult;
+  packages: CatalogQueryResult;
+  promotions: CatalogQueryResult;
+};
+
+export function buildLivePublicCatalogContent(locale: Locale, results: CatalogQueryResults) {
+  const queryErrors = {
+    destinations: results.destinations.error,
+    services: results.services.error,
+    packages: results.packages.error,
+    promotions: results.promotions.error,
+  };
+
+  for (const [section, error] of Object.entries(queryErrors)) {
+    if (error) {
+      console.error(`[public-catalog] ${section} query failed`, {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
+    }
+  }
+
+  if (Object.values(queryErrors).some(Boolean)) {
+    return null;
+  }
+
+  return buildPublicCatalogContent(locale, {
+    destinations: results.destinations.data ?? [],
+    services: results.services.data ?? [],
+    packages: results.packages.data ?? [],
+    promotions: results.promotions.data ?? [],
+  });
+}
 
 export async function getLivePublicCatalogContent(locale: Locale) {
   try {
@@ -39,29 +89,11 @@ export async function getLivePublicCatalogContent(locale: Locale) {
         .limit(100),
     ]);
 
-    const queryErrors = {
-      destinations: destinationsResult.error,
-      services: servicesResult.error,
-      packages: packagesResult.error,
-      promotions: promotionsResult.error,
-    };
-
-    for (const [section, error] of Object.entries(queryErrors)) {
-      if (error) {
-        console.error(`[public-catalog] ${section} query failed`, {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint,
-        });
-      }
-    }
-
-    return buildPublicCatalogContent(locale, {
-      destinations: destinationsResult.error ? [] : ((destinationsResult.data ?? []) as CatalogRowLike[]),
-      services: servicesResult.error ? [] : ((servicesResult.data ?? []) as CatalogRowLike[]),
-      packages: packagesResult.error ? [] : ((packagesResult.data ?? []) as CatalogRowLike[]),
-      promotions: promotionsResult.error ? [] : ((promotionsResult.data ?? []) as CatalogRowLike[]),
+    return buildLivePublicCatalogContent(locale, {
+      destinations: { data: (destinationsResult.data ?? []) as CatalogRowLike[], error: destinationsResult.error },
+      services: { data: (servicesResult.data ?? []) as CatalogRowLike[], error: servicesResult.error },
+      packages: { data: (packagesResult.data ?? []) as CatalogRowLike[], error: packagesResult.error },
+      promotions: { data: (promotionsResult.data ?? []) as CatalogRowLike[], error: promotionsResult.error },
     });
   } catch (error) {
     console.error("[public-catalog] Fatal error loading catalog:", error);
@@ -72,20 +104,15 @@ export async function getLivePublicCatalogContent(locale: Locale) {
 export async function getPublicCatalogContent(locale: Locale) {
   const liveContent = await getLivePublicCatalogContent(locale);
 
-  return liveContent ?? buildPublicCatalogContent(locale, {
-    destinations: [],
-    services: [],
-    packages: [],
-    promotions: [],
-  });
+  return liveContent ?? buildFallbackCatalogContent(locale);
 }
 
 export async function getPublicCatalogStaticParams(
   locale: Locale,
   kind: "destinations" | "promotions",
 ) {
-  const liveContent = await getLivePublicCatalogContent(locale).catch(() => null);
-  const items = liveContent?.[kind] ?? [];
+  const catalog = await getPublicCatalogContent(locale).catch(() => buildFallbackCatalogContent(locale));
+  const items = catalog[kind] ?? [];
 
   return buildPublicCatalogStaticParams(
     {
@@ -102,7 +129,7 @@ export async function getPublicCatalogItem(
   kind: "destinations" | "promotions",
   slug: string,
 ) {
-  const catalog = await getLivePublicCatalogContent(locale).catch(() => null);
+  const catalog = await getPublicCatalogContent(locale).catch(() => buildFallbackCatalogContent(locale));
 
   const item = (
     kind === "promotions" ? catalog?.promotions : catalog?.destinations

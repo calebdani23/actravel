@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { buildStoragePath, safeUploadSlug, uploadScope, validateUploadFile } from "@/lib/admin/storage-uploads";
+import { buildStoragePath, removeStoredObject, removeStoredObjects, safeUploadSlug, sameStorageObject, uploadScope, validateUploadFile } from "@/lib/admin/storage-uploads";
 
 test("storage upload validation accepts configured MIME types and rejects invalid files", () => {
   assert.equal(validateUploadFile(new File(["pdf"], "voucher.pdf", { type: "application/pdf" }), "documents").extension, "pdf");
@@ -23,6 +23,40 @@ test("storage paths use namespace precedence, UTC date, UUID, safe slug, and MIM
   assert.equal(path, "documents/booking-book-1/2026/05/uuid-1-pasaporte-cliente-a-c.pdf");
 });
 
+test("storage lifecycle helpers detect replacements and cleanup stored objects", async () => {
+  const removed: string[][] = [];
+  const supabase = {
+    storage: {
+      from(bucket: string) {
+        return {
+          upload: async () => ({ error: null }),
+          remove: async (paths: string[]) => {
+            removed.push([bucket, ...paths]);
+            return { error: null };
+          },
+        };
+      },
+    },
+  };
+
+  assert.equal(sameStorageObject({ bucket: "documents", path: "a.pdf" }, { bucket: "documents", path: "a.pdf" }), true);
+  assert.equal(sameStorageObject({ bucket: "documents", path: "a.pdf" }, { bucket: "documents", path: "b.pdf" }), false);
+  assert.equal(await removeStoredObject(supabase, { bucket: "documents", path: "a.pdf" }), true);
+  assert.equal(await removeStoredObjects(supabase, [{ bucket: "documents", path: "a.pdf" }, { bucket: "documents", path: "b.pdf" }, { bucket: "documents", path: "b.pdf" }, { bucket: "payment-proofs", path: "proof.pdf" }]), true);
+  assert.deepEqual(removed, [["documents", "a.pdf"], ["documents", "a.pdf", "b.pdf"], ["payment-proofs", "proof.pdf"]]);
+});
+
+test("booking delete flow prefetches related documents before cascading database delete", () => {
+  const actions = readFileSync("app/admin/(protected)/operations/actions.ts", "utf8");
+
+  assert.match(actions, /async function getBookingDocumentFiles\(id: string\)/);
+  assert.match(actions, /from\("documents"\)\.select\("bucket, path"\)\.eq\("booking_id", id\)/);
+  assert.match(actions, /const \{ supabase, files \} = await getBookingDocumentFiles\(id!\);/);
+  assert.match(actions, /from\("bookings"\)\.delete\(\)\.eq\("id", id\)/);
+  assert.match(actions, /await removeStoredObjects\(supabase, files\)/);
+  assert.match(actions, /console\.error\("\[bookings\] deleted documents cleanup failed"/);
+});
+
 test("admin upload UX hides manual paths and keeps role gates without service-role imports", () => {
   const actions = readFileSync("app/admin/(protected)/operations/actions.ts", "utf8");
   const documents = readFileSync("app/admin/(protected)/operations/documents/page.tsx", "utf8");
@@ -38,6 +72,9 @@ test("admin upload UX hides manual paths and keeps role gates without service-ro
   assert.doesNotMatch(payments, /name="proof_bucket"|name="proof_path"/);
   assert.match(actions, /uploadPrivateFile\(supabase, "documents"/);
   assert.match(actions, /uploadPrivateFile\(supabase, "payment-proofs"/);
+  assert.match(actions, /removeStoredObject\(supabase, existing\.file\)/);
+  assert.match(actions, /removeStoredObject\(supabase, file\)/);
+  assert.match(documents, /Reemplazar archivo \(opcional\)/);
   assert.doesNotMatch(combined, /service-role|SUPABASE_SECRET_KEY|createServiceRoleClient|@\/lib\/supabase\/service/);
 });
 

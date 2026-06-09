@@ -47,7 +47,7 @@ Bloques 1–10 completados en alcance MVP actual. Bloque 9 está implementado y 
 - ✅ Ejecutada verificación final de Bloque 10: `npm run lint`, `npm run build`, `npm run test:quote-notifications`, `npm run test:google-sheets` y smoke checks básicos de `/es`, `/en`, `/admin/login` y ruta cruzada inválida `/es/services`.
 - ✅ Implementado P0.3 de seguridad/sesión: middleware coarse para `/admin/:path*` que refresca cookies Supabase con `auth.getUser()`, redirige visitantes sin sesión a `/admin/login`, deja la decisión de redirigir desde `/admin/login` al chequeo completo de `getAdminSession()` para evitar loops con usuarios sin rol/perfil válido, conserva los guards de roles en páginas/actions y agrega headers base (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`).
 - ✅ Cerrado P1.6: las acciones de plantillas en lead detail ahora tienen cobertura runtime para WhatsApp trackeado, cuerpo codificado, copiado de contenido y estado deshabilitado de email cuando falta correo; se agregó `npm run test:lead-template-actions`.
-- ✅ Reimplementados P1.7 y P1.8 de forma secuencial con validación entre bloques: el catálogo público prioriza filas publicadas desde Supabase con fallback estático, y el contenido de catálogo soporta media básica (`hero_image_url` / `thumbnail_image_url`) tanto en público como en admin.
+- ✅ Corregidos los remanentes previos a P1.8 más críticos: `npm run build` volvió a verde; pagos/documentos ya soportan reemplazo real de archivo con limpieza best-effort del objeto anterior/al borrar; el catálogo público ahora sí cae a fallback estático utilizable cuando Supabase no devuelve contenido; la búsqueda de leads amplió cobertura por términos/quote payload; y el formulario guarda borrador local con señal mínima de abandono/fricción para recuperación posterior.
 - ✅ Corregido el home público para consumir catálogo vivo publicado en destinos/promociones/servicios, de modo que las publicaciones admin ya se reflejan en la portada.
 
 ## En proceso
@@ -63,12 +63,11 @@ Bloques 1–10 completados en alcance MVP actual. Bloque 9 está implementado y 
 
 ## Bloqueos
 
-- El `lang` inicial renderizado por el root layout sigue siendo `es` porque Next.js solo permite `<html>` en `app/layout.tsx`; en Bloque 1 se corrigió en cliente para rutas `/en` sin reestructurar toda la app.
-- Las páginas públicas siguen usando contenido estático de arranque; la fundación Supabase ya existe, pero conectar catálogos dinámicos queda para bloques posteriores.
+- El `lang` inicial renderizado por el root layout sigue siendo una limitación parcial: Next.js solo permite `<html>` en `app/layout.tsx`, así que la corrección completa SSR requeriría una reestructuración mayor del árbol/ruteo. Se mantiene la corrección cliente y el SEO/metadatos sí respetan locale.
 - No exponer ni commitear `SUPABASE_SECRET_KEY` ni credenciales bootstrap; deben quedarse solo en el entorno local/hosting seguro.
-- Bloque 6 no implementa upload completo de comprobantes/documentos ni progreso de carga: gestiona metadata de `bucket/path` y firma URLs cortas para objetos existentes. La subida real, validación UX de MIME/tamaño y generación de paths quedan diferidas.
+- Falta progreso visual de upload y mensajería no fatal para limpiezas de Storage que fallen después de reemplazar/eliminar; la subida real, validación MIME/tamaño, rutas seguras y URLs firmadas ya están operativas.
 - El middleware admin solo hace refresh/redirect coarse por sesión Supabase; perfiles activos, roles internos y permisos por módulo siguen validados en servidor con `requireAdminRole([...])` y RLS.
 
 ## Última actualización
 
-2026-05-28 — P1.7 y P1.8 quedaron reimplementados secuencialmente y verificados; quedan follow-ups manuales de Supabase Auth/advisors.
+2026-06-08 — Build nuevamente en verde y se corrigieron gaps operativos de P1.2/P1.4/P1.5/P1.7; siguen pendientes follow-ups manuales de Supabase Auth/advisors y la mejora estructural de `lang` SSR.

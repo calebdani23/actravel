@@ -350,13 +350,7 @@ type PublicCatalogRows = {
 export function buildPublicCatalogContent(locale: Locale, rows?: Partial<PublicCatalogRows> | null): PublicCatalogContent {
   const staticContent = getPublicSiteContent(locale);
   if (!rows) {
-    return {
-      ...staticContent,
-      destinations: [],
-      services: [],
-      packages: [],
-      promotions: [],
-    };
+    return buildFallbackCatalogContent(locale);
   }
 
   const destinations = publishedCatalogRows(rows.destinations ?? []).map((row) => buildPublicCatalogItem(row, "destinations"));
@@ -370,6 +364,57 @@ export function buildPublicCatalogContent(locale: Locale, rows?: Partial<PublicC
     packages,
     destinations,
     promotions,
+  };
+}
+
+function staticServiceCatalogItems(): PublicItem[] {
+  return services.map((service) => ({
+    id: service.id,
+    slug: { es: service.id, en: service.id },
+    title: service.title,
+    summary: service.text,
+    description: service.text,
+    eyebrow: service.eyebrow,
+    highlights: { es: [], en: [] },
+    price: { type: "consult" },
+  }));
+}
+
+function staticPackageCatalogItems(): PublicItem[] {
+  return packages.map((item, index) => ({
+    id: `static-package-${index + 1}`,
+    slug: { es: `paquete-${index + 1}`, en: `package-${index + 1}` },
+    title: item.title,
+    summary: item.text,
+    description: item.text,
+    eyebrow: item.eyebrow,
+    highlights: { es: [], en: [] },
+    price: { type: "consult" },
+  }));
+}
+
+export function buildFallbackCatalogContent(locale: Locale): PublicCatalogContent {
+  const staticContent = getPublicSiteContent(locale);
+
+  return {
+    ...staticContent,
+    destinations,
+    promotions,
+    services: staticServiceCatalogItems(),
+    packages: staticPackageCatalogItems(),
+  };
+}
+
+export function mergeCatalogWithFallback(locale: Locale, catalog?: Partial<PublicCatalogContent> | null): PublicCatalogContent {
+  const fallback = buildFallbackCatalogContent(locale);
+
+  return {
+    ...fallback,
+    ...catalog,
+    destinations: catalog?.destinations?.length ? catalog.destinations : fallback.destinations,
+    services: catalog?.services?.length ? catalog.services : fallback.services,
+    packages: catalog?.packages?.length ? catalog.packages : fallback.packages,
+    promotions: catalog?.promotions?.length ? catalog.promotions : fallback.promotions,
   };
 }
 

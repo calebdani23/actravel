@@ -143,6 +143,10 @@ Objetivo: aumentar calidad de leads y mejorar conversión sin rehacer el MVP.
 - Más formularios completados.
 - Leads mejor calificados.
 
+#### Estado
+
+- 🟡 Parcial sólido: el formulario ya guarda borrador local, recupera intentos recientes y deja una señal mínima de abandono/fricción en el dispositivo; aún faltan analítica agregada y experimentación por campaña.
+
 ### Bloque P1.3 — SEO básico real
 
 #### Implementar
@@ -158,6 +162,10 @@ Objetivo: aumentar calidad de leads y mejorar conversión sin rehacer el MVP.
 
 - Mejor indexación.
 - Mejor compartibilidad.
+
+#### Estado
+
+- 🟡 Mayormente cubierto salvo `lang` SSR perfecto: metadata, OG/Twitter, sitemap, robots, canonicals y alternates están activos; el `lang` inicial del root layout sigue limitado por la estructura App Router actual.
 
 ---
 
@@ -191,6 +199,10 @@ Objetivo: convertir el panel MVP en una herramienta operativa diaria.
 
 - Mejor operación comercial diaria.
 
+#### Estado
+
+- 🟡 Parcial fuerte: búsqueda/filtros ya cubren más combinaciones reales (contacto, destino, summary/source y payload de cotización), pero aún se puede profundizar con ranking/FTS más avanzado.
+
 ### Bloque P1.5 — Documentos y comprobantes reales
 
 #### Implementar
@@ -205,6 +217,10 @@ Objetivo: convertir el panel MVP en una herramienta operativa diaria.
 #### Resultado esperado
 
 - Menos trabajo manual fuera del sistema.
+
+#### Estado
+
+- ✅ Implementado en nivel MVP operativo: upload real, validación MIME/tamaño, path seguro automático, preview/download firmados y reemplazo/eliminación con limpieza best-effort de objetos previos.
 
 ### Bloque P1.6 — Plantillas y productividad interna
 

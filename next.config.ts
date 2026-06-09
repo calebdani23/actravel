@@ -16,6 +16,14 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         ],
       },
+      {
+        source: "/es/:path*",
+        headers: [{ key: "Content-Language", value: "es" }],
+      },
+      {
+        source: "/en/:path*",
+        headers: [{ key: "Content-Language", value: "en" }],
+      },
     ];
   },
 };

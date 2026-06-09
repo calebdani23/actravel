@@ -176,4 +176,9 @@ test("next config defines baseline security headers", () => {
   assert.match(source, /strict-origin-when-cross-origin/);
   assert.match(source, /Permissions-Policy/);
   assert.match(source, /camera=\(\), microphone=\(\), geolocation=\(\)/);
+  assert.match(source, /source: "\/es\/:path\*"/);
+  assert.match(source, /source: "\/en\/:path\*"/);
+  assert.match(source, /Content-Language/);
+  assert.match(source, /value: "es"/);
+  assert.match(source, /value: "en"/);
 });

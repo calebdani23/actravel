@@ -1,9 +1,15 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
+import { buildLivePublicCatalogContent } from "@/lib/content/public-catalog";
 import { buildPublicCatalogStaticParams } from "@/lib/content/public-catalog-utils";
-import { buildPublicCatalogContent, buildPublicCatalogItem, buildPublicHomeContent, publishedCatalogRows } from "@/lib/content/public-site";
+import { buildFallbackCatalogContent, buildPublicCatalogContent, buildPublicCatalogItem, buildPublicHomeContent, mergeCatalogWithFallback, publishedCatalogRows } from "@/lib/content/public-site";
+
+function buildQueryResult(data: unknown, error: { message: string; code?: string } | null = null) {
+  return { data, error };
+}
 
 test("published catalog rows exclude drafts and keep published ordering", () => {
   const rows = publishedCatalogRows([
@@ -43,7 +49,7 @@ test("catalog media urls resolve storage paths and absolute urls", () => {
   assert.equal(resolveCatalogMediaUrl("catalog-media/items/thumb.jpg", { baseUrl: "https://project.supabase.co" }), "https://project.supabase.co/storage/v1/object/public/catalog-media/items/thumb.jpg");
 });
 
-test("public catalog content returns only published rows and no demo fallback", () => {
+test("public catalog content returns only published rows and keeps live filtering", () => {
   const content = buildPublicCatalogContent("es", {
     destinations: [
       { id: "d1", slug_es: "pub-dest", slug_en: "pub-dest", name_es: "Destino publicado", name_en: "Published destination", summary_es: "Resumen", summary_en: "Summary", description_es: "Descripción", description_en: "Description", status: "published" },
@@ -71,12 +77,37 @@ test("public catalog content returns only published rows and no demo fallback", 
   assert.deepEqual(empty.promotions, []);
 
   const fallback = buildPublicCatalogContent("en", null);
-  assert.deepEqual(fallback.destinations, []);
-  assert.deepEqual(fallback.promotions, []);
-  assert.deepEqual(fallback.packages, []);
+  assert.equal(fallback.destinations.length > 0, true);
+  assert.equal(fallback.promotions.length > 0, true);
+  assert.equal(fallback.packages.length > 0, true);
 });
 
-test("packages catalog stays live-only and omits static demo entries", () => {
+test("fallback catalog exposes static sections when live rows are unavailable", () => {
+  const fallback = buildFallbackCatalogContent("es");
+
+  assert.equal(fallback.destinations.length > 0, true);
+  assert.equal(fallback.promotions.length > 0, true);
+  assert.equal(fallback.services.length > 0, true);
+  assert.equal(fallback.packages.length > 0, true);
+});
+
+test("mergeCatalogWithFallback keeps live rows and fills empty sections", () => {
+  const merged = mergeCatalogWithFallback("es", buildPublicCatalogContent("es", {
+    destinations: [
+      { id: "d1", slug_es: "pub-dest", slug_en: "pub-dest", name_es: "Destino publicado", name_en: "Published destination", summary_es: "Resumen", summary_en: "Summary", description_es: "Descripción", description_en: "Description", status: "published" },
+    ],
+    services: [],
+    packages: [],
+    promotions: [],
+  }));
+
+  assert.equal(merged.destinations[0]?.id, "d1");
+  assert.equal(merged.services.length > 0, true);
+  assert.equal(merged.packages.length > 0, true);
+  assert.equal(merged.promotions.length > 0, true);
+});
+
+test("packages catalog stays live when published rows exist", () => {
   const liveOnly = buildPublicCatalogContent("es", {
     packages: [
       { id: "pk-live", slug_es: "paquete-vivo", slug_en: "live-package", name_es: "Paquete vivo", name_en: "Live package", summary_es: "Resumen", summary_en: "Summary", description_es: "Descripción", description_en: "Description", status: "published" },
@@ -84,9 +115,6 @@ test("packages catalog stays live-only and omits static demo entries", () => {
   });
 
   assert.deepEqual(liveOnly.packages.map((item) => item.id), ["pk-live"]);
-
-  const empty = buildPublicCatalogContent("es", { packages: [] });
-  assert.deepEqual(empty.packages, []);
 });
 
 test("package listing routes are available in both locales", () => {
@@ -140,4 +168,48 @@ test("catalog static params follow the provided catalog content", () => {
 
   assert.deepEqual(buildPublicCatalogStaticParams(content, "es", "destinations"), [{ locale: "es", slug: "live-dest" }]);
   assert.deepEqual(buildPublicCatalogStaticParams(content, "es", "promotions"), [{ locale: "es", slug: "live-deal" }]);
+});
+
+test("catalog fallback is reused end-to-end when live loading fails", () => {
+  const liveCatalog = buildLivePublicCatalogContent("es", {
+    destinations: buildQueryResult([], { message: "backend unavailable", code: "500" }),
+    services: buildQueryResult([], null),
+    packages: buildQueryResult([], null),
+    promotions: buildQueryResult([], null),
+  });
+  const catalog = liveCatalog ?? buildFallbackCatalogContent("es");
+  const params = buildPublicCatalogStaticParams(catalog, "es", "destinations");
+  const item = catalog.destinations.find((entry) => entry.slug.es === "cancun") ?? null;
+
+  assert.equal(catalog.destinations.some((entry) => entry.slug.es === "cancun"), true);
+  assert.equal(params.some((entry) => entry.slug === "cancun"), true);
+  assert.equal(item?.id, "cancun");
+});
+
+test("successful live empty sections stay empty without demo backfill", () => {
+  const catalog = buildLivePublicCatalogContent("es", {
+    destinations: buildQueryResult([], null),
+    services: buildQueryResult([], null),
+    packages: buildQueryResult([], null),
+    promotions: buildQueryResult([], null),
+  });
+  assert.ok(catalog);
+  const params = buildPublicCatalogStaticParams(catalog, "es", "destinations");
+  const item = catalog?.destinations.find((entry) => entry.slug.es === "cancun") ?? null;
+
+  assert.deepEqual(catalog.destinations, []);
+  assert.deepEqual(catalog.promotions, []);
+  assert.deepEqual(catalog.services, []);
+  assert.deepEqual(catalog.packages, []);
+  assert.deepEqual(params, []);
+  assert.equal(item, null);
+});
+
+test("public pages use the same resolved catalog helpers as SEO and static params", () => {
+  const pageSource = readFileSync("components/public/public-pages.tsx", "utf8");
+
+  assert.match(pageSource, /import \{ getPublicCatalogContent, getPublicCatalogItem \} from "@\/lib\/content\/public-catalog"/);
+  assert.match(pageSource, /const catalog = await getPublicCatalogContent\(locale\);/);
+  assert.match(pageSource, /const item = await getPublicCatalogItem\(locale, kind === "deal" \? "promotions" : "destinations", slug\);/);
+  assert.doesNotMatch(pageSource, /getLivePublicCatalogContent/);
 });
