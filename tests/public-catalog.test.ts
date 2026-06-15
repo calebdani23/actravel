@@ -131,24 +131,28 @@ test("home content prefers live published catalog items and returns empty on mis
   const live = buildPublicCatalogContent("es", {
     destinations: [
       { id: "d1", slug_es: "live-dest", slug_en: "live-dest", name_es: "Destino en vivo", name_en: "Live destination", summary_es: "Resumen", summary_en: "Summary", description_es: "Descripción", description_en: "Description", is_featured: true, status: "published" },
+      { id: "d2", slug_es: "extra-dest", slug_en: "extra-dest", name_es: "Destino extra", name_en: "Extra destination", summary_es: "Resumen extra", summary_en: "Extra summary", description_es: "Descripción extra", description_en: "Extra description", is_featured: false, status: "published" },
     ],
     services: [
       { id: "s1", slug_es: "live-service", slug_en: "live-service", name_es: "Servicio en vivo", name_en: "Live service", summary_es: "Resumen servicio", summary_en: "Service summary", description_es: "Descripción servicio", description_en: "Service description", is_featured: true, status: "published" },
+      { id: "s2", slug_es: "second-service", slug_en: "second-service", name_es: "Servicio secundario", name_en: "Second service", summary_es: "Resumen secundario", summary_en: "Second summary", description_es: "Descripción secundaria", description_en: "Second description", is_featured: false, status: "published" },
     ],
     packages: [
       { id: "pk1", slug_es: "live-package", slug_en: "live-package", name_es: "Paquete en vivo", name_en: "Live package", summary_es: "Resumen paquete", summary_en: "Package summary", description_es: "Descripción paquete", description_en: "Package description", is_featured: true, status: "published" },
+      { id: "pk2", slug_es: "backup-package", slug_en: "backup-package", name_es: "Paquete secundario", name_en: "Backup package", summary_es: "Resumen secundario", summary_en: "Backup summary", description_es: "Descripción secundaria", description_en: "Backup description", is_featured: false, status: "published" },
     ],
     promotions: [
       { id: "p1", slug_es: "live-deal", slug_en: "live-deal", title_es: "Promoción en vivo", title_en: "Live deal", summary_es: "Resumen", summary_en: "Summary", details_es: "Detalles", details_en: "Details", is_featured: true, status: "published" },
+      { id: "p2", slug_es: "extra-deal", slug_en: "extra-deal", title_es: "Promoción extra", title_en: "Extra deal", summary_es: "Resumen extra", summary_en: "Extra summary", details_es: "Detalles extra", details_en: "Extra details", is_featured: false, status: "published" },
     ],
   });
 
   const home = buildPublicHomeContent("es", live);
 
-  assert.equal(home.destinations[0].id, "d1");
-  assert.equal(home.promotions[0].id, "p1");
-  assert.equal(home.services[0].id, "s1");
-  assert.equal(home.packages[0].id, "pk1");
+  assert.deepEqual(home.destinations.map((item) => item.id), ["d1"]);
+  assert.deepEqual(home.promotions.map((item) => item.id), ["p1"]);
+  assert.deepEqual(home.packages.map((item) => item.id), ["pk1"]);
+  assert.deepEqual(home.services.map((item) => item.id), ["s1", "s2"]);
 
   const fallback = buildPublicHomeContent("es", null);
   assert.deepEqual(fallback.destinations, []);
@@ -162,13 +166,16 @@ test("catalog static params follow the provided catalog content", () => {
     destinations: [
       { id: "d1", slug_es: "live-dest", slug_en: "live-dest-en", name_es: "Destino en vivo", name_en: "Live destination", summary_es: "Resumen", summary_en: "Summary", description_es: "Descripción", description_en: "Description", status: "published" },
     ],
-    services: [],
+    services: [
+      { id: "s1", slug_es: "servicio-vivo", slug_en: "live-service", name_es: "Servicio en vivo", name_en: "Live service", summary_es: "Resumen servicio", summary_en: "Service summary", description_es: "Descripción servicio", description_en: "Service description", status: "published" },
+    ],
     promotions: [
       { id: "p1", slug_es: "live-deal", slug_en: "live-deal-en", title_es: "Promoción en vivo", title_en: "Live deal", summary_es: "Resumen", summary_en: "Summary", details_es: "Detalles", details_en: "Details", status: "published" },
     ],
   });
 
   assert.deepEqual(buildPublicCatalogStaticParams(content, "es", "destinations"), [{ locale: "es", slug: "live-dest" }]);
+  assert.deepEqual(buildPublicCatalogStaticParams(content, "es", "services"), [{ locale: "es", slug: "servicio-vivo" }]);
   assert.deepEqual(buildPublicCatalogStaticParams(content, "es", "promotions"), [{ locale: "es", slug: "live-deal" }]);
   assert.deepEqual(buildPublicCatalogStaticParams(content, "es", "packages"), []);
 });
@@ -234,18 +241,28 @@ test("public pages use the same resolved catalog helpers as SEO and static param
 
   assert.match(pageSource, /import \{ getPublicCatalogContent, getPublicCatalogItem \} from "@\/lib\/content\/public-catalog"/);
   assert.match(pageSource, /const catalog = await getPublicCatalogContent\(locale\);/);
-  assert.match(pageSource, /const catalogKind = kind === "deal" \? "promotions" : kind === "package" \? "packages" : "destinations";/);
+  assert.match(pageSource, /const catalogKind = kind === "deal" \? "promotions" : kind === "package" \? "packages" : kind === "service" \? "services" : "destinations";/);
   assert.match(pageSource, /const item = await getPublicCatalogItem\(locale, catalogKind, slug\);/);
+  assert.match(pageSource, /kind === "services" \? <CatalogItemGrid locale=\{locale\} items=\{serviceItems\} section="services" \/> : null/);
   assert.match(pageSource, /imageUrl=\{item\.media\?\.thumbnailImageUrl \?\? item\.media\?\.heroImageUrl \?\? undefined\}/);
   assert.match(pageSource, /src=\{item\.media\?\.heroImageUrl \?\? item\.media\?\.thumbnailImageUrl \?\? ""\}/);
   assert.doesNotMatch(pageSource, /getLivePublicCatalogContent/);
 });
 
-test("home page and localized route config expose package detail cards", () => {
+test("home page and localized route config expose service and package detail cards", () => {
   const homeSource = readFileSync("app/[locale]/page.tsx", "utf8");
   const routesSource = readFileSync("lib/i18n/public-routes.ts", "utf8");
+  const servicesRouteSource = readFileSync("app/[locale]/services/[slug]/page.tsx", "utf8");
+  const serviciosRouteSource = readFileSync("app/[locale]/servicios/[slug]/page.tsx", "utf8");
 
   assert.match(homeSource, /<CatalogItemGrid locale=\{locale\} items=\{content\.packages\.slice\(0, 3\)\} section="packages" \/>/);
+  assert.match(homeSource, /<HomeServicesSection locale=\{locale\} items=\{content\.services\} \/>/);
+  assert.match(routesSource, /servicios: \{ title: "Servicios", description: .* allowsSlug: true \}/);
   assert.match(routesSource, /paquetes: \{ title: "Paquetes", description: .* allowsSlug: true \}/);
+  assert.match(routesSource, /services: \{ title: "Services", description: .* allowsSlug: true \}/);
   assert.match(routesSource, /packages: \{ title: "Packages", description: .* allowsSlug: true \}/);
+  assert.match(servicesRouteSource, /getPublicCatalogStaticParams\("en", "services"\)/);
+  assert.match(serviciosRouteSource, /getPublicCatalogStaticParams\("es", "services"\)/);
+  assert.match(servicesRouteSource, /buildDetailMetadata\(locale, "service", slug\)/);
+  assert.match(serviciosRouteSource, /buildDetailMetadata\(locale, "service", slug\)/);
 });

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FAQSection } from "@/components/public/faq-section";
 import { HowItWorks } from "@/components/public/how-it-works";
-import { CatalogItemGrid, FinalCta } from "@/components/public/public-pages";
+import { CatalogItemGrid, FinalCta, HomeServicesSection } from "@/components/public/public-pages";
 import { SectionHeader } from "@/components/public/section-header";
 import { TrustBlock } from "@/components/public/trust-block";
 import { ValueGrid } from "@/components/public/value-grid";
@@ -16,10 +16,6 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) { const { locale } = await params; return buildHomeMetadata(locale); }
-
-function homeItemText(item: { description?: Record<Locale, string>; summary?: Record<Locale, string>; text?: Record<Locale, string> }, locale: Locale) {
-  return item.description?.[locale] ?? item.summary?.[locale] ?? item.text?.[locale] ?? "";
-}
 
 export default async function LocaleHome({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
@@ -76,7 +72,10 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
         <SectionHeader title={t.sections.deals[0]} description={t.sections.deals[1]} />
         <CatalogItemGrid locale={locale} items={content.promotions.filter((item) => item.featured)} section="deals" />
       </section>
-      <ValueGrid items={content.services.slice(0, 3).map((service) => ({ title: service.title[locale], text: homeItemText(service, locale), eyebrow: service.eyebrow?.[locale] }))} />
+      <section className="space-y-6">
+        <SectionHeader title={t.sections.services[0]} description={t.sections.services[1]} />
+        <HomeServicesSection locale={locale} items={content.services} />
+      </section>
       <HowItWorks title={t.sections.process[0]} description={t.sections.process[1]} steps={[...t.process]} />
       <TrustBlock title={t.sections.trust[0]} description={t.sections.trust[1]} items={[...t.trust]} />
       <FAQSection locale={locale} title={t.sections.faq[0]} description={t.sections.faq[1]} items={[...t.faq]} />

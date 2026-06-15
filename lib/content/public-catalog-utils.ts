@@ -2,9 +2,9 @@ import type { Locale } from "@/lib/i18n/config";
 import type { PublicCatalogContent } from "@/lib/content/public-site";
 
 export function buildPublicCatalogStaticParams(
-  content: Pick<PublicCatalogContent, "destinations" | "promotions" | "packages">,
+  content: Pick<PublicCatalogContent, "destinations" | "promotions" | "packages" | "services">,
   locale: Locale,
-  kind: "destinations" | "promotions" | "packages",
+  kind: "destinations" | "promotions" | "packages" | "services",
 ) {
   return content[kind].map((item) => ({ locale, slug: item.slug[locale] }));
 }

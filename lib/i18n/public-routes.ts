@@ -9,7 +9,7 @@ type RouteInfo = {
 
 const publicRoutes: Record<Locale, Record<string, RouteInfo>> = {
   es: {
-    servicios: { title: "Servicios", description: "Placeholder para servicios turísticos del MVP." },
+    servicios: { title: "Servicios", description: "Placeholder para servicios turísticos del MVP.", allowsSlug: true },
     paquetes: { title: "Paquetes", description: "Placeholder para paquetes vacacionales.", allowsSlug: true },
     promociones: { title: "Promociones", description: "Placeholder para promociones.", allowsSlug: true },
     destinos: { title: "Destinos", description: "Placeholder para destinos.", allowsSlug: true },
@@ -21,7 +21,7 @@ const publicRoutes: Record<Locale, Record<string, RouteInfo>> = {
     "pagos-cancelaciones": { title: "Pagos y cancelaciones", description: "Placeholder para políticas de pago y cancelación." },
   },
   en: {
-    services: { title: "Services", description: "Placeholder for travel services." },
+    services: { title: "Services", description: "Placeholder for travel services.", allowsSlug: true },
     packages: { title: "Packages", description: "Placeholder for vacation packages.", allowsSlug: true },
     deals: { title: "Deals", description: "Placeholder for deals.", allowsSlug: true },
     destinations: { title: "Destinations", description: "Placeholder for destinations.", allowsSlug: true },

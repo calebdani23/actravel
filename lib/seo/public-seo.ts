@@ -15,7 +15,7 @@ const defaultSiteUrl = "http://localhost:3000";
 
 type PublicRouteKey = Parameters<typeof localizedPath>[1];
 type ListingRouteKey = Extract<PublicRouteKey, "services" | "packages" | "deals" | "destinations">;
-type DetailKind = "deal" | "destination" | "package";
+type DetailKind = "deal" | "destination" | "package" | "service";
 type InfoKind = "about" | "contact";
 
 type SeoInput = {
@@ -153,8 +153,8 @@ export function buildLegalMetadata(locale: Locale, legalKey: LegalKey) {
 }
 
 export async function buildDetailMetadata(locale: Locale, kind: DetailKind, slug: string) {
-  const item = await getPublicCatalogItem(locale, kind === "deal" ? "promotions" : kind === "package" ? "packages" : "destinations", slug).catch(() => null);
-  const listKey = kind === "deal" ? "deals" : kind === "package" ? "packages" : "destinations";
+  const item = await getPublicCatalogItem(locale, kind === "deal" ? "promotions" : kind === "package" ? "packages" : kind === "service" ? "services" : "destinations", slug).catch(() => null);
+  const listKey = kind === "deal" ? "deals" : kind === "package" ? "packages" : kind === "service" ? "services" : "destinations";
 
   if (!item) return buildListingMetadata(locale, listKey);
 
@@ -162,7 +162,7 @@ export async function buildDetailMetadata(locale: Locale, kind: DetailKind, slug
 }
 
 function buildItemMetadata(locale: Locale, kind: DetailKind, item: PublicItem) {
-  const listKey = kind === "deal" ? "deals" : kind === "package" ? "packages" : "destinations";
+  const listKey = kind === "deal" ? "deals" : kind === "package" ? "packages" : kind === "service" ? "services" : "destinations";
   return buildPublicMetadata({
     locale,
     title: item.title[locale],
@@ -224,6 +224,10 @@ export async function getPublicSeoSitemapEntries(): Promise<MetadataRoute.Sitema
 
   for (const item of catalog?.packages ?? []) {
     for (const locale of locales) addEntry(localizedPath(locale, "packages", item.slug[locale]), { es: localizedPath("es", "packages", item.slug.es), en: localizedPath("en", "packages", item.slug.en) });
+  }
+
+  for (const item of catalog?.services ?? []) {
+    for (const locale of locales) addEntry(localizedPath(locale, "services", item.slug[locale]), { es: localizedPath("es", "services", item.slug.es), en: localizedPath("en", "services", item.slug.en) });
   }
 
   return entries;

@@ -241,18 +241,8 @@ export type PublicCatalogContent = Omit<PublicSiteContent, "services" | "package
   promotions: PublicItem[];
 };
 
-export type HomeServiceItem = {
-  id: string;
-  title: Localized;
-  text: Localized;
-  eyebrow?: Localized;
-};
-
-export type PublicHomeContent = Omit<PublicCatalogContent, "services"> & { services: HomeServiceItem[] };
-export type HomeCatalogSource = Omit<PublicCatalogContent, "services" | "packages"> & {
-  services: Array<PublicItem | HomeServiceItem | ValueItem>;
-  packages: PublicItem[];
-};
+export type PublicHomeContent = PublicCatalogContent;
+export type HomeCatalogSource = PublicCatalogContent;
 
 export type CatalogRowLike = {
   id: string;
@@ -422,28 +412,14 @@ export function getPublicPackagesContent(locale: Locale) {
   return getPublicSiteContent(locale).packages;
 }
 
-function toHomeServiceItem(item: PublicItem | (ValueItem & { id: string }) | ValueItem): HomeServiceItem {
-  if ("text" in item) {
-    return {
-      id: "id" in item ? item.id : item.title.es,
-      title: item.title,
-      text: item.text,
-      eyebrow: item.eyebrow,
-    };
-  }
-
-  return {
-    id: item.id,
-    title: item.title,
-    text: item.description,
-    eyebrow: item.eyebrow,
-  };
-}
-
 function pickHomeItems<T>(items: T[], limit?: number) {
   const featured = items.filter((item) => (item as { featured?: boolean }).featured);
   const selected = featured.length > 0 ? featured : items;
   return typeof limit === "number" ? selected.slice(0, limit) : selected;
+}
+
+function pickAllHomeItems<T>(items: T[], limit?: number) {
+  return typeof limit === "number" ? items.slice(0, limit) : items;
 }
 
 export function buildPublicHomeContent(locale: Locale, catalog?: HomeCatalogSource | null): PublicHomeContent {
@@ -463,7 +439,7 @@ export function buildPublicHomeContent(locale: Locale, catalog?: HomeCatalogSour
     destinations: pickHomeItems(catalog.destinations),
     packages: pickHomeItems(catalog.packages),
     promotions: pickHomeItems(catalog.promotions),
-    services: pickHomeItems(catalog.services, 3).map(toHomeServiceItem),
+    services: pickAllHomeItems(catalog.services),
   };
 }
 
@@ -487,7 +463,15 @@ export function findDestination(locale: Locale, slug: string) {
 
 export function translateSlug(section: string, from: Locale, to: Locale, slug?: string) {
   if (!slug) return undefined;
-  const collection = section === routeNames[from].deals ? promotions : section === routeNames[from].destinations ? destinations : section === routeNames[from].packages ? staticPackageCatalogItems() : [];
+  const collection = section === routeNames[from].deals
+    ? promotions
+    : section === routeNames[from].destinations
+      ? destinations
+      : section === routeNames[from].packages
+        ? staticPackageCatalogItems()
+        : section === routeNames[from].services
+          ? staticServiceCatalogItems()
+          : [];
   return collection.find((item) => item.slug[from] === slug)?.slug[to];
 }
 

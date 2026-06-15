@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
+import { CatalogCardSlider } from "@/components/public/catalog-card-slider";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import { ItemCard } from "@/components/public/item-card";
 import { LegalNotice } from "@/components/public/legal-notice";
 import { QuoteForm, type QuoteFormInitialContext } from "@/components/public/quote-form";
 import { SectionHeader } from "@/components/public/section-header";
-import { ValueGrid } from "@/components/public/value-grid";
 import { Button } from "@/components/ui/button";
 import { type Locale } from "@/lib/i18n/config";
 import {
@@ -35,7 +35,7 @@ export async function ListingPage({ locale, kind }: Readonly<{ locale: Locale; k
   return (
     <PageShell>
       <SectionHeader eyebrow={page.eyebrow} title={page.title} description={page.description} />
-      {kind === "services" ? <CatalogEmptyState locale={locale} items={serviceItems} /> : null}
+      {kind === "services" ? <CatalogItemGrid locale={locale} items={serviceItems} section="services" /> : null}
       {kind === "packages" ? <CatalogItemGrid locale={locale} items={packageItems} section="packages" /> : null}
       {kind === "deals" ? <CatalogItemGrid locale={locale} items={promotionItems} section="deals" /> : null}
       {kind === "destinations" ? <CatalogItemGrid locale={locale} items={destinationItems} section="destinations" /> : null}
@@ -45,17 +45,13 @@ export async function ListingPage({ locale, kind }: Readonly<{ locale: Locale; k
   );
 }
 
-function CatalogEmptyState({ locale, items }: Readonly<{ locale: Locale; items: Array<{ title: Record<Locale, string>; text?: Record<Locale, string>; description?: Record<Locale, string>; eyebrow?: Record<Locale, string> }> }>) {
-  if (!items.length) {
-    return <p className="rounded-3xl border bg-white p-6 text-sm text-muted-foreground">{locale === "es" ? "No hay contenido publicado todavía." : "No published content yet."}</p>;
-  }
-
-  return <ValueGrid items={items.map((item) => ({ title: item.title[locale], text: item.description?.[locale] ?? item.text?.[locale] ?? "", eyebrow: item.eyebrow?.[locale] }))} />;
+function CatalogEmptyState({ locale }: Readonly<{ locale: Locale }>) {
+  return <p className="rounded-3xl border bg-white p-6 text-sm text-muted-foreground">{locale === "es" ? "No hay contenido publicado todavía." : "No published content yet."}</p>;
 }
 
-export function CatalogItemGrid({ locale, items, section }: Readonly<{ locale: Locale; items: PublicItem[]; section: "packages" | "deals" | "destinations" }>) {
+export function CatalogItemGrid({ locale, items, section }: Readonly<{ locale: Locale; items: PublicItem[]; section: "services" | "packages" | "deals" | "destinations" }>) {
   if (!items.length) {
-    return <p className="rounded-3xl border bg-white p-6 text-sm text-muted-foreground">{locale === "es" ? "No hay contenido publicado todavía." : "No published content yet."}</p>;
+    return <CatalogEmptyState locale={locale} />;
   }
 
   return (
@@ -78,12 +74,18 @@ export function CatalogItemGrid({ locale, items, section }: Readonly<{ locale: L
   );
 }
 
-export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Locale; slug: string; kind: "deal" | "destination" | "package" }>) {
-  const catalogKind = kind === "deal" ? "promotions" : kind === "package" ? "packages" : "destinations";
+export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Locale; slug: string; kind: "deal" | "destination" | "package" | "service" }>) {
+  const catalogKind = kind === "deal" ? "promotions" : kind === "package" ? "packages" : kind === "service" ? "services" : "destinations";
   const item = await getPublicCatalogItem(locale, catalogKind, slug);
   if (!item) notFound();
-  const back = kind === "deal" ? "deals" : kind === "package" ? "packages" : "destinations";
-  const sidebarTitle = kind === "package" ? (locale === "es" ? "Qué incluye / cómo se adapta" : "What it includes / how it adapts") : locale === "es" ? "Incluye / ideas" : "Includes / ideas";
+  const back = kind === "deal" ? "deals" : kind === "package" ? "packages" : kind === "service" ? "services" : "destinations";
+  const sidebarTitle = kind === "package"
+    ? (locale === "es" ? "Qué incluye / cómo se adapta" : "What it includes / how it adapts")
+    : kind === "service"
+      ? (locale === "es" ? "Qué resolvemos / cómo te ayudamos" : "What we solve / how we help")
+      : locale === "es"
+        ? "Incluye / ideas"
+        : "Includes / ideas";
   const highlights = item.highlights[locale];
   return (
     <PageShell>
@@ -96,7 +98,7 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
           {item.bestFor ? <p className="mt-4 rounded-3xl bg-[var(--ac-light-bg)] p-4 text-sm font-semibold leading-6 text-[var(--ac-ink)]">{item.bestFor[locale]}</p> : null}
           <p className="mt-5 text-xl font-extrabold text-[var(--ac-red)]">{priceLabel(locale, item.price)}</p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-            <WhatsAppCta message={waMessage(locale, item.title[locale])} label={item.detailCta?.[locale] ?? (locale === "es" ? "Consultar por WhatsApp" : "Ask on WhatsApp")} locale={locale} pagePath={`/${locale}/${back}/${item.slug[locale]}:detail`} className="rounded-full" />
+             <WhatsAppCta message={waMessage(locale, item.title[locale])} label={item.detailCta?.[locale] ?? (locale === "es" ? "Consultar por WhatsApp" : "Ask on WhatsApp")} locale={locale} pagePath={`/${locale}/${back}/${item.slug[locale]}:detail`} className="rounded-full" />
             <Button asChild variant="outline" className="rounded-full">
               <Link href={localizedPath(locale, "quote")}>{locale === "es" ? "Enviar datos" : "Send details"}</Link>
             </Button>
@@ -112,7 +114,7 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
               {highlights.map((highlight) => <li key={highlight}>• {highlight}</li>)}
             </ul>
           ) : (
-            <p className="mt-4 text-sm leading-6 text-zinc-700">{kind === "package" ? item.summary[locale] : item.description[locale]}</p>
+            <p className="mt-4 text-sm leading-6 text-zinc-700">{kind === "package" || kind === "service" ? item.summary[locale] : item.description[locale]}</p>
           )}
           {item.planningNotes ? (
             <div className="mt-6 rounded-3xl bg-white p-5">
@@ -127,6 +129,14 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
       </section>
     </PageShell>
   );
+}
+
+export function HomeServicesSection({ locale, items }: Readonly<{ locale: Locale; items: PublicItem[] }>) {
+  if (!items.length) {
+    return <CatalogEmptyState locale={locale} />;
+  }
+
+  return <CatalogCardSlider locale={locale} items={items} section="services" cta={locale === "es" ? "Ver detalle" : "View detail"} />;
 }
 
 export function QuotePage({ locale, initialContext }: Readonly<{ locale: Locale; initialContext?: QuoteFormInitialContext }>) {

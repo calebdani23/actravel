@@ -146,7 +146,7 @@ function revalidatePublicCatalog(resource: CatalogResource, slugs: Array<string 
     revalidatePath(`/${locale}`);
     revalidatePath(localizedPath(locale, routeKey));
     for (const slug of slugSet) {
-      if (resource === "destinations" || resource === "promotions") revalidatePath(localizedPath(locale, routeKey, slug));
+      if (resource === "destinations" || resource === "promotions" || resource === "services" || resource === "packages") revalidatePath(localizedPath(locale, routeKey, slug));
     }
   }
 
@@ -275,7 +275,7 @@ async function writeCatalogRecord(formData: FormData, intent: CatalogWriteIntent
         { resource, action: intent, id },
       );
       await cleanupReplacedCatalogMedia(supabase, current.data, media.fields);
-      revalidateCatalog(resource);
+      revalidateCatalog(resource, [current.data?.slug_es, current.data?.slug_en, saved.slug_es, saved.slug_en]);
       return { resource, focusId: saved.id, message: catalogActionSuccessMessage(resource, intent, Boolean(id)) };
     }
 
@@ -288,7 +288,7 @@ async function writeCatalogRecord(formData: FormData, intent: CatalogWriteIntent
         { resource, action: intent, id },
       );
       await cleanupReplacedCatalogMedia(supabase, current.data, media.fields);
-      revalidateCatalog(resource);
+      revalidateCatalog(resource, [current.data?.slug_es, current.data?.slug_en, saved.slug_es, saved.slug_en]);
       return { resource, focusId: saved.id, message: catalogActionSuccessMessage(resource, intent, Boolean(id)) };
     }
 
