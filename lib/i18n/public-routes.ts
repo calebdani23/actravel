@@ -10,7 +10,7 @@ type RouteInfo = {
 const publicRoutes: Record<Locale, Record<string, RouteInfo>> = {
   es: {
     servicios: { title: "Servicios", description: "Placeholder para servicios turísticos del MVP." },
-    paquetes: { title: "Paquetes", description: "Placeholder para paquetes vacacionales." },
+    paquetes: { title: "Paquetes", description: "Placeholder para paquetes vacacionales.", allowsSlug: true },
     promociones: { title: "Promociones", description: "Placeholder para promociones.", allowsSlug: true },
     destinos: { title: "Destinos", description: "Placeholder para destinos.", allowsSlug: true },
     cotizar: { title: "Cotizar", description: "Placeholder para flujo de cotización." },
@@ -22,7 +22,7 @@ const publicRoutes: Record<Locale, Record<string, RouteInfo>> = {
   },
   en: {
     services: { title: "Services", description: "Placeholder for travel services." },
-    packages: { title: "Packages", description: "Placeholder for vacation packages." },
+    packages: { title: "Packages", description: "Placeholder for vacation packages.", allowsSlug: true },
     deals: { title: "Deals", description: "Placeholder for deals.", allowsSlug: true },
     destinations: { title: "Destinations", description: "Placeholder for destinations.", allowsSlug: true },
     quote: { title: "Quote", description: "Placeholder for the quote flow." },
@@ -61,7 +61,13 @@ const localizedRoutePairs: Record<Locale, Record<string, string>> = {
   },
 };
 
-export function getLocalizedPath(pathname: string, targetLocale: Locale) {
+export function getLocalizedPath(pathname: string, targetLocale: Locale, alternateHref?: string | null) {
+  const alternatePath = resolveAlternateLocalizedPath(targetLocale, alternateHref) ?? localizedAlternatePath(targetLocale);
+
+  if (alternatePath) {
+    return alternatePath;
+  }
+
   const parts = pathname.split("/").filter(Boolean);
   const [currentLocale, section, slug] = parts;
 
@@ -81,7 +87,29 @@ export function getLocalizedPath(pathname: string, targetLocale: Locale) {
 
   const localizedSlug = translateSlug(section, currentLocale, targetLocale, slug);
 
-  return localizedSlug ? `/${targetLocale}/${localizedSection}/${localizedSlug}` : `/${targetLocale}/${localizedSection}`;
+  return localizedSlug ? `/${targetLocale}/${localizedSection}/${localizedSlug}` : slug ? `/${targetLocale}/${localizedSection}/${slug}` : `/${targetLocale}/${localizedSection}`;
+}
+
+export function resolveAlternateLocalizedPath(targetLocale: Locale, href?: string | null) {
+  if (!href) return null;
+
+  try {
+    const { pathname, search, hash } = new URL(href, "https://actravel.local");
+    const localizedPath = `${pathname}${search}${hash}`;
+    return localizedPath === `/${targetLocale}` || localizedPath.startsWith(`/${targetLocale}/`) ? localizedPath : null;
+  } catch {
+    return null;
+  }
+}
+
+function localizedAlternatePath(targetLocale: Locale) {
+  if (typeof document === "undefined") return null;
+
+  const alternateHref = document.head
+    .querySelector(`link[rel="alternate"][hreflang="${targetLocale}"]`)
+    ?.getAttribute("href");
+
+  return resolveAlternateLocalizedPath(targetLocale, alternateHref);
 }
 
 function isKnownLocale(value: string | undefined): value is Locale {

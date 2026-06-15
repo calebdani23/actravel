@@ -36,9 +36,9 @@ export async function ListingPage({ locale, kind }: Readonly<{ locale: Locale; k
     <PageShell>
       <SectionHeader eyebrow={page.eyebrow} title={page.title} description={page.description} />
       {kind === "services" ? <CatalogEmptyState locale={locale} items={serviceItems} /> : null}
-      {kind === "packages" ? <CatalogEmptyState locale={locale} items={packageItems} /> : null}
-      {kind === "deals" ? <ItemGrid locale={locale} items={promotionItems} section="deals" /> : null}
-      {kind === "destinations" ? <ItemGrid locale={locale} items={destinationItems} section="destinations" /> : null}
+      {kind === "packages" ? <CatalogItemGrid locale={locale} items={packageItems} section="packages" /> : null}
+      {kind === "deals" ? <CatalogItemGrid locale={locale} items={promotionItems} section="deals" /> : null}
+      {kind === "destinations" ? <CatalogItemGrid locale={locale} items={destinationItems} section="destinations" /> : null}
       <p className="rounded-3xl bg-[var(--ac-light-bg)] p-5 text-sm leading-6 text-muted-foreground">{page.note}</p>
       <FinalCta locale={locale} title={page.ctaTitle} text={page.ctaText} whatsappTopic={page.ctaTopic} />
     </PageShell>
@@ -53,7 +53,7 @@ function CatalogEmptyState({ locale, items }: Readonly<{ locale: Locale; items: 
   return <ValueGrid items={items.map((item) => ({ title: item.title[locale], text: item.description?.[locale] ?? item.text?.[locale] ?? "", eyebrow: item.eyebrow?.[locale] }))} />;
 }
 
-export function ItemGrid({ locale, items, section }: Readonly<{ locale: Locale; items: PublicItem[]; section: "deals" | "destinations" }>) {
+export function CatalogItemGrid({ locale, items, section }: Readonly<{ locale: Locale; items: PublicItem[]; section: "packages" | "deals" | "destinations" }>) {
   if (!items.length) {
     return <p className="rounded-3xl border bg-white p-6 text-sm text-muted-foreground">{locale === "es" ? "No hay contenido publicado todavía." : "No published content yet."}</p>;
   }
@@ -78,10 +78,13 @@ export function ItemGrid({ locale, items, section }: Readonly<{ locale: Locale; 
   );
 }
 
-export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Locale; slug: string; kind: "deal" | "destination" }>) {
-  const item = await getPublicCatalogItem(locale, kind === "deal" ? "promotions" : "destinations", slug);
+export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Locale; slug: string; kind: "deal" | "destination" | "package" }>) {
+  const catalogKind = kind === "deal" ? "promotions" : kind === "package" ? "packages" : "destinations";
+  const item = await getPublicCatalogItem(locale, catalogKind, slug);
   if (!item) notFound();
-  const back = kind === "deal" ? "deals" : "destinations";
+  const back = kind === "deal" ? "deals" : kind === "package" ? "packages" : "destinations";
+  const sidebarTitle = kind === "package" ? (locale === "es" ? "Qué incluye / cómo se adapta" : "What it includes / how it adapts") : locale === "es" ? "Incluye / ideas" : "Includes / ideas";
+  const highlights = item.highlights[locale];
   return (
     <PageShell>
       <section className="grid gap-8 rounded-[2rem] border bg-white p-6 shadow-sm lg:grid-cols-[1.1fr_0.9fr] lg:p-10">
@@ -103,10 +106,14 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
           </div>
         </div>
         <div className="rounded-[2rem] bg-[var(--ac-light-bg)] p-6">
-          <h2 className="font-black text-[var(--ac-ink)]">{locale === "es" ? "Incluye / ideas" : "Includes / ideas"}</h2>
-          <ul className="mt-4 grid gap-3 text-sm leading-6 text-zinc-700">
-            {item.highlights[locale].map((highlight) => <li key={highlight}>• {highlight}</li>)}
-          </ul>
+          <h2 className="font-black text-[var(--ac-ink)]">{sidebarTitle}</h2>
+          {highlights.length ? (
+            <ul className="mt-4 grid gap-3 text-sm leading-6 text-zinc-700">
+              {highlights.map((highlight) => <li key={highlight}>• {highlight}</li>)}
+            </ul>
+          ) : (
+            <p className="mt-4 text-sm leading-6 text-zinc-700">{kind === "package" ? item.summary[locale] : item.description[locale]}</p>
+          )}
           {item.planningNotes ? (
             <div className="mt-6 rounded-3xl bg-white p-5">
               <h3 className="font-black text-[var(--ac-ink)]">{locale === "es" ? "Para planear mejor" : "To plan better"}</h3>

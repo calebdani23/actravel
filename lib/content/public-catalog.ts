@@ -109,7 +109,7 @@ export async function getPublicCatalogContent(locale: Locale) {
 
 export async function getPublicCatalogStaticParams(
   locale: Locale,
-  kind: "destinations" | "promotions",
+  kind: "destinations" | "promotions" | "packages",
 ) {
   const catalog = await getPublicCatalogContent(locale).catch(() => buildFallbackCatalogContent(locale));
   const items = catalog[kind] ?? [];
@@ -117,6 +117,7 @@ export async function getPublicCatalogStaticParams(
   return buildPublicCatalogStaticParams(
     {
       destinations: kind === "destinations" ? items : [],
+      packages: kind === "packages" ? items : [],
       promotions: kind === "promotions" ? items : [],
     },
     locale,
@@ -126,13 +127,13 @@ export async function getPublicCatalogStaticParams(
 
 export async function getPublicCatalogItem(
   locale: Locale,
-  kind: "destinations" | "promotions",
+  kind: "destinations" | "promotions" | "packages",
   slug: string,
 ) {
   const catalog = await getPublicCatalogContent(locale).catch(() => buildFallbackCatalogContent(locale));
 
   const item = (
-    kind === "promotions" ? catalog?.promotions : catalog?.destinations
+    kind === "promotions" ? catalog?.promotions : kind === "packages" ? catalog?.packages : catalog?.destinations
   )?.find((entry) => entry.slug[locale] === slug);
 
   return item ?? null;

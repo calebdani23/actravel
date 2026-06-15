@@ -248,10 +248,10 @@ export type HomeServiceItem = {
   eyebrow?: Localized;
 };
 
-export type PublicHomeContent = Omit<PublicCatalogContent, "services" | "packages"> & { services: HomeServiceItem[]; packages: HomeServiceItem[] };
+export type PublicHomeContent = Omit<PublicCatalogContent, "services"> & { services: HomeServiceItem[] };
 export type HomeCatalogSource = Omit<PublicCatalogContent, "services" | "packages"> & {
   services: Array<PublicItem | HomeServiceItem | ValueItem>;
-  packages: Array<PublicItem | HomeServiceItem | ValueItem>;
+  packages: PublicItem[];
 };
 
 export type CatalogRowLike = {
@@ -461,7 +461,7 @@ export function buildPublicHomeContent(locale: Locale, catalog?: HomeCatalogSour
   return {
     ...staticContent,
     destinations: pickHomeItems(catalog.destinations),
-    packages: pickHomeItems(catalog.packages).map(toHomeServiceItem),
+    packages: pickHomeItems(catalog.packages),
     promotions: pickHomeItems(catalog.promotions),
     services: pickHomeItems(catalog.services, 3).map(toHomeServiceItem),
   };
@@ -487,7 +487,7 @@ export function findDestination(locale: Locale, slug: string) {
 
 export function translateSlug(section: string, from: Locale, to: Locale, slug?: string) {
   if (!slug) return undefined;
-  const collection = section === routeNames[from].deals ? promotions : section === routeNames[from].destinations ? destinations : [];
+  const collection = section === routeNames[from].deals ? promotions : section === routeNames[from].destinations ? destinations : section === routeNames[from].packages ? staticPackageCatalogItems() : [];
   return collection.find((item) => item.slug[from] === slug)?.slug[to];
 }
 

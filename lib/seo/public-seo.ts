@@ -6,7 +6,7 @@ import {
   type LegalKey,
   type PublicItem,
 } from "@/lib/content/public-site";
-import { getPublicCatalogContent } from "@/lib/content/public-catalog";
+import { getPublicCatalogContent, getPublicCatalogItem } from "@/lib/content/public-catalog";
 import { type Locale, locales } from "@/lib/i18n/config";
 
 const siteName = "AC Travel";
@@ -15,7 +15,7 @@ const defaultSiteUrl = "http://localhost:3000";
 
 type PublicRouteKey = Parameters<typeof localizedPath>[1];
 type ListingRouteKey = Extract<PublicRouteKey, "services" | "packages" | "deals" | "destinations">;
-type DetailKind = "deal" | "destination";
+type DetailKind = "deal" | "destination" | "package";
 type InfoKind = "about" | "contact";
 
 type SeoInput = {
@@ -153,9 +153,8 @@ export function buildLegalMetadata(locale: Locale, legalKey: LegalKey) {
 }
 
 export async function buildDetailMetadata(locale: Locale, kind: DetailKind, slug: string) {
-  const catalog = await getPublicCatalogContent(locale).catch(() => null);
-  const item = catalog ? (kind === "deal" ? catalog.promotions : catalog.destinations).find((entry) => entry.slug[locale] === slug) : null;
-  const listKey = kind === "deal" ? "deals" : "destinations";
+  const item = await getPublicCatalogItem(locale, kind === "deal" ? "promotions" : kind === "package" ? "packages" : "destinations", slug).catch(() => null);
+  const listKey = kind === "deal" ? "deals" : kind === "package" ? "packages" : "destinations";
 
   if (!item) return buildListingMetadata(locale, listKey);
 
@@ -163,7 +162,7 @@ export async function buildDetailMetadata(locale: Locale, kind: DetailKind, slug
 }
 
 function buildItemMetadata(locale: Locale, kind: DetailKind, item: PublicItem) {
-  const listKey = kind === "deal" ? "deals" : "destinations";
+  const listKey = kind === "deal" ? "deals" : kind === "package" ? "packages" : "destinations";
   return buildPublicMetadata({
     locale,
     title: item.title[locale],
@@ -221,6 +220,10 @@ export async function getPublicSeoSitemapEntries(): Promise<MetadataRoute.Sitema
 
   for (const item of catalog?.destinations ?? []) {
     for (const locale of locales) addEntry(localizedPath(locale, "destinations", item.slug[locale]), { es: localizedPath("es", "destinations", item.slug.es), en: localizedPath("en", "destinations", item.slug.en) });
+  }
+
+  for (const item of catalog?.packages ?? []) {
+    for (const locale of locales) addEntry(localizedPath(locale, "packages", item.slug[locale]), { es: localizedPath("es", "packages", item.slug.es), en: localizedPath("en", "packages", item.slug.en) });
   }
 
   return entries;

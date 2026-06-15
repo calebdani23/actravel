@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FAQSection } from "@/components/public/faq-section";
 import { HowItWorks } from "@/components/public/how-it-works";
-import { FinalCta, ItemGrid } from "@/components/public/public-pages";
+import { CatalogItemGrid, FinalCta } from "@/components/public/public-pages";
 import { SectionHeader } from "@/components/public/section-header";
 import { TrustBlock } from "@/components/public/trust-block";
 import { ValueGrid } from "@/components/public/value-grid";
@@ -64,18 +64,17 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
 
       <section className="space-y-6">
         <SectionHeader title={t.sections.destinations[0]} description={t.sections.destinations[1]} />
-        <ItemGrid locale={locale} items={content.destinations.filter((item) => item.featured)} section="destinations" />
+        <CatalogItemGrid locale={locale} items={content.destinations.filter((item) => item.featured)} section="destinations" />
       </section>
       {content.packages.length ? (
-        <ValueGrid
-          title={locale === "es" ? "Paquetes" : "Packages"}
-          description={locale === "es" ? "Paquetes publicados desde el catálogo live." : "Published packages from the live catalog."}
-          items={content.packages.slice(0, 3).map((item) => ({ title: item.title[locale], text: homeItemText(item, locale), eyebrow: item.eyebrow?.[locale] }))}
-        />
+        <section className="space-y-6">
+          <SectionHeader title={locale === "es" ? "Paquetes" : "Packages"} description={locale === "es" ? "Paquetes publicados desde el catálogo live." : "Published packages from the live catalog."} />
+          <CatalogItemGrid locale={locale} items={content.packages.slice(0, 3)} section="packages" />
+        </section>
       ) : null}
       <section className="space-y-6">
         <SectionHeader title={t.sections.deals[0]} description={t.sections.deals[1]} />
-        <ItemGrid locale={locale} items={content.promotions.filter((item) => item.featured)} section="deals" />
+        <CatalogItemGrid locale={locale} items={content.promotions.filter((item) => item.featured)} section="deals" />
       </section>
       <ValueGrid items={content.services.slice(0, 3).map((service) => ({ title: service.title[locale], text: homeItemText(service, locale), eyebrow: service.eyebrow?.[locale] }))} />
       <HowItWorks title={t.sections.process[0]} description={t.sections.process[1]} steps={[...t.process]} />

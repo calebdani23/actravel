@@ -5,7 +5,8 @@ import test from "node:test";
 import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
 import { buildLivePublicCatalogContent } from "@/lib/content/public-catalog";
 import { buildPublicCatalogStaticParams } from "@/lib/content/public-catalog-utils";
-import { buildFallbackCatalogContent, buildPublicCatalogContent, buildPublicCatalogItem, buildPublicHomeContent, mergeCatalogWithFallback, publishedCatalogRows } from "@/lib/content/public-site";
+import { buildFallbackCatalogContent, buildPublicCatalogContent, buildPublicCatalogItem, buildPublicHomeContent, getPublicSiteContent, mergeCatalogWithFallback, publishedCatalogRows, translateSlug } from "@/lib/content/public-site";
+import { getLocalizedPath, resolveAlternateLocalizedPath } from "@/lib/i18n/public-routes";
 
 function buildQueryResult(data: unknown, error: { message: string; code?: string } | null = null) {
   return { data, error };
@@ -169,6 +170,28 @@ test("catalog static params follow the provided catalog content", () => {
 
   assert.deepEqual(buildPublicCatalogStaticParams(content, "es", "destinations"), [{ locale: "es", slug: "live-dest" }]);
   assert.deepEqual(buildPublicCatalogStaticParams(content, "es", "promotions"), [{ locale: "es", slug: "live-deal" }]);
+  assert.deepEqual(buildPublicCatalogStaticParams(content, "es", "packages"), []);
+});
+
+test("package static params and slug translation support package detail routes", () => {
+  const content = buildPublicCatalogContent("es", {
+    destinations: [],
+    services: [],
+    packages: [
+      { id: "pk1", slug_es: "paquete-playa", slug_en: "beach-package", name_es: "Paquete playa", name_en: "Beach package", summary_es: "Resumen", summary_en: "Summary", description_es: "Descripción", description_en: "Description", status: "published" },
+    ],
+    promotions: [],
+  });
+
+  assert.deepEqual(buildPublicCatalogStaticParams(content, "es", "packages"), [{ locale: "es", slug: "paquete-playa" }]);
+  assert.equal(translateSlug(getPublicSiteContent("es").routes.packages, "es", "en", "paquete-1"), "package-1");
+});
+
+test("localized package detail routes prefer live alternate slugs when available", () => {
+  const liveAlternateHref = "https://actravel.test/en/packages/family-riviera";
+
+  assert.equal(resolveAlternateLocalizedPath("en", liveAlternateHref), "/en/packages/family-riviera");
+  assert.equal(getLocalizedPath("/es/paquetes/riviera-familiar", "en", liveAlternateHref), "/en/packages/family-riviera");
 });
 
 test("catalog fallback is reused end-to-end when live loading fails", () => {
@@ -211,8 +234,18 @@ test("public pages use the same resolved catalog helpers as SEO and static param
 
   assert.match(pageSource, /import \{ getPublicCatalogContent, getPublicCatalogItem \} from "@\/lib\/content\/public-catalog"/);
   assert.match(pageSource, /const catalog = await getPublicCatalogContent\(locale\);/);
-  assert.match(pageSource, /const item = await getPublicCatalogItem\(locale, kind === "deal" \? "promotions" : "destinations", slug\);/);
+  assert.match(pageSource, /const catalogKind = kind === "deal" \? "promotions" : kind === "package" \? "packages" : "destinations";/);
+  assert.match(pageSource, /const item = await getPublicCatalogItem\(locale, catalogKind, slug\);/);
   assert.match(pageSource, /imageUrl=\{item\.media\?\.thumbnailImageUrl \?\? item\.media\?\.heroImageUrl \?\? undefined\}/);
   assert.match(pageSource, /src=\{item\.media\?\.heroImageUrl \?\? item\.media\?\.thumbnailImageUrl \?\? ""\}/);
   assert.doesNotMatch(pageSource, /getLivePublicCatalogContent/);
+});
+
+test("home page and localized route config expose package detail cards", () => {
+  const homeSource = readFileSync("app/[locale]/page.tsx", "utf8");
+  const routesSource = readFileSync("lib/i18n/public-routes.ts", "utf8");
+
+  assert.match(homeSource, /<CatalogItemGrid locale=\{locale\} items=\{content\.packages\.slice\(0, 3\)\} section="packages" \/>/);
+  assert.match(routesSource, /paquetes: \{ title: "Paquetes", description: .* allowsSlug: true \}/);
+  assert.match(routesSource, /packages: \{ title: "Packages", description: .* allowsSlug: true \}/);
 });
