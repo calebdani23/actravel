@@ -77,7 +77,13 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
         <HomeServicesSection locale={locale} items={content.services} />
       </section>
       <HowItWorks title={t.sections.process[0]} description={t.sections.process[1]} steps={[...t.process]} />
-      <TrustBlock title={t.sections.trust[0]} description={t.sections.trust[1]} items={[...t.trust]} />
+      <TrustBlock
+        title={t.sections.trust[0]}
+        description={t.sections.trust[1]}
+        items={[...t.trust]}
+        eyebrow={locale === "es" ? "Confianza" : "Trust"}
+        itemEyebrow={locale === "es" ? "Por qué elegirnos" : "Why choose us"}
+      />
       <FAQSection locale={locale} title={t.sections.faq[0]} description={t.sections.faq[1]} items={[...t.faq]} />
       <FinalCta locale={locale} title={t.finalCta.title} text={t.finalCta.text} whatsappTopic={t.finalCta.whatsappTopic} quoteLabel={t.finalCta.quoteLabel} />
     </main>
