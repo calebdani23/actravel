@@ -266,3 +266,14 @@ test("home page and localized route config expose service and package detail car
   assert.match(servicesRouteSource, /buildDetailMetadata\(locale, "service", slug\)/);
   assert.match(serviciosRouteSource, /buildDetailMetadata\(locale, "service", slug\)/);
 });
+
+test("shared item card keeps a single CTA and stronger title contrast", () => {
+  const cardSource = readFileSync("components/public/item-card.tsx", "utf8");
+  const ctaSpanMatches = cardSource.match(/<span>\{cta\}<\/span>/g) ?? [];
+
+  assert.equal(ctaSpanMatches.length, 1);
+  assert.doesNotMatch(cardSource, /rounded-full bg-\[var\(--ac-ink\)\]\/80[^\n]*\{cta\}/);
+  assert.match(cardSource, /bg-gradient-to-t from-\[var\(--ac-ink\)\]\/90 via-\[var\(--ac-ink\)\]\/35 to-\[var\(--ac-ink\)\]\/10/);
+  assert.match(cardSource, /backdrop-blur-\[2px\]/);
+  assert.match(cardSource, /\[text-shadow:0_2px_10px_rgba\(0,0,0,0\.45\)\]/);
+});

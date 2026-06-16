@@ -17,12 +17,14 @@ export function ItemCard({
     <Card className="flex h-full flex-col overflow-hidden border-white/80 bg-white/90 shadow-sm transition duration-200 group-hover:-translate-y-1 group-hover:shadow-xl group-focus-visible:-translate-y-1 group-focus-visible:shadow-xl">
       <div className="relative h-52 overflow-hidden bg-[linear-gradient(135deg,rgba(27,139,173,0.18),rgba(238,89,42,0.16)),url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 640 420%22%3E%3Cpath d=%22M0 310c95-48 181-56 289-17s201 40 351-28v155H0z%22 fill=%22%23fff%22 fill-opacity=%22.72%22/%3E%3Ccircle cx=%22528%22 cy=%2296%22 r=%2258%22 fill=%22%23ee592a%22 fill-opacity=%22.32%22/%3E%3C/svg%3E')] bg-cover bg-center">
         {imageUrl ? <img alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03] group-focus-visible:scale-[1.03]" loading="lazy" src={imageUrl} /> : null}
-        <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4">
-          {eyebrow ? <span className="rounded-full bg-white/90 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--ac-blue)] shadow-sm">{eyebrow}</span> : <span />}
-          <span className="rounded-full bg-[var(--ac-ink)]/80 px-3 py-1 text-[11px] font-bold text-white shadow-sm">{cta}</span>
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--ac-ink)]/90 via-[var(--ac-ink)]/35 to-[var(--ac-ink)]/10" />
+        <div className="absolute inset-x-0 top-0 flex items-start p-4">
+          {eyebrow ? <span className="rounded-full bg-white/92 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--ac-blue)] shadow-sm backdrop-blur-sm">{eyebrow}</span> : null}
         </div>
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[var(--ac-ink)]/70 via-[var(--ac-ink)]/10 to-transparent p-5">
-          <CardTitle className="max-w-[18rem] text-2xl font-black text-white drop-shadow-sm">{title}</CardTitle>
+        <div className="absolute inset-x-0 bottom-0 p-5">
+          <div className="inline-flex max-w-full rounded-3xl bg-[var(--ac-ink)]/45 px-4 py-3 backdrop-blur-[2px]">
+            <CardTitle className="max-w-[18rem] text-2xl font-black text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.45)]">{title}</CardTitle>
+          </div>
         </div>
       </div>
       <CardHeader className="pb-3 pt-5">
