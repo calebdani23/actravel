@@ -269,17 +269,17 @@ test("home page and localized route config expose service and package detail car
 
 test("shared item card keeps whole-card navigation with elevated reveal layout", () => {
   const cardSource = readFileSync("components/public/item-card.tsx", "utf8");
-  const ctaSpanMatches = cardSource.match(/<span>\{cta\}<\/span>/g) ?? [];
+  const ctaSpanMatches = cardSource.match(/>\{cta\}<\/span>/g) ?? [];
 
   assert.equal(ctaSpanMatches.length, 1);
   assert.equal(cardSource.includes("aria-label={`${cta}: ${title}`}"), true);
   assert.doesNotMatch(cardSource, /<button/);
-  assert.match(cardSource, /rounded-\[2rem\] border border-white\/75 bg-white shadow-\[0_24px_60px_-32px_rgba\(15,23,42,0\.55\)\]/);
-  assert.match(cardSource, /-mt-16 px-4 pb-4/);
-  assert.match(cardSource, /group-hover:max-h-48/);
-  assert.match(cardSource, /group-focus-visible:max-h-48/);
-  assert.match(cardSource, /rounded-full bg-white\/92 px-3 py-1\.5 text-xs font-black text-\[var\(--ac-red\)\]/);
-  assert.match(cardSource, /bg-gradient-to-t from-\[var\(--ac-ink\)\] via-\[var\(--ac-ink\)\]\/25 to-transparent/);
-  assert.match(cardSource, /backdrop-blur-\[2px\]/);
-  assert.match(cardSource, /\[text-shadow:0_2px_10px_rgba\(0,0,0,0\.45\)\]/);
+  assert.match(cardSource, /min-h-\[33rem\] flex-col overflow-hidden rounded-\[2rem\] bg-\[#101826\]/);
+  assert.match(cardSource, /absolute inset-3 overflow-hidden rounded-\[1\.6rem\].*group-hover:bottom-\[12\.75rem\]/s);
+  assert.match(cardSource, /group-hover:scale-\[1\.08\] group-hover:-translate-y-3/);
+  assert.match(cardSource, /backdrop-blur-\[18px\] \[mask-image:linear-gradient\(to_top,black_20%,transparent_100%\)\]/);
+  assert.match(cardSource, /rounded-full bg-black\/35 blur-2xl/);
+  assert.match(cardSource, /rounded-full border border-white\/18 bg-white\/88 px-3 py-1\.5 text-xs font-black text-\[var\(--ac-red\)\]/);
+  assert.match(cardSource, /md:max-h-0 md:translate-y-4 md:opacity-0 md:group-hover:mt-4 md:group-hover:max-h-52/);
+  assert.match(cardSource, /border-t border-white\/10 pt-4/);
 });
