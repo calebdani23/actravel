@@ -267,13 +267,19 @@ test("home page and localized route config expose service and package detail car
   assert.match(serviciosRouteSource, /buildDetailMetadata\(locale, "service", slug\)/);
 });
 
-test("shared item card keeps a single CTA and stronger title contrast", () => {
+test("shared item card keeps whole-card navigation with elevated reveal layout", () => {
   const cardSource = readFileSync("components/public/item-card.tsx", "utf8");
   const ctaSpanMatches = cardSource.match(/<span>\{cta\}<\/span>/g) ?? [];
 
   assert.equal(ctaSpanMatches.length, 1);
-  assert.doesNotMatch(cardSource, /rounded-full bg-\[var\(--ac-ink\)\]\/80[^\n]*\{cta\}/);
-  assert.match(cardSource, /bg-gradient-to-t from-\[var\(--ac-ink\)\]\/90 via-\[var\(--ac-ink\)\]\/35 to-\[var\(--ac-ink\)\]\/10/);
+  assert.equal(cardSource.includes("aria-label={`${cta}: ${title}`}"), true);
+  assert.doesNotMatch(cardSource, /<button/);
+  assert.match(cardSource, /rounded-\[2rem\] border border-white\/75 bg-white shadow-\[0_24px_60px_-32px_rgba\(15,23,42,0\.55\)\]/);
+  assert.match(cardSource, /-mt-16 px-4 pb-4/);
+  assert.match(cardSource, /group-hover:max-h-48/);
+  assert.match(cardSource, /group-focus-visible:max-h-48/);
+  assert.match(cardSource, /rounded-full bg-white\/92 px-3 py-1\.5 text-xs font-black text-\[var\(--ac-red\)\]/);
+  assert.match(cardSource, /bg-gradient-to-t from-\[var\(--ac-ink\)\] via-\[var\(--ac-ink\)\]\/25 to-transparent/);
   assert.match(cardSource, /backdrop-blur-\[2px\]/);
   assert.match(cardSource, /\[text-shadow:0_2px_10px_rgba\(0,0,0,0\.45\)\]/);
 });
