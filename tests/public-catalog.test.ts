@@ -267,19 +267,19 @@ test("home page and localized route config expose service and package detail car
   assert.match(serviciosRouteSource, /buildDetailMetadata\(locale, "service", slug\)/);
 });
 
-test("shared item card keeps whole-card navigation with elevated reveal layout", () => {
+test("shared item card keeps whole-card navigation with simplified branded layout", () => {
   const cardSource = readFileSync("components/public/item-card.tsx", "utf8");
   const ctaSpanMatches = cardSource.match(/>\{cta\}<\/span>/g) ?? [];
 
-  assert.equal(ctaSpanMatches.length, 1);
+  assert.equal(ctaSpanMatches.length, 0);
   assert.equal(cardSource.includes("aria-label={`${cta}: ${title}`}"), true);
   assert.doesNotMatch(cardSource, /<button/);
-  assert.match(cardSource, /min-h-\[33rem\] flex-col overflow-hidden rounded-\[2rem\] bg-\[#101826\]/);
-  assert.match(cardSource, /absolute inset-3 overflow-hidden rounded-\[1\.6rem\].*group-hover:bottom-\[12\.75rem\]/s);
-  assert.match(cardSource, /group-hover:scale-\[1\.08\] group-hover:-translate-y-3/);
-  assert.match(cardSource, /backdrop-blur-\[18px\] \[mask-image:linear-gradient\(to_top,black_20%,transparent_100%\)\]/);
-  assert.match(cardSource, /rounded-full bg-black\/35 blur-2xl/);
-  assert.match(cardSource, /rounded-full border border-white\/18 bg-white\/88 px-3 py-1\.5 text-xs font-black text-\[var\(--ac-red\)\]/);
-  assert.match(cardSource, /md:max-h-0 md:translate-y-4 md:opacity-0 md:group-hover:mt-4 md:group-hover:max-h-52/);
-  assert.match(cardSource, /border-t border-white\/10 pt-4/);
+  assert.match(cardSource, /min-h-\[30rem\] flex-col overflow-hidden rounded-\[2rem\] border border-\[var\(--ac-blue\)\]\/12 bg-white/);
+  assert.match(cardSource, /relative aspect-\[4\/5\] overflow-hidden bg-\[linear-gradient\(145deg,var\(--ac-blue-soft\)_0%,#ffffff_52%,#fff1e8_100%\)\]/);
+  assert.match(cardSource, /group-hover:scale-\[1\.04\] group-focus-visible:scale-\[1\.04\]/);
+  assert.match(cardSource, /rounded-full border border-\[#c94a1f\]\/18 bg-white\/92 px-3 py-1\.5 text-xs font-black text-\[#c94a1f\]/);
+  assert.match(cardSource, /rounded-full border border-white\/70 bg-white\/88 text-\[#c94a1f\]/);
+  assert.match(cardSource, /bg-\[linear-gradient\(180deg,#ffffff_0%,#f7fcff_100%\)\] px-6 pb-7 pt-6/);
+  assert.match(cardSource, /mb-4 h-1\.5 w-16 rounded-full bg-\[#c94a1f\]/);
+  assert.doesNotMatch(cardSource, /border-t border-white\/10 pt-4/);
 });
