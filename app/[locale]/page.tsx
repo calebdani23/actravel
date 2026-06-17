@@ -27,16 +27,15 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-12 px-4 py-10 sm:px-6 lg:px-8">
-      <section className="relative overflow-hidden rounded-[2rem] border border-[var(--ac-orange)]/15 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_24%,#effbff_100%)] shadow-sm">
-        <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(255,255,255,0.18),transparent)]" aria-hidden="true" />
-        <div className="relative aspect-[16/7] sm:aspect-[18/7] lg:aspect-[21/6]">
+      <section className="overflow-hidden rounded-[2rem] border border-[var(--ac-orange)]/25 bg-[#f34d10] shadow-[0_18px_42px_rgba(238,89,42,0.16)]">
+        <div className="relative aspect-[2/1] bg-[#f34d10]">
           <Image
             src={heroBannerSrc}
             alt="AC Travel banner"
             fill
             priority
             sizes="100vw"
-            className="object-cover object-center"
+            className="object-contain object-center"
           />
         </div>
       </section>
