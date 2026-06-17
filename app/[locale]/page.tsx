@@ -41,34 +41,25 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
       </section>
 
       <section className="rounded-[2rem] border border-white/80 bg-[linear-gradient(135deg,var(--ac-light-bg),#fff7ed_52%,#edfaff)] px-6 py-10 shadow-sm sm:px-10 md:py-12">
-        <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr] lg:items-start">
-          <div>
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)] lg:items-start">
+          <div className="min-w-0">
             <p className="text-sm font-extrabold uppercase tracking-[0.3em] text-[var(--ac-blue)]">{t.heroKicker}</p>
             <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-tight text-[var(--ac-ink)] md:text-5xl lg:text-6xl">{t.homeTitle}</h1>
           </div>
-          <div className="lg:pt-3">
-            <p className="max-w-2xl text-lg leading-8 text-zinc-700">{t.homeDescription}</p>
+          <div className="flex flex-col gap-4 lg:items-stretch lg:justify-start lg:pt-2">
+            <WhatsAppCta
+              message={waMessage(locale, t.finalCta.whatsappTopic)}
+              label={t.primaryCta}
+              locale={locale}
+              pagePath={`/${locale}:hero`}
+              className="w-full rounded-full px-6 py-6 text-base shadow-sm"
+            />
+            <Button asChild size="lg" className="w-full rounded-full px-6 py-6 text-base shadow-sm">
+              <Link href={localizedPath(locale, "quote")}>{t.quoteCta}</Link>
+            </Button>
           </div>
         </div>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <WhatsAppCta message={waMessage(locale, t.finalCta.whatsappTopic)} label={t.primaryCta} locale={locale} pagePath={`/${locale}:hero`} className="rounded-full" />
-          <Button asChild variant="outline" size="lg" className="rounded-full border-white bg-white/80">
-            <Link href={localizedPath(locale, "quote")}>{t.quoteCta}</Link>
-          </Button>
-          <Button asChild variant="ghost" size="lg" className="rounded-full bg-white/40 sm:bg-transparent">
-            <Link href={localizedPath(locale, "deals")}>{t.viewDeals}</Link>
-          </Button>
-        </div>
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          {t.heroSupport.map((item) => (
-            <div key={item} className="rounded-[1.5rem] border border-white/80 bg-white/70 px-5 py-4 text-sm font-semibold text-zinc-700 shadow-sm shadow-orange-900/5 backdrop-blur">
-              {item}
-            </div>
-          ))}
-        </div>
-        <div className="mt-5 rounded-[1.5rem] border border-[var(--ac-blue)]/10 bg-white/70 px-5 py-4 text-sm text-zinc-700 shadow-sm shadow-slate-200/50">
-          <span className="font-semibold text-[var(--ac-ink)]">{t.sections.trust[0]}:</span> {t.sections.trust[1]}
-        </div>
+        <p className="mt-8 max-w-5xl text-lg leading-8 text-zinc-700">{t.homeDescription}</p>
       </section>
 
       <ValueGrid
