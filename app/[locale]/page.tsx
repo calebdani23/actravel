@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { FAQSection } from "@/components/public/faq-section";
 import { HowItWorks } from "@/components/public/how-it-works";
@@ -45,8 +46,20 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
               </Button>
             </div>
           </div>
-          <div className="rounded-[2rem] border border-white/80 bg-white/70 p-4 shadow-xl shadow-orange-900/5 backdrop-blur">
-            <div className="aspect-[4/3] rounded-[1.5rem] bg-[linear-gradient(135deg,rgba(27,139,173,0.22),rgba(238,89,42,0.18)),url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 600 450%22%3E%3Cpath fill=%22%23ffffff%22 fill-opacity=%220.55%22 d=%22M0 338c95-43 167-44 264-7s168 41 336-28v147H0z%22/%3E%3Ccircle cx=%22460%22 cy=%22102%22 r=%2254%22 fill=%22%23ee592a%22 fill-opacity=%220.38%22/%3E%3Cpath fill=%22%231b8bad%22 fill-opacity=%220.28%22 d=%22M0 288c95-33 156-22 243 5 108 34 195 33 357-48v75c-124 60-237 73-356 36-91-29-165-34-244 5z%22/%3E%3C/svg%3E')] bg-cover bg-center" aria-label="Beach inspired travel visual" />
+          <div className="rounded-[2rem] border border-white/80 bg-white/70 p-4 shadow-xl shadow-orange-900/5 backdrop-blur sm:p-5">
+            <div className="relative overflow-hidden rounded-[1.5rem] border border-white/70 bg-[linear-gradient(135deg,rgba(27,139,173,0.16),rgba(238,89,42,0.08)_55%,rgba(255,255,255,0.92))] p-4 sm:p-6">
+              <div className="absolute inset-x-10 bottom-2 h-16 rounded-full bg-[var(--ac-orange)]/10 blur-3xl" aria-hidden="true" />
+              <div className="relative aspect-[16/9] sm:aspect-[21/10]">
+                <Image
+                  src="/brand/ac-travel-hero-banner.svg"
+                  alt="AC Travel banner"
+                  fill
+                  priority
+                  sizes="(min-width: 1024px) 40vw, 100vw"
+                  className="object-contain object-center drop-shadow-[0_20px_40px_rgba(15,23,42,0.16)]"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </section>
