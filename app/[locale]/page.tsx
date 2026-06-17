@@ -26,56 +26,48 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-12 px-4 py-10 sm:px-6 lg:px-8">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-[linear-gradient(135deg,#fff8ef_0%,#ffffff_38%,#ecfbff_100%)] p-3 shadow-sm sm:p-4">
-        <div className="absolute left-8 top-6 h-28 w-28 rounded-full bg-[var(--ac-orange)]/12 blur-3xl" aria-hidden="true" />
-        <div className="absolute bottom-4 right-8 h-24 w-24 rounded-full bg-[var(--ac-blue)]/12 blur-3xl" aria-hidden="true" />
-        <div className="relative overflow-hidden rounded-[1.6rem] border border-white/80 bg-[linear-gradient(135deg,rgba(27,139,173,0.14),rgba(238,89,42,0.08)_56%,rgba(255,255,255,0.94))] px-3 py-4 sm:px-5 sm:py-5">
-          <div className="relative aspect-[16/9] sm:aspect-[21/8] lg:aspect-[21/7]">
-            <Image
-              src="/brand/ac-travel-hero-banner.svg"
-              alt="AC Travel banner"
-              fill
-              priority
-              sizes="100vw"
-              className="object-contain object-center drop-shadow-[0_24px_48px_rgba(15,23,42,0.18)]"
-            />
-          </div>
+      <section className="relative overflow-hidden rounded-[2rem] border border-[var(--ac-orange)]/15 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_24%,#effbff_100%)] shadow-sm">
+        <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(255,255,255,0.18),transparent)]" aria-hidden="true" />
+        <div className="relative aspect-[16/7] sm:aspect-[18/7] lg:aspect-[21/6]">
+          <Image
+            src="/brand/ac-travel-hero-banner.svg"
+            alt="AC Travel banner"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center"
+          />
         </div>
       </section>
 
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-[linear-gradient(135deg,var(--ac-light-bg),#fff7ed_46%,#e7f7fb)] px-6 py-14 shadow-sm sm:px-10 md:py-20">
-        <div className="absolute right-[-5rem] top-[-5rem] size-56 rounded-full bg-[var(--ac-orange)]/10 blur-3xl" aria-hidden="true" />
-        <div className="relative grid gap-10 lg:grid-cols-[1.08fr_0.92fr] lg:items-center">
+      <section className="rounded-[2rem] border border-white/80 bg-[linear-gradient(135deg,var(--ac-light-bg),#fff7ed_52%,#edfaff)] px-6 py-10 shadow-sm sm:px-10 md:py-12">
+        <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr] lg:items-start">
           <div>
             <p className="text-sm font-extrabold uppercase tracking-[0.3em] text-[var(--ac-blue)]">{t.heroKicker}</p>
-            <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-tight text-[var(--ac-ink)] md:text-6xl">{t.homeTitle}</h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-700">{t.homeDescription}</p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <WhatsAppCta message={waMessage(locale, t.finalCta.whatsappTopic)} label={t.primaryCta} locale={locale} pagePath={`/${locale}:hero`} className="rounded-full" />
-              <Button asChild variant="outline" size="lg" className="rounded-full border-white bg-white/75">
-                <Link href={localizedPath(locale, "quote")}>{t.quoteCta}</Link>
-              </Button>
-              <Button asChild variant="ghost" size="lg" className="rounded-full">
-                <Link href={localizedPath(locale, "deals")}>{t.viewDeals}</Link>
-              </Button>
-            </div>
+            <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-tight text-[var(--ac-ink)] md:text-5xl lg:text-6xl">{t.homeTitle}</h1>
           </div>
-          <div className="grid gap-4 lg:pl-4">
-            <div className="rounded-[1.75rem] border border-white/80 bg-white/75 p-6 shadow-xl shadow-orange-900/5 backdrop-blur">
-              <p className="text-xs font-extrabold uppercase tracking-[0.28em] text-[var(--ac-blue)]">AC Travel MX</p>
-              <p className="mt-3 text-2xl font-black tracking-tight text-[var(--ac-ink)] md:text-3xl">
-                {t.sections.trust[0]}
-              </p>
-              <p className="mt-3 text-sm leading-7 text-zinc-700">{t.sections.trust[1]}</p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-              {t.heroSupport.map((item) => (
-                <div key={item} className="rounded-[1.5rem] border border-white/80 bg-white/80 px-5 py-4 text-sm font-semibold text-zinc-700 shadow-lg shadow-orange-900/5 backdrop-blur">
-                  {item}
-                </div>
-              ))}
-            </div>
+          <div className="lg:pt-3">
+            <p className="max-w-2xl text-lg leading-8 text-zinc-700">{t.homeDescription}</p>
           </div>
+        </div>
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <WhatsAppCta message={waMessage(locale, t.finalCta.whatsappTopic)} label={t.primaryCta} locale={locale} pagePath={`/${locale}:hero`} className="rounded-full" />
+          <Button asChild variant="outline" size="lg" className="rounded-full border-white bg-white/80">
+            <Link href={localizedPath(locale, "quote")}>{t.quoteCta}</Link>
+          </Button>
+          <Button asChild variant="ghost" size="lg" className="rounded-full bg-white/40 sm:bg-transparent">
+            <Link href={localizedPath(locale, "deals")}>{t.viewDeals}</Link>
+          </Button>
+        </div>
+        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          {t.heroSupport.map((item) => (
+            <div key={item} className="rounded-[1.5rem] border border-white/80 bg-white/70 px-5 py-4 text-sm font-semibold text-zinc-700 shadow-sm shadow-orange-900/5 backdrop-blur">
+              {item}
+            </div>
+          ))}
+        </div>
+        <div className="mt-5 rounded-[1.5rem] border border-[var(--ac-blue)]/10 bg-white/70 px-5 py-4 text-sm text-zinc-700 shadow-sm shadow-slate-200/50">
+          <span className="font-semibold text-[var(--ac-ink)]">{t.sections.trust[0]}:</span> {t.sections.trust[1]}
         </div>
       </section>
 
