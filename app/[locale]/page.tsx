@@ -23,6 +23,7 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
   const catalog = await getPublicCatalogContent(locale);
   const content = buildPublicHomeContent(locale, catalog);
   const { t } = content;
+  const heroBannerSrc = locale === "en" ? "/brand/ac-travel-hero-banner-en.png" : "/brand/ac-travel-hero-banner-es.png";
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-12 px-4 py-10 sm:px-6 lg:px-8">
@@ -30,7 +31,7 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
         <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(255,255,255,0.18),transparent)]" aria-hidden="true" />
         <div className="relative aspect-[16/7] sm:aspect-[18/7] lg:aspect-[21/6]">
           <Image
-            src="/brand/ac-travel-hero-banner.svg"
+            src={heroBannerSrc}
             alt="AC Travel banner"
             fill
             priority
