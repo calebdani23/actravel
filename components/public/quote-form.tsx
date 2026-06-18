@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import { useForm, useWatch } from "react-hook-form";
+import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import { Button } from "@/components/ui/button";
 import { getPublicSiteContent } from "@/lib/content/public-site";
 import { type Locale } from "@/lib/i18n/config";
@@ -152,9 +153,7 @@ export function QuoteForm({ locale, initialContext }: Props) {
           <p className="mt-4 text-sm leading-6 text-zinc-700">{copy.successDisclaimer}</p>
           <p className="mt-4 text-sm leading-6 text-zinc-700">{copy.successWhatsAppHelp}</p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <Button asChild className="rounded-full">
-              <a href={result.whatsapp.href} target="_blank" rel="noreferrer">{copy.whatsappCta}</a>
-            </Button>
+            <WhatsAppCta message="" label={copy.whatsappCta} href={result.whatsapp.href} target="_blank" rel="noreferrer" className="rounded-full" />
             <Button type="button" variant="outline" className="rounded-full" onClick={() => { form.reset(formDefaults); setResult(null); setRecoveryNotice(null); }}>
               {copy.reset}
             </Button>
