@@ -150,7 +150,7 @@ test("home content prefers live published catalog items and returns empty on mis
   const home = buildPublicHomeContent("es", live);
 
   assert.deepEqual(home.destinations.map((item) => item.id), ["d1"]);
-  assert.deepEqual(home.promotions.map((item) => item.id), ["p1"]);
+  assert.deepEqual(home.promotions.map((item) => item.id), ["p1", "p2"]);
   assert.deepEqual(home.packages.map((item) => item.id), ["pk1"]);
   assert.deepEqual(home.services.map((item) => item.id), ["s1", "s2"]);
 
@@ -249,14 +249,16 @@ test("public pages use the same resolved catalog helpers as SEO and static param
   assert.doesNotMatch(pageSource, /getLivePublicCatalogContent/);
 });
 
-test("home page and localized route config expose service and package detail cards", () => {
+test("home page and localized route config expose service, package, and promotions sections", () => {
   const homeSource = readFileSync("app/[locale]/page.tsx", "utf8");
   const routesSource = readFileSync("lib/i18n/public-routes.ts", "utf8");
   const servicesRouteSource = readFileSync("app/[locale]/services/[slug]/page.tsx", "utf8");
   const serviciosRouteSource = readFileSync("app/[locale]/servicios/[slug]/page.tsx", "utf8");
+  const publicPagesSource = readFileSync("components/public/public-pages.tsx", "utf8");
 
   assert.match(homeSource, /<CatalogItemGrid locale=\{locale\} items=\{content\.packages\.slice\(0, 3\)\} section="packages" \/>/);
   assert.match(homeSource, /<HomeServicesSection locale=\{locale\} items=\{content\.services\} \/>/);
+  assert.match(homeSource, /<HomePromotionsSection locale=\{locale\} items=\{content\.promotions\} \/>/);
   assert.match(routesSource, /servicios: \{ title: "Servicios", description: .* allowsSlug: true \}/);
   assert.match(routesSource, /paquetes: \{ title: "Paquetes", description: .* allowsSlug: true \}/);
   assert.match(routesSource, /services: \{ title: "Services", description: .* allowsSlug: true \}/);
@@ -265,6 +267,10 @@ test("home page and localized route config expose service and package detail car
   assert.match(serviciosRouteSource, /getPublicCatalogStaticParams\("es", "services"\)/);
   assert.match(servicesRouteSource, /buildDetailMetadata\(locale, "service", slug\)/);
   assert.match(serviciosRouteSource, /buildDetailMetadata\(locale, "service", slug\)/);
+  assert.match(publicPagesSource, /export function HomePromotionsSection/);
+  assert.match(publicPagesSource, /if \(items\.length <= 3\) \{/);
+  assert.match(publicPagesSource, /return <CatalogItemGrid locale=\{locale\} items=\{items\} section="deals" \/>/);
+  assert.match(publicPagesSource, /section="deals"/);
 });
 
 test("shared item card keeps whole-card navigation with simplified branded layout", () => {

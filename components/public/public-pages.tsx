@@ -136,7 +136,37 @@ export function HomeServicesSection({ locale, items }: Readonly<{ locale: Locale
     return <CatalogEmptyState locale={locale} />;
   }
 
-  return <CatalogCardSlider locale={locale} items={items} section="services" cta={locale === "es" ? "Ver detalle" : "View detail"} />;
+  return (
+    <CatalogCardSlider
+      locale={locale}
+      items={items}
+      section="services"
+      cta={locale === "es" ? "Ver detalle" : "View detail"}
+      previousLabel={locale === "es" ? "Ver servicios anteriores" : "View previous services"}
+      nextLabel={locale === "es" ? "Ver más servicios" : "View more services"}
+    />
+  );
+}
+
+export function HomePromotionsSection({ locale, items }: Readonly<{ locale: Locale; items: PublicItem[] }>) {
+  if (!items.length) {
+    return <CatalogEmptyState locale={locale} />;
+  }
+
+  if (items.length <= 3) {
+    return <CatalogItemGrid locale={locale} items={items} section="deals" />;
+  }
+
+  return (
+    <CatalogCardSlider
+      locale={locale}
+      items={items}
+      section="deals"
+      cta={locale === "es" ? "Ver detalle" : "View detail"}
+      previousLabel={locale === "es" ? "Ver promociones anteriores" : "View previous promotions"}
+      nextLabel={locale === "es" ? "Ver más promociones" : "View more promotions"}
+    />
+  );
 }
 
 export function QuotePage({ locale, initialContext }: Readonly<{ locale: Locale; initialContext?: QuoteFormInitialContext }>) {

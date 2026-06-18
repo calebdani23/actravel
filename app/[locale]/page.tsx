@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { FAQSection } from "@/components/public/faq-section";
 import { HowItWorks } from "@/components/public/how-it-works";
-import { CatalogItemGrid, FinalCta, HomeServicesSection } from "@/components/public/public-pages";
+import { CatalogItemGrid, FinalCta, HomePromotionsSection, HomeServicesSection } from "@/components/public/public-pages";
 import { SectionHeader } from "@/components/public/section-header";
 import { TrustBlock } from "@/components/public/trust-block";
 import { ValueGrid } from "@/components/public/value-grid";
@@ -80,7 +80,7 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
       </section>
       <section className="space-y-6">
         <SectionHeader title={t.sections.deals[0]} description={t.sections.deals[1]} />
-        <CatalogItemGrid locale={locale} items={content.promotions.filter((item) => item.featured)} section="deals" />
+        <HomePromotionsSection locale={locale} items={content.promotions} />
       </section>
       {content.packages.length ? (
         <section className="space-y-6">

@@ -438,7 +438,7 @@ export function buildPublicHomeContent(locale: Locale, catalog?: HomeCatalogSour
     ...staticContent,
     destinations: pickHomeItems(catalog.destinations),
     packages: pickHomeItems(catalog.packages),
-    promotions: pickHomeItems(catalog.promotions),
+    promotions: pickAllHomeItems(catalog.promotions),
     services: pickAllHomeItems(catalog.services),
   };
 }
@@ -515,7 +515,7 @@ export const copy = {
     sections: {
       benefits: ["Viajar con más claridad", "Antes de elegir hotel o tour, aterrizamos presupuesto, fechas, zona y condiciones para evitar decisiones a ciegas."],
       destinations: ["Destinos destacados", "Elige una base y armamos el resto contigo."],
-      deals: ["Promociones muestra", "Ideas de viaje para iniciar conversación; disponibilidad final se confirma con una asesora."],
+      deals: ["Promociones AC Travel", "Promociones y viajes sugeridos para iniciar conversación; disponibilidad final se confirma con una asesora."],
       services: ["Servicios", "Todo lo necesario para planear mejor y viajar con tranquilidad."],
       process: ["Cómo funciona", "Sin compra automática: primero escuchamos, luego proponemos."],
       trust: ["Por qué AC Travel", "Acompañamiento cercano, opciones claras y enfoque humano."],
@@ -540,12 +540,12 @@ export const copy = {
     listingPages: {
       services: { eyebrow: "Servicios", title: "Servicios turísticos con asesoría personalizada", description: "Elige el tipo de apoyo que necesitas: hospedaje, paquetes, tours, traslados, casas o asesoría para ordenar ideas.", note: "Cada servicio se cotiza según fechas, destino, viajeros y condiciones del proveedor.", ctaTitle: "¿No sabes por dónde empezar?", ctaText: "Comparte tu idea y te ayudamos a elegir qué servicio conviene primero.", ctaTopic: "servicios turísticos" },
       packages: { eyebrow: "Paquetes", title: "Paquetes para distintos estilos de viaje", description: "No manejamos paquetes rígidos como SKU fijo: armamos combinaciones según familia, pareja o grupo, con tiempos y presupuesto realistas.", note: "Hotel, traslados, tours y extras se confirman antes de apartar; disponibilidad no es en tiempo real.", ctaTitle: "Armemos un paquete con sentido", ctaText: "Cuéntanos quién viaja, fechas y presupuesto para preparar una ruta clara.", ctaTopic: "paquete vacacional" },
-      deals: { eyebrow: "Promociones muestra", title: "Promociones y viajes sugeridos", description: "Estas ideas sirven para iniciar conversación y entender rango de presupuesto. La tarifa final depende de fechas, hotel, impuestos y disponibilidad validada.", note: "Las promociones no reservan inventario ni garantizan precio hasta revisión manual.", ctaTitle: "Validemos una promoción", ctaText: "Envíanos la idea que te gustó y revisamos opciones reales para tus fechas.", ctaTopic: "promociones disponibles" },
+      deals: { eyebrow: "Promociones AC Travel", title: "Promociones AC Travel", description: "Estas ideas sirven para iniciar conversación y entender rango de presupuesto. La tarifa final depende de fechas, hotel, impuestos y disponibilidad validada.", note: "Las promociones no reservan inventario ni garantizan precio hasta revisión manual.", ctaTitle: "Validemos una promoción", ctaText: "Envíanos la idea que te gustó y revisamos opciones reales para tus fechas.", ctaTopic: "promociones disponibles" },
       destinations: { eyebrow: "Destinos", title: "Destinos para empezar tu plan", description: "Compara bases de viaje según ambiente, movilidad, tours cercanos y tipo de hospedaje para decidir mejor.", note: "Los precios desde son informativos y cambian por temporada, zona, ocupación y proveedor.", ctaTitle: "Elige base con ayuda", ctaText: "Si dudas entre destinos, te orientamos por estilo de viaje, presupuesto y logística.", ctaTopic: "elegir destino" },
     } satisfies Record<ListingKind, ListingCopy>,
     servicesTitle: "Servicios turísticos con asesoría personalizada",
     packagesTitle: "Paquetes para distintos estilos de viaje",
-    dealsTitle: "Promociones y viajes sugeridos",
+    dealsTitle: "Promociones AC Travel",
     destinationsTitle: "Destinos para empezar tu plan",
     aboutTitle: "Nosotros",
     aboutText: "AC Travel Mx nace para ayudar a viajeros a tomar mejores decisiones con una atención cercana, clara y humana. Nuestro enfoque combina inspiración, asesoría y seguimiento para que cada viaje sume experiencias y sueños.",
@@ -637,7 +637,7 @@ export const copy = {
     sections: {
       benefits: ["Travel with more clarity", "Before choosing a hotel or tour, we align budget, dates, area, and conditions so you avoid blind decisions."],
       destinations: ["Featured destinations", "Choose a base and we build the rest with you."],
-      deals: ["Sample deals", "Travel ideas to start a conversation; final availability is confirmed by an advisor."],
+      deals: ["AC Travel promotions", "Promotions and suggested trips to start a conversation; final availability is confirmed by an advisor."],
       services: ["Services", "Everything you need to plan better and travel with confidence."],
       process: ["How it works", "No automatic checkout: we listen first, then propose."],
       trust: ["Why AC Travel", "Close support, clear options, and a human-centered approach."],
@@ -662,12 +662,12 @@ export const copy = {
     listingPages: {
       services: { eyebrow: "Services", title: "Travel services with personalized advisory", description: "Choose the support you need: stays, packages, tours, transfers, homes, or advisory to organize ideas.", note: "Each service is quoted according to dates, destination, travelers, and supplier conditions.", ctaTitle: "Not sure where to start?", ctaText: "Share your idea and we will help you choose which service to prioritize first.", ctaTopic: "travel services" },
       packages: { eyebrow: "Packages", title: "Packages for different travel styles", description: "We do not treat packages as fixed SKUs: we build combinations for families, couples, or groups with realistic timing and budget.", note: "Hotel, transfers, tours, and extras are confirmed before holding anything; availability is not real time.", ctaTitle: "Let's build a package that makes sense", ctaText: "Tell us who is traveling, dates, and budget so we can prepare a clear route.", ctaTopic: "vacation package" },
-      deals: { eyebrow: "Sample deals", title: "Deals and suggested trips", description: "These ideas start the conversation and help estimate budget range. Final rates depend on dates, hotel, taxes, and validated availability.", note: "Deals do not reserve inventory or guarantee price until manual review.", ctaTitle: "Let's validate a deal", ctaText: "Send us the idea you liked and we will review real options for your dates.", ctaTopic: "available deals" },
+      deals: { eyebrow: "AC Travel promotions", title: "AC Travel promotions", description: "These ideas start the conversation and help estimate budget range. Final rates depend on dates, hotel, taxes, and validated availability.", note: "Deals do not reserve inventory or guarantee price until manual review.", ctaTitle: "Let's validate a deal", ctaText: "Send us the idea you liked and we will review real options for your dates.", ctaTopic: "available deals" },
       destinations: { eyebrow: "Destinations", title: "Destinations to start your plan", description: "Compare travel bases by vibe, mobility, nearby tours, and lodging style so you can choose better.", note: "From prices are informational and change by season, area, occupancy, and supplier.", ctaTitle: "Choose a base with help", ctaText: "If you are deciding between destinations, we can guide you by travel style, budget, and logistics.", ctaTopic: "choosing a destination" },
     } satisfies Record<ListingKind, ListingCopy>,
     servicesTitle: "Travel services with personalized advisory",
     packagesTitle: "Packages for different travel styles",
-    dealsTitle: "Deals and suggested trips",
+    dealsTitle: "AC Travel promotions",
     destinationsTitle: "Destinations to start your plan",
     aboutTitle: "About us",
     aboutText: "AC Travel Mx helps travelers make better decisions through close, clear, human support. Our approach combines inspiration, advisory, and follow-up so every trip adds experiences and dreams.",

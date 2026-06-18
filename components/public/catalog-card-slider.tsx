@@ -14,11 +14,15 @@ export function CatalogCardSlider({
   items,
   section,
   cta,
+  previousLabel,
+  nextLabel,
 }: Readonly<{
   locale: Locale;
   items: PublicItem[];
   section: SliderSection;
   cta: string;
+  previousLabel?: string;
+  nextLabel?: string;
 }>) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
@@ -54,10 +58,10 @@ export function CatalogCardSlider({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-end gap-2">
-        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => scrollByCard(-1)} disabled={!canScrollPrev} aria-label={locale === "es" ? "Ver servicios anteriores" : "View previous services"}>
+        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => scrollByCard(-1)} disabled={!canScrollPrev} aria-label={previousLabel ?? (locale === "es" ? "Ver elementos anteriores" : "View previous items")}>
           <ChevronLeft className="size-4" />
         </Button>
-        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => scrollByCard(1)} disabled={!canScrollNext} aria-label={locale === "es" ? "Ver más servicios" : "View more services"}>
+        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => scrollByCard(1)} disabled={!canScrollNext} aria-label={nextLabel ?? (locale === "es" ? "Ver más elementos" : "View more items")}>
           <ChevronRight className="size-4" />
         </Button>
       </div>
