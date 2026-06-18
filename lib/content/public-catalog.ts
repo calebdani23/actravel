@@ -24,6 +24,56 @@ type CatalogQueryResults = {
   promotions: CatalogQueryResult;
 };
 
+async function getPublishedPromotions() {
+  const supabase = createPublicSupabaseClient();
+  const baseResult = await supabase
+    .from("promotions")
+    .select("id, slug_es, slug_en, title_es, title_en, summary_es, summary_en, details_es, details_en, hero_image_url, thumbnail_image_url, price_from_mxn, price_from_usd, destination_id, service_id, is_featured, status, published_at")
+    .eq("status", "published")
+    .order("updated_at", { ascending: false })
+    .limit(100);
+
+  if (baseResult.error) {
+    return { data: null, error: baseResult.error };
+  }
+
+  const promotions = (baseResult.data ?? []) as CatalogRowLike[];
+  const promotionIds = promotions.map((row) => row.id);
+  if (!promotionIds.length) {
+    return { data: promotions, error: null };
+  }
+
+  const [packageResult, serviceRelationsResult] = await Promise.all([
+    supabase.from("promotions").select("id, package_id").in("id", promotionIds),
+    supabase.from("promotion_services").select("promotion_id, service_id").in("promotion_id", promotionIds),
+  ]);
+
+  const packageByPromotionId = new Map<string, string | null>();
+  if (!packageResult.error) {
+    for (const row of packageResult.data ?? []) {
+      packageByPromotionId.set(row.id, row.package_id ?? null);
+    }
+  }
+
+  const serviceIdsByPromotionId = new Map<string, string[]>();
+  if (!serviceRelationsResult.error) {
+    for (const row of serviceRelationsResult.data ?? []) {
+      const current = serviceIdsByPromotionId.get(row.promotion_id) ?? [];
+      current.push(row.service_id);
+      serviceIdsByPromotionId.set(row.promotion_id, current);
+    }
+  }
+
+  return {
+    data: promotions.map((row) => ({
+      ...row,
+      package_id: packageByPromotionId.get(row.id) ?? null,
+      service_ids: serviceIdsByPromotionId.get(row.id) ?? null,
+    })),
+    error: null,
+  };
+}
+
 export function buildLivePublicCatalogContent(locale: Locale, results: CatalogQueryResults) {
   const queryErrors = {
     destinations: results.destinations.error,
@@ -81,12 +131,7 @@ export async function getLivePublicCatalogContent(locale: Locale) {
         .order("sort_order", { ascending: true })
         .limit(100),
 
-      supabase
-        .from("promotions")
-        .select("id, slug_es, slug_en, title_es, title_en, summary_es, summary_en, details_es, details_en, hero_image_url, thumbnail_image_url, price_from_mxn, price_from_usd, is_featured, status, published_at")
-        .eq("status", "published")
-        .order("updated_at", { ascending: false })
-        .limit(100),
+      getPublishedPromotions(),
     ]);
 
     return buildLivePublicCatalogContent(locale, {

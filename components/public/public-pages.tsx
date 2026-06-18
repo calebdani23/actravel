@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { type Locale } from "@/lib/i18n/config";
 import {
   getPublicSiteContent,
+  getRelatedPromotionItems,
   localizedPath,
   priceLabel,
   type LegalKey,
@@ -76,8 +77,9 @@ export function CatalogItemGrid({ locale, items, section }: Readonly<{ locale: L
 
 export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Locale; slug: string; kind: "deal" | "destination" | "package" | "service" }>) {
   const catalogKind = kind === "deal" ? "promotions" : kind === "package" ? "packages" : kind === "service" ? "services" : "destinations";
-  const item = await getPublicCatalogItem(locale, catalogKind, slug);
+  const [catalog, item] = await Promise.all([getPublicCatalogContent(locale), getPublicCatalogItem(locale, catalogKind, slug)]);
   if (!item) notFound();
+  const relatedPromotions = getRelatedPromotionItems(catalog, kind === "deal" ? "promotion" : kind, item);
   const back = kind === "deal" ? "deals" : kind === "package" ? "packages" : kind === "service" ? "services" : "destinations";
   const sidebarTitle = kind === "package"
     ? (locale === "es" ? "Qué incluye / cómo se adapta" : "What it includes / how it adapts")
@@ -127,6 +129,16 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
           {item.detailNote?.[locale] ? <p className="mt-6 text-xs leading-5 text-muted-foreground">{item.detailNote[locale]}</p> : null}
         </div>
       </section>
+      {relatedPromotions.length ? (
+        <section className="space-y-4">
+          <SectionHeader
+            eyebrow={locale === "es" ? "Promociones relacionadas" : "Related promotions"}
+            title={locale === "es" ? "Promociones publicadas para seguir explorando" : "Published promotions to keep exploring"}
+            description={locale === "es" ? "Mostramos solo promociones publicadas conectadas a este detalle." : "We only show published promotions connected to this detail."}
+          />
+          <CatalogItemGrid locale={locale} items={relatedPromotions} section="deals" />
+        </section>
+      ) : null}
     </PageShell>
   );
 }

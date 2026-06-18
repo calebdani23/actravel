@@ -959,6 +959,39 @@ export type Database = {
           },
         ]
       }
+      promotion_services: {
+        Row: {
+          created_at: string
+          promotion_id: string
+          service_id: string
+        }
+        Insert: {
+          created_at?: string
+          promotion_id: string
+          service_id: string
+        }
+        Update: {
+          created_at?: string
+          promotion_id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_services_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       promotions: {
         Row: {
           created_at: string
@@ -969,6 +1002,7 @@ export type Database = {
           hero_image_url: string | null
           id: string
           is_featured: boolean
+          package_id: string | null
           price_from_mxn: number | null
           price_from_usd: number | null
           published_at: string | null
@@ -993,6 +1027,7 @@ export type Database = {
           hero_image_url?: string | null
           id?: string
           is_featured?: boolean
+          package_id?: string | null
           price_from_mxn?: number | null
           price_from_usd?: number | null
           published_at?: string | null
@@ -1017,6 +1052,7 @@ export type Database = {
           hero_image_url?: string | null
           id?: string
           is_featured?: boolean
+          package_id?: string | null
           price_from_mxn?: number | null
           price_from_usd?: number | null
           published_at?: string | null
@@ -1038,6 +1074,13 @@ export type Database = {
             columns: ["destination_id"]
             isOneToOne: false
             referencedRelation: "destinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotions_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
             referencedColumns: ["id"]
           },
           {

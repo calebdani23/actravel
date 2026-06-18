@@ -1,5 +1,6 @@
 import { type Locale } from "@/lib/i18n/config";
 import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
+import { resolvePromotionServiceIds } from "@/lib/catalog/promotion-relations";
 
 type Localized = Record<Locale, string>;
 export type PriceDisplay = { type: "from"; mxn?: number; usd?: number } | { type: "consult" };
@@ -34,6 +35,11 @@ export type PublicItem = {
   detailNote?: Localized;
   price: PriceDisplay;
   featured?: boolean;
+  relations?: {
+    destinationId?: string | null;
+    packageId?: string | null;
+    serviceIds: string[];
+  };
 };
 
 export type QuoteFormCopy = {
@@ -270,6 +276,9 @@ export type CatalogRowLike = {
   sort_order?: number | null;
   destination_id?: string | null;
   service_id?: string | null;
+  package_id?: string | null;
+  service_ids?: Array<string | null> | null;
+  promotion_services?: Array<{ service_id?: string | null } | null> | null;
 };
 
 function toNumber(value?: number | string | null) {
@@ -327,6 +336,11 @@ export function buildPublicCatalogItem(row: CatalogRowLike, kind: "destinations"
     highlights: { es: [], en: [] },
     price: priceFrom ? { type: "from", mxn: toNumber(row.price_from_mxn), usd: toNumber(row.price_from_usd) } : { type: "consult" },
     featured: Boolean(row.is_featured),
+    relations: {
+      destinationId: row.destination_id ?? null,
+      packageId: row.package_id ?? null,
+      serviceIds: resolvePromotionServiceIds(row),
+    },
   };
 }
 
@@ -451,6 +465,29 @@ export function publishedCatalogRows<T extends { status?: string | null; is_feat
 
 export function localizedPath(locale: Locale, key: keyof typeof routeNames.es, slug?: string) {
   return `/${locale}/${routeNames[locale][key]}${slug ? `/${slug}` : ""}`;
+}
+
+export function getRelatedPromotionItems(catalog: PublicCatalogContent, kind: "destination" | "service" | "package" | "promotion", item: PublicItem) {
+  if (kind === "destination") {
+    return catalog.promotions.filter((promotion) => promotion.relations?.destinationId === item.id);
+  }
+
+  if (kind === "service") {
+    return catalog.promotions.filter((promotion) => promotion.relations?.serviceIds.includes(item.id));
+  }
+
+  if (kind === "package") {
+    return catalog.promotions.filter((promotion) => promotion.relations?.packageId === item.id);
+  }
+
+  return catalog.promotions.filter((promotion) => {
+    if (promotion.id === item.id || !promotion.relations || !item.relations) return false;
+
+    const itemServiceIds = new Set(item.relations.serviceIds);
+    return (Boolean(promotion.relations.destinationId) && promotion.relations.destinationId === item.relations.destinationId)
+      || (Boolean(promotion.relations.packageId) && promotion.relations.packageId === item.relations.packageId)
+      || promotion.relations.serviceIds.some((serviceId) => itemServiceIds.has(serviceId));
+  });
 }
 
 export function findPromotion(locale: Locale, slug: string) {

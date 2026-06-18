@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { resolveCatalogWriteState } from "@/lib/admin/catalog";
+import { resolveCatalogWriteState, resolvePromotionServiceIds } from "@/lib/admin/catalog";
 import { assertCatalogMutation, CatalogAdminActionError, buildCatalogAdminRedirectTarget, catalogActionSuccessMessage, sanitizeCatalogMutationPayload } from "@/lib/admin/catalog-actions";
 import { buildCatalogMediaStoragePath, normalizeCatalogMediaValue, parseCatalogMediaStorageRef, validateCatalogMediaUploadFile } from "@/lib/catalog-media";
 
@@ -126,22 +126,37 @@ test("catalog payload sanitizer strips helper-only fields for every resource", (
   );
 });
 
+test("promotion service ids merge legacy and join-table links without duplicates", () => {
+  assert.deepEqual(resolvePromotionServiceIds({ service_id: "svc-1" }), ["svc-1"]);
+  assert.deepEqual(resolvePromotionServiceIds({ service_id: "svc-1", promotion_services: [{ service_id: "svc-2" }, { service_id: "svc-1" }, { service_id: null }] }), ["svc-1", "svc-2"]);
+  assert.deepEqual(resolvePromotionServiceIds({ promotion_services: [{ service_id: "svc-3" }, { service_id: "svc-3" }] }), ["svc-3"]);
+});
+
 test("catalog admin UI exposes real media upload and explicit state actions", () => {
   const page = readFileSync("app/admin/(protected)/catalog/[resource]/page.tsx", "utf8");
   const actions = readFileSync("app/admin/(protected)/catalog/actions.ts", "utf8");
+  const catalog = readFileSync("lib/admin/catalog.ts", "utf8");
 
   assert.match(page, /name=\{`\$\{name\}_file`\}/);
   assert.match(page, /name=\{`\$\{name\}_clear`\}/);
   assert.match(page, /CATALOG_MEDIA_ACCEPT/);
   assert.match(page, /Mover a borrador/);
   assert.match(page, /Archivar/);
+  assert.match(page, /name="package_id"/);
+  assert.match(page, /name="service_ids"/);
+  assert.match(page, /multiple/);
   assert.match(page, /searchParams/);
   assert.match(page, /feedbackMessage/);
+  assert.match(catalog, /from\("promotion_services"\)\.select\("promotion_id, service_id, services\(id, name_es\)"\)/);
   assert.match(actions, /uploadCatalogMediaFile/);
   assert.match(actions, /normalizeCatalogMediaValue/);
   assert.match(actions, /allowLegacyRelativePath: true/);
   assert.match(actions, /sanitizeCatalogMutationPayload/);
   assert.match(actions, /media\.fields/);
+  assert.match(actions, /syncPromotionServiceRelations/);
+  assert.match(actions, /package_id: text\(formData, "package_id"\)/);
+  assert.match(actions, /service_id: serviceIds\[0\] \?\? null/);
+  assert.match(actions, /revalidatePromotionRelations/);
   assert.match(actions, /cleanupReplacedCatalogMedia/);
   assert.match(actions, /assertCatalogMutation/);
   assert.match(actions, /buildCatalogAdminRedirectTarget/);

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CATALOG_MEDIA_ACCEPT, catalogMediaSourceLabel, resolveCatalogMedia, resolveCatalogMediaUrl } from "@/lib/catalog-media";
-import { catalogResources, catalogStatusLabel, getCatalogOptions, getCatalogRows, type CatalogResource, type DestinationRow, type PackageRow, type PromotionRow, type ServiceRow } from "@/lib/admin/catalog";
+import { catalogResources, catalogStatusLabel, getCatalogOptions, getCatalogRows, resolvePromotionServiceIds, type CatalogResource, type DestinationRow, type PackageRow, type PromotionRow, type ServiceRow } from "@/lib/admin/catalog";
 import { requireAdminRole } from "@/lib/admin/auth";
 import { archiveCatalogAction, deleteCatalogAction, moveCatalogToDraftAction, publishCatalogAction, upsertCatalogAction } from "../actions";
 
@@ -133,11 +133,12 @@ function SharedBilingualFields({ row }: { row?: DestinationRow | ServiceRow | Pa
   );
 }
 
-function CatalogForm({ resource, row, destinations, services }: { resource: CatalogResource; row?: CatalogRow; destinations: { id: string; name_es: string }[]; services: { id: string; name_es: string }[] }) {
+function CatalogForm({ resource, row, destinations, services, packages }: { resource: CatalogResource; row?: CatalogRow; destinations: { id: string; name_es: string }[]; services: { id: string; name_es: string }[]; packages: { id: string; name_es: string }[] }) {
   const destination = row as DestinationRow | undefined;
   const service = row as ServiceRow | undefined;
   const packageRow = row as PackageRow | undefined;
   const promotion = row as PromotionRow | undefined;
+  const promotionServiceIds = resolvePromotionServiceIds(promotion ?? {});
 
   return (
     <form action={upsertCatalogAction} className="space-y-5 rounded-lg border p-4" encType="multipart/form-data">
@@ -194,10 +195,17 @@ function CatalogForm({ resource, row, destinations, services }: { resource: Cata
             </label>
             <label className="space-y-1 text-sm font-medium">
               <span>Servicio</span>
-              <select className="w-full rounded-md border px-3 py-2 text-sm" defaultValue={promotion?.service_id ?? ""} name="service_id">
-                <option value="">Sin servicio</option>
+              <select className="w-full rounded-md border px-3 py-2 text-sm" defaultValue={promotion?.package_id ?? ""} name="package_id">
+                <option value="">Sin paquete</option>
+                {packages.map((option) => <option key={option.id} value={option.id}>{option.name_es}</option>)}
+              </select>
+            </label>
+            <label className="space-y-1 text-sm font-medium md:col-span-2">
+              <span>Servicios relacionados</span>
+              <select className="min-h-40 w-full rounded-md border px-3 py-2 text-sm" defaultValue={promotionServiceIds} multiple name="service_ids">
                 {services.map((option) => <option key={option.id} value={option.id}>{option.name_es}</option>)}
               </select>
+              <p className="text-xs text-muted-foreground">Mantén Ctrl/Cmd para seleccionar más de un servicio. Guardamos también el primer servicio en el campo legacy para compatibilidad.</p>
             </label>
             <TextArea defaultValue={promotion?.summary_es} label="Resumen ES" name="summary_es" />
             <TextArea defaultValue={promotion?.summary_en} label="Resumen EN" name="summary_en" />
@@ -280,7 +288,7 @@ export default async function CatalogPage({ params, searchParams }: PageProps) {
 
       <Card>
         <CardHeader><CardTitle>Nuevo registro</CardTitle></CardHeader>
-        <CardContent><CatalogForm destinations={options.destinations} resource={resource} services={options.services} /></CardContent>
+        <CardContent><CatalogForm destinations={options.destinations} packages={options.packages} resource={resource} services={options.services} /></CardContent>
       </Card>
 
       <Card>
@@ -291,7 +299,7 @@ export default async function CatalogPage({ params, searchParams }: PageProps) {
               <summary className="cursor-pointer font-semibold">
                 {rowTitle(resource, row)} <span className="ml-2 text-xs font-normal text-muted-foreground">{row.status === "published" ? "Publicado" : row.status === "archived" ? "Archivado" : "Borrador"} · {row.published_at ? new Date(row.published_at).toLocaleDateString("es-MX") : "sin publicar"}</span>
               </summary>
-              <div className="mt-4 space-y-4"><CatalogForm destinations={options.destinations} resource={resource} row={row} services={options.services} /></div>
+              <div className="mt-4 space-y-4"><CatalogForm destinations={options.destinations} packages={options.packages} resource={resource} row={row} services={options.services} /></div>
             </details>
           )) : <p className="text-sm text-muted-foreground">No hay registros visibles para tu rol.</p>}
         </CardContent>

@@ -5,7 +5,7 @@ import test from "node:test";
 import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
 import { buildLivePublicCatalogContent } from "@/lib/content/public-catalog";
 import { buildPublicCatalogStaticParams } from "@/lib/content/public-catalog-utils";
-import { buildFallbackCatalogContent, buildPublicCatalogContent, buildPublicCatalogItem, buildPublicHomeContent, getPublicSiteContent, mergeCatalogWithFallback, publishedCatalogRows, translateSlug } from "@/lib/content/public-site";
+import { buildFallbackCatalogContent, buildPublicCatalogContent, buildPublicCatalogItem, buildPublicHomeContent, getPublicSiteContent, getRelatedPromotionItems, mergeCatalogWithFallback, publishedCatalogRows, translateSlug } from "@/lib/content/public-site";
 import { getLocalizedPath, resolveAlternateLocalizedPath } from "@/lib/i18n/public-routes";
 
 function buildQueryResult(data: unknown, error: { message: string; code?: string } | null = null) {
@@ -82,6 +82,33 @@ test("public catalog content returns only published rows and keeps live filterin
   assert.equal(fallback.destinations.length > 0, true);
   assert.equal(fallback.promotions.length > 0, true);
   assert.equal(fallback.packages.length > 0, true);
+});
+
+test("related promotions resolve from destination, package, and service links with legacy service fallback", () => {
+  const catalog = buildPublicCatalogContent("es", {
+    destinations: [
+      { id: "dest-1", slug_es: "cancun", slug_en: "cancun", name_es: "Cancún", name_en: "Cancun", status: "published" },
+    ],
+    services: [
+      { id: "svc-1", slug_es: "traslados", slug_en: "transfers", name_es: "Traslados", name_en: "Transfers", status: "published" },
+      { id: "svc-2", slug_es: "tours", slug_en: "tours", name_es: "Tours", name_en: "Tours", status: "published" },
+    ],
+    packages: [
+      { id: "pkg-1", slug_es: "escapada", slug_en: "escape", name_es: "Escapada", name_en: "Escape", status: "published" },
+    ],
+    promotions: [
+      { id: "promo-dest", slug_es: "promo-dest", slug_en: "promo-dest", title_es: "Promo destino", title_en: "Destination promo", destination_id: "dest-1", service_ids: ["svc-2"], status: "published" },
+      { id: "promo-pkg", slug_es: "promo-pkg", slug_en: "promo-pkg", title_es: "Promo paquete", title_en: "Package promo", package_id: "pkg-1", service_ids: ["svc-2"], status: "published" },
+      { id: "promo-svc", slug_es: "promo-svc", slug_en: "promo-svc", title_es: "Promo servicio", title_en: "Service promo", service_id: "svc-1", status: "published" },
+      { id: "promo-related", slug_es: "promo-related", slug_en: "promo-related", title_es: "Promo relacionada", title_en: "Related promo", destination_id: "dest-1", service_ids: ["svc-1"], status: "published" },
+      { id: "promo-draft", slug_es: "promo-draft", slug_en: "promo-draft", title_es: "Promo borrador", title_en: "Draft promo", destination_id: "dest-1", service_ids: ["svc-1"], status: "draft" },
+    ],
+  });
+
+  assert.deepEqual(getRelatedPromotionItems(catalog, "destination", catalog.destinations[0]).map((item) => item.id), ["promo-dest", "promo-related"]);
+  assert.deepEqual(getRelatedPromotionItems(catalog, "package", catalog.packages[0]).map((item) => item.id), ["promo-pkg"]);
+  assert.deepEqual(getRelatedPromotionItems(catalog, "service", catalog.services[0]).map((item) => item.id), ["promo-svc", "promo-related"]);
+  assert.deepEqual(getRelatedPromotionItems(catalog, "promotion", catalog.promotions.find((item) => item.id === "promo-svc")!).map((item) => item.id), ["promo-related"]);
 });
 
 test("fallback catalog exposes static sections when live rows are unavailable", () => {
@@ -242,8 +269,11 @@ test("public pages use the same resolved catalog helpers as SEO and static param
   assert.match(pageSource, /import \{ getPublicCatalogContent, getPublicCatalogItem \} from "@\/lib\/content\/public-catalog"/);
   assert.match(pageSource, /const catalog = await getPublicCatalogContent\(locale\);/);
   assert.match(pageSource, /const catalogKind = kind === "deal" \? "promotions" : kind === "package" \? "packages" : kind === "service" \? "services" : "destinations";/);
-  assert.match(pageSource, /const item = await getPublicCatalogItem\(locale, catalogKind, slug\);/);
+  assert.match(pageSource, /const \[catalog, item\] = await Promise\.all\(\[getPublicCatalogContent\(locale\), getPublicCatalogItem\(locale, catalogKind, slug\)\]\);/);
   assert.match(pageSource, /kind === "services" \? <CatalogItemGrid locale=\{locale\} items=\{serviceItems\} section="services" \/> : null/);
+  assert.match(pageSource, /const relatedPromotions = getRelatedPromotionItems\(catalog, kind === "deal" \? "promotion" : kind, item\);/);
+  assert.match(pageSource, /relatedPromotions\.length \? \(/);
+  assert.match(pageSource, /section="deals"/);
   assert.match(pageSource, /imageUrl=\{item\.media\?\.thumbnailImageUrl \?\? item\.media\?\.heroImageUrl \?\? undefined\}/);
   assert.match(pageSource, /src=\{item\.media\?\.heroImageUrl \?\? item\.media\?\.thumbnailImageUrl \?\? ""\}/);
   assert.doesNotMatch(pageSource, /getLivePublicCatalogContent/);

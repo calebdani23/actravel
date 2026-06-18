@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { optionalFile, removeStoredObject, sameStorageObject } from "@/lib/admin/storage-uploads";
 import { requireAdminRole } from "@/lib/admin/auth";
 import { assertCatalogExistingRecord, assertCatalogMutation, buildCatalogAdminRedirectTarget, catalogActionErrorMessage, catalogActionSuccessMessage, sanitizeCatalogMutationPayload } from "@/lib/admin/catalog-actions";
+import { resolvePromotionServiceIds } from "@/lib/catalog/promotion-relations";
 import { catalogMediaStorageObject, normalizeCatalogMediaValue, uploadCatalogMediaFile } from "@/lib/catalog-media";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCatalogWriteState, type CatalogResource, type CatalogStatus, type CatalogWriteIntent } from "@/lib/admin/catalog";
@@ -36,6 +37,14 @@ function numberValue(formData: FormData, key: string) {
   return value === undefined ? undefined : Number(value);
 }
 
+function textValues(formData: FormData, key: string) {
+  return formData.getAll(key).flatMap((value) => typeof value === "string" ? [value.trim()] : []).filter(Boolean);
+}
+
+function promotionServiceIds(formData: FormData) {
+  return Array.from(new Set(textValues(formData, "service_ids")));
+}
+
 function resourceValue(formData: FormData): CatalogResource {
   const value = text(formData, "resource", true);
   if (!resources.includes(value as CatalogResource)) throw new Error("Invalid catalog resource");
@@ -50,6 +59,12 @@ type ExistingCatalogRecord = {
   published_at: string | null;
   hero_image_url: string | null;
   thumbnail_image_url: string | null;
+};
+
+type PromotionRelationIds = {
+  destination_id: string | null;
+  package_id: string | null;
+  serviceIds: string[];
 };
 
 type CatalogMediaField = "hero_image_url" | "thumbnail_image_url";
@@ -67,6 +82,66 @@ function uploadSlot(field: CatalogMediaField) {
 async function getExistingCatalogRecord(supabase: Awaited<ReturnType<typeof createClient>>, resource: CatalogResource, id?: string) {
   if (!id) return { data: null as ExistingCatalogRecord | null, error: null };
   return supabase.from(resource).select("id, slug_es, slug_en, status, published_at, hero_image_url, thumbnail_image_url").eq("id", id).maybeSingle();
+}
+
+async function getPromotionRelationIds(supabase: Awaited<ReturnType<typeof createClient>>, id: string): Promise<PromotionRelationIds> {
+  const [{ data: promotion, error: promotionError }, { data: relationRows, error: relationError }] = await Promise.all([
+    supabase.from("promotions").select("destination_id, package_id, service_id").eq("id", id).maybeSingle(),
+    supabase.from("promotion_services").select("service_id").eq("promotion_id", id),
+  ]);
+
+  if (promotionError) throw new Error(promotionError.message);
+  if (relationError) throw new Error(relationError.message);
+
+  return {
+    destination_id: promotion?.destination_id ?? null,
+    package_id: promotion?.package_id ?? null,
+    serviceIds: resolvePromotionServiceIds({ service_id: promotion?.service_id ?? null, promotion_services: relationRows ?? [] }),
+  };
+}
+
+async function syncPromotionServiceRelations(supabase: Awaited<ReturnType<typeof createClient>>, promotionId: string, serviceIds: string[]) {
+  const uniqueServiceIds = Array.from(new Set(serviceIds));
+  const removeResult = await supabase.from("promotion_services").delete().eq("promotion_id", promotionId);
+  if (removeResult.error) throw new Error(removeResult.error.message);
+
+  if (!uniqueServiceIds.length) return;
+
+  const insertResult = await supabase.from("promotion_services").insert(uniqueServiceIds.map((service_id) => ({ promotion_id: promotionId, service_id })));
+  if (insertResult.error) throw new Error(insertResult.error.message);
+}
+
+async function relationSlugsByIds(supabase: Awaited<ReturnType<typeof createClient>>, relationIds: PromotionRelationIds) {
+  const [destinations, packages, services] = await Promise.all([
+    relationIds.destination_id ? supabase.from("destinations").select("slug_es, slug_en").eq("id", relationIds.destination_id) : Promise.resolve({ data: [], error: null }),
+    relationIds.package_id ? supabase.from("packages").select("slug_es, slug_en").eq("id", relationIds.package_id) : Promise.resolve({ data: [], error: null }),
+    relationIds.serviceIds.length ? supabase.from("services").select("slug_es, slug_en").in("id", relationIds.serviceIds) : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (destinations.error) throw new Error(destinations.error.message);
+  if (packages.error) throw new Error(packages.error.message);
+  if (services.error) throw new Error(services.error.message);
+
+  return {
+    destinations: (destinations.data ?? []).flatMap((row) => [row.slug_es, row.slug_en]),
+    packages: (packages.data ?? []).flatMap((row) => [row.slug_es, row.slug_en]),
+    services: (services.data ?? []).flatMap((row) => [row.slug_es, row.slug_en]),
+  };
+}
+
+async function revalidatePromotionRelations(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  previousRelations: PromotionRelationIds | null,
+  nextRelations: PromotionRelationIds | null,
+) {
+  const [previousSlugs, nextSlugs] = await Promise.all([
+    previousRelations ? relationSlugsByIds(supabase, previousRelations) : Promise.resolve({ destinations: [], packages: [], services: [] }),
+    nextRelations ? relationSlugsByIds(supabase, nextRelations) : Promise.resolve({ destinations: [], packages: [], services: [] }),
+  ]);
+
+  revalidatePublicCatalog("destinations", [...previousSlugs.destinations, ...nextSlugs.destinations]);
+  revalidatePublicCatalog("packages", [...previousSlugs.packages, ...nextSlugs.packages]);
+  revalidatePublicCatalog("services", [...previousSlugs.services, ...nextSlugs.services]);
 }
 
 async function resolveCatalogMediaField(
@@ -211,6 +286,7 @@ function packagePayload(formData: FormData, publication: { status: CatalogStatus
 
 function promotionPayload(formData: FormData, publication: { status: CatalogStatus; published_at: string | null }, media: { hero_image_url: string | null; thumbnail_image_url: string | null }): TablesInsert<"promotions"> {
   const base = { ...publication, is_featured: bool(formData, "is_featured") };
+  const serviceIds = promotionServiceIds(formData);
   return {
     ...base,
     title_es: text(formData, "title_es", true),
@@ -222,7 +298,8 @@ function promotionPayload(formData: FormData, publication: { status: CatalogStat
     details_es: text(formData, "details_es"),
     details_en: text(formData, "details_en"),
     destination_id: text(formData, "destination_id"),
-    service_id: text(formData, "service_id"),
+    package_id: text(formData, "package_id"),
+    service_id: serviceIds[0] ?? null,
     price_from_mxn: numberValue(formData, "price_from_mxn"),
     price_from_usd: numberValue(formData, "price_from_usd"),
     starts_at: text(formData, "starts_at"),
@@ -251,6 +328,7 @@ async function writeCatalogRecord(formData: FormData, intent: CatalogWriteIntent
 
   const media = await resolveCatalogMediaFields(supabase, formData, resource);
   const publication = resolveCatalogWriteState(current.data, intent);
+  const currentPromotionRelations = resource === "promotions" && id ? await getPromotionRelationIds(supabase, id) : null;
 
   try {
     if (resource === "destinations") {
@@ -293,13 +371,20 @@ async function writeCatalogRecord(formData: FormData, intent: CatalogWriteIntent
     }
 
     const payload = sanitizeCatalogMutationPayload("promotions", promotionPayload(formData, publication, media.fields));
+    const nextPromotionRelations: PromotionRelationIds = {
+      destination_id: payload.destination_id ?? null,
+      package_id: payload.package_id ?? null,
+      serviceIds: promotionServiceIds(formData),
+    };
     const saved = assertCatalogMutation(
       id
         ? await supabase.from("promotions").update(payload).eq("id", id).select("id, slug_es, slug_en").maybeSingle()
         : await supabase.from("promotions").insert(payload).select("id, slug_es, slug_en").single(),
       { resource, action: intent, id },
     );
+    await syncPromotionServiceRelations(supabase, saved.id, nextPromotionRelations.serviceIds);
     await cleanupReplacedCatalogMedia(supabase, current.data, media.fields);
+    await revalidatePromotionRelations(supabase, currentPromotionRelations, nextPromotionRelations);
     revalidateCatalog(resource, [current.data?.slug_es, current.data?.slug_en, saved.slug_es, saved.slug_en]);
     return { resource, focusId: saved.id, message: catalogActionSuccessMessage(resource, intent, Boolean(id)) };
   } catch (error) {
@@ -354,10 +439,12 @@ export async function moveCatalogToDraftAction(formData: FormData) {
     const current = await supabase.from(resource).select("id, slug_es, slug_en").eq("id", id).maybeSingle();
     if (current.error) throw new Error(current.error.message);
     const loaded = assertCatalogExistingRecord(current.data, { resource, id });
+    const currentPromotionRelations = resource === "promotions" ? await getPromotionRelationIds(supabase, id) : null;
     assertCatalogMutation(
       await supabase.from(resource).update({ status: "draft", published_at: null }).eq("id", id).select("id, slug_es, slug_en").maybeSingle(),
       { resource, action: "draft", id },
     );
+    if (resource === "promotions") await revalidatePromotionRelations(supabase, currentPromotionRelations, currentPromotionRelations);
     revalidateCatalog(resource, [loaded.slug_es, loaded.slug_en]);
     return { resource, focusId: id, message: catalogActionSuccessMessage(resource, "draft", true) };
   });
@@ -372,10 +459,12 @@ export async function archiveCatalogAction(formData: FormData) {
     const current = await supabase.from(resource).select("id, slug_es, slug_en, published_at").eq("id", id).maybeSingle();
     if (current.error) throw new Error(current.error.message);
     const loaded = assertCatalogExistingRecord(current.data, { resource, id });
+    const currentPromotionRelations = resource === "promotions" ? await getPromotionRelationIds(supabase, id) : null;
     assertCatalogMutation(
       await supabase.from(resource).update({ status: "archived", published_at: loaded.published_at ?? null }).eq("id", id).select("id, slug_es, slug_en").maybeSingle(),
       { resource, action: "archive", id },
     );
+    if (resource === "promotions") await revalidatePromotionRelations(supabase, currentPromotionRelations, currentPromotionRelations);
     revalidateCatalog(resource, [loaded.slug_es, loaded.slug_en]);
     return { resource, focusId: id, message: catalogActionSuccessMessage(resource, "archive", true) };
   });
@@ -390,6 +479,7 @@ export async function deleteCatalogAction(formData: FormData) {
     const current = await supabase.from(resource).select("id, slug_es, slug_en, hero_image_url, thumbnail_image_url").eq("id", id).maybeSingle();
     if (current.error) throw new Error(current.error.message);
     const loaded = assertCatalogExistingRecord(current.data, { resource, id });
+    const currentPromotionRelations = resource === "promotions" ? await getPromotionRelationIds(supabase, id) : null;
     assertCatalogMutation(await supabase.from(resource).delete().eq("id", id).select("id").maybeSingle(), { resource, action: "delete", id });
     for (const value of [loaded.hero_image_url, loaded.thumbnail_image_url]) {
       const file = catalogMediaStorageObject(value, { allowLegacyRelativePath: true });
@@ -400,6 +490,7 @@ export async function deleteCatalogAction(formData: FormData) {
         console.error("[catalog] deleted media cleanup failed", cleanupError);
       }
     }
+    if (resource === "promotions") await revalidatePromotionRelations(supabase, currentPromotionRelations, null);
     revalidateCatalog(resource, [loaded.slug_es, loaded.slug_en]);
     return { resource, focusId: id, message: catalogActionSuccessMessage(resource, "delete", true) };
   });
