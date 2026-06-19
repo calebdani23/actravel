@@ -147,7 +147,10 @@ test("catalog admin UI exposes real media upload and explicit state actions", ()
   assert.match(page, /multiple/);
   assert.match(page, /searchParams/);
   assert.match(page, /feedbackMessage/);
+  assert.match(catalog, /from\("promotions"\)\s*\.select\("\*, destinations\(id, name_es\)"\)/);
+  assert.doesNotMatch(catalog, /select\("\*, destinations\(id, name_es\), services\(id, name_es\)"\)/);
   assert.match(catalog, /from\("promotion_services"\)\.select\("promotion_id, service_id, services\(id, name_es\)"\)/);
+  assert.match(catalog, /\.in\("promotion_id", promotionIds\)/);
   assert.match(actions, /uploadCatalogMediaFile/);
   assert.match(actions, /normalizeCatalogMediaValue/);
   assert.match(actions, /allowLegacyRelativePath: true/);

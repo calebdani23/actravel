@@ -21,7 +21,6 @@ export type PackageRow = Tables<"packages">;
 export type PromotionRow = Tables<"promotions"> & {
   destinations: { id: string; name_es: string } | null;
   packages: { id: string; name_es: string } | null;
-  services: { id: string; name_es: string } | null;
   promotion_services: Array<{ service_id: string | null; services: { id: string; name_es: string } | null }>;
 };
 
@@ -91,7 +90,7 @@ export async function getCatalogRows(resource: CatalogResource) {
 
   const { data, error } = await supabase
     .from("promotions")
-    .select("*, destinations(id, name_es), services(id, name_es)")
+    .select("*, destinations(id, name_es)")
     .order("updated_at", { ascending: false })
     .limit(100);
 
@@ -99,11 +98,14 @@ export async function getCatalogRows(resource: CatalogResource) {
     return { rows: [] as PromotionRow[], error: error.message };
   }
 
-  const promotions = (data ?? []) as Array<Tables<"promotions"> & { destinations: { id: string; name_es: string } | null; services: { id: string; name_es: string } | null; package_id?: string | null }>;
+  const promotions = (data ?? []) as Array<Tables<"promotions"> & { destinations: { id: string; name_es: string } | null; package_id?: string | null }>;
+  const promotionIds = promotions.map((row) => row.id);
   const packageIds = Array.from(new Set(promotions.map((row) => row.package_id).filter((value): value is string => Boolean(value))));
   const [packagesResult, promotionServicesResult] = await Promise.all([
     packageIds.length ? supabase.from("packages").select("id, name_es").in("id", packageIds) : Promise.resolve({ data: [], error: null }),
-    supabase.from("promotion_services").select("promotion_id, service_id, services(id, name_es)"),
+    promotionIds.length
+      ? supabase.from("promotion_services").select("promotion_id, service_id, services(id, name_es)").in("promotion_id", promotionIds)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   const packagesById = new Map((packagesResult.data ?? []).map((row) => [row.id, row]));
