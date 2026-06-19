@@ -89,6 +89,7 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
         ? "Incluye / ideas"
         : "Includes / ideas";
   const highlights = item.highlights[locale];
+  const detailSections = item.detailSections?.[locale] ?? null;
   return (
     <PageShell>
       <section className="grid gap-8 rounded-[2rem] border bg-white p-6 shadow-sm lg:grid-cols-[1.1fr_0.9fr] lg:p-10">
@@ -111,7 +112,18 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
         </div>
         <div className="rounded-[2rem] bg-[var(--ac-light-bg)] p-6">
           <h2 className="font-black text-[var(--ac-ink)]">{sidebarTitle}</h2>
-          {highlights.length ? (
+          {detailSections && detailSections.length ? (
+            <div className="mt-4 grid gap-4 text-sm leading-6 text-zinc-700">
+              {detailSections.map((section) => (
+                <div key={section.title}>
+                  {section.title ? <h3 className="font-black text-[var(--ac-ink)]">{section.title}</h3> : null}
+                  <ul className="mt-2 grid gap-2">
+                    {section.items.map((item) => <li key={item}>• {item}</li>)}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ) : highlights.length ? (
             <ul className="mt-4 grid gap-3 text-sm leading-6 text-zinc-700">
               {highlights.map((highlight) => <li key={highlight}>• {highlight}</li>)}
             </ul>

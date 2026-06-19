@@ -1,4 +1,5 @@
 import { type Locale } from "@/lib/i18n/config";
+import { normalizeDetailSectionsValue, type DetailSection } from "@/lib/catalog-detail-sections";
 import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
 import { resolvePromotionServiceIds } from "@/lib/catalog/promotion-relations";
 
@@ -29,6 +30,7 @@ export type PublicItem = {
   };
   eyebrow?: Localized;
   highlights: Record<Locale, string[]>;
+  detailSections?: Partial<Record<Locale, DetailSection[]>>;
   bestFor?: Localized;
   planningNotes?: Record<Locale, string[]>;
   detailCta?: Localized;
@@ -271,6 +273,8 @@ export type CatalogRowLike = {
   region?: string | null;
   hero_image_url?: string | null;
   thumbnail_image_url?: string | null;
+  detail_sections_es?: unknown;
+  detail_sections_en?: unknown;
   price_from_mxn?: number | string | null;
   price_from_usd?: number | string | null;
   sort_order?: number | null;
@@ -294,6 +298,16 @@ function catalogMedia(row: CatalogRowLike) {
   return { heroImageUrl, thumbnailImageUrl };
 }
 
+function detailSections(row: CatalogRowLike) {
+  const es = normalizeDetailSectionsValue(row.detail_sections_es);
+  const en = normalizeDetailSectionsValue(row.detail_sections_en);
+  if (!es && !en) return undefined;
+  return {
+    ...(es ? { es } : {}),
+    ...(en ? { en } : {}),
+  };
+}
+
 export function buildPublicCatalogItem(row: CatalogRowLike, kind: "destinations" | "services" | "packages" | "promotions"): PublicItem {
   const slug = { es: row.slug_es ?? row.id, en: row.slug_en ?? row.slug_es ?? row.id };
   const priceFrom = toNumber(row.price_from_mxn) || toNumber(row.price_from_usd);
@@ -306,6 +320,7 @@ export function buildPublicCatalogItem(row: CatalogRowLike, kind: "destinations"
       description: { es: row.description_es ?? row.summary_es ?? "", en: row.description_en ?? row.summary_en ?? "" },
       media: catalogMedia(row),
       highlights: { es: [], en: [] },
+      detailSections: detailSections(row),
       price: { type: "consult" },
       featured: Boolean(row.is_featured),
     };
@@ -320,6 +335,7 @@ export function buildPublicCatalogItem(row: CatalogRowLike, kind: "destinations"
       description: { es: row.description_es ?? row.summary_es ?? "", en: row.description_en ?? row.summary_en ?? "" },
       media: catalogMedia(row),
       highlights: { es: [], en: [] },
+      detailSections: detailSections(row),
       price: priceFrom ? { type: "from", mxn: toNumber(row.price_from_mxn), usd: toNumber(row.price_from_usd) } : { type: "consult" },
       featured: Boolean(row.is_featured),
     };

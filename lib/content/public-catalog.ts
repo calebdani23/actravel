@@ -24,6 +24,26 @@ type CatalogQueryResults = {
   promotions: CatalogQueryResult;
 };
 
+function shouldRetryWithoutDetailSections(error: CatalogQueryError | null) {
+  return error?.code === "42703" && /detail_sections_(es|en)/.test(error.message);
+}
+
+async function getPublishedCatalogRows(
+  supabase: ReturnType<typeof createPublicSupabaseClient>,
+  table: "destinations" | "services" | "packages",
+  selectWithDetailSections: string,
+  fallbackSelect: string,
+  orderBy: { column: string; ascending: boolean },
+) {
+  const initial = await supabase.from(table).select(selectWithDetailSections).eq("status", "published").order(orderBy.column, { ascending: orderBy.ascending }).limit(100);
+
+  if (!shouldRetryWithoutDetailSections(initial.error)) {
+    return initial;
+  }
+
+  return supabase.from(table).select(fallbackSelect).eq("status", "published").order(orderBy.column, { ascending: orderBy.ascending }).limit(100);
+}
+
 async function getPublishedPromotions() {
   const supabase = createPublicSupabaseClient();
   const baseResult = await supabase
@@ -110,34 +130,37 @@ export async function getLivePublicCatalogContent(locale: Locale) {
     const supabase = createPublicSupabaseClient();
 
     const [destinationsResult, servicesResult, packagesResult, promotionsResult] = await Promise.all([
-      supabase
-        .from("destinations")
-        .select("id, slug_es, slug_en, name_es, name_en, summary_es, summary_en, description_es, description_en, hero_image_url, thumbnail_image_url, is_featured, status, published_at")
-        .eq("status", "published")
-        .order("updated_at", { ascending: false })
-        .limit(100),
+      getPublishedCatalogRows(
+        supabase,
+        "destinations",
+        "id, slug_es, slug_en, name_es, name_en, summary_es, summary_en, description_es, description_en, hero_image_url, thumbnail_image_url, detail_sections_es, detail_sections_en, is_featured, status, published_at",
+        "id, slug_es, slug_en, name_es, name_en, summary_es, summary_en, description_es, description_en, hero_image_url, thumbnail_image_url, is_featured, status, published_at",
+        { column: "updated_at", ascending: false },
+      ),
 
-      supabase
-        .from("services")
-        .select("id, slug_es, slug_en, name_es, name_en, summary_es, summary_en, description_es, description_en, hero_image_url, thumbnail_image_url, price_from_mxn, price_from_usd, sort_order, is_featured, status, published_at")
-        .eq("status", "published")
-        .order("sort_order", { ascending: true })
-        .limit(100),
+      getPublishedCatalogRows(
+        supabase,
+        "services",
+        "id, slug_es, slug_en, name_es, name_en, summary_es, summary_en, description_es, description_en, hero_image_url, thumbnail_image_url, detail_sections_es, detail_sections_en, price_from_mxn, price_from_usd, sort_order, is_featured, status, published_at",
+        "id, slug_es, slug_en, name_es, name_en, summary_es, summary_en, description_es, description_en, hero_image_url, thumbnail_image_url, price_from_mxn, price_from_usd, sort_order, is_featured, status, published_at",
+        { column: "sort_order", ascending: true },
+      ),
 
-      supabase
-        .from("packages")
-        .select("id, slug_es, slug_en, name_es, name_en, summary_es, summary_en, description_es, description_en, hero_image_url, thumbnail_image_url, price_from_mxn, price_from_usd, sort_order, is_featured, status, published_at")
-        .eq("status", "published")
-        .order("sort_order", { ascending: true })
-        .limit(100),
+      getPublishedCatalogRows(
+        supabase,
+        "packages",
+        "id, slug_es, slug_en, name_es, name_en, summary_es, summary_en, description_es, description_en, hero_image_url, thumbnail_image_url, detail_sections_es, detail_sections_en, price_from_mxn, price_from_usd, sort_order, is_featured, status, published_at",
+        "id, slug_es, slug_en, name_es, name_en, summary_es, summary_en, description_es, description_en, hero_image_url, thumbnail_image_url, price_from_mxn, price_from_usd, sort_order, is_featured, status, published_at",
+        { column: "sort_order", ascending: true },
+      ),
 
       getPublishedPromotions(),
     ]);
 
     return buildLivePublicCatalogContent(locale, {
-      destinations: { data: (destinationsResult.data ?? []) as CatalogRowLike[], error: destinationsResult.error },
-      services: { data: (servicesResult.data ?? []) as CatalogRowLike[], error: servicesResult.error },
-      packages: { data: (packagesResult.data ?? []) as CatalogRowLike[], error: packagesResult.error },
+      destinations: { data: (destinationsResult.data ?? []) as unknown as CatalogRowLike[], error: destinationsResult.error },
+      services: { data: (servicesResult.data ?? []) as unknown as CatalogRowLike[], error: servicesResult.error },
+      packages: { data: (packagesResult.data ?? []) as unknown as CatalogRowLike[], error: packagesResult.error },
       promotions: { data: (promotionsResult.data ?? []) as CatalogRowLike[], error: promotionsResult.error },
     });
   } catch (error) {

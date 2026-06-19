@@ -156,6 +156,8 @@ export type Database = {
         Row: {
           country: string
           created_at: string
+          detail_sections_en: Json | null
+          detail_sections_es: Json | null
           description_en: string | null
           description_es: string | null
           hero_image_url: string | null
@@ -176,6 +178,8 @@ export type Database = {
         Insert: {
           country?: string
           created_at?: string
+          detail_sections_en?: Json | null
+          detail_sections_es?: Json | null
           description_en?: string | null
           description_es?: string | null
           hero_image_url?: string | null
@@ -196,6 +200,8 @@ export type Database = {
         Update: {
           country?: string
           created_at?: string
+          detail_sections_en?: Json | null
+          detail_sections_es?: Json | null
           description_en?: string | null
           description_es?: string | null
           hero_image_url?: string | null
@@ -640,6 +646,8 @@ export type Database = {
       packages: {
         Row: {
           created_at: string
+          detail_sections_en: Json | null
+          detail_sections_es: Json | null
           description_en: string | null
           description_es: string | null
           hero_image_url: string | null
@@ -661,6 +669,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          detail_sections_en?: Json | null
+          detail_sections_es?: Json | null
           description_en?: string | null
           description_es?: string | null
           hero_image_url?: string | null
@@ -682,6 +692,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          detail_sections_en?: Json | null
+          detail_sections_es?: Json | null
           description_en?: string | null
           description_es?: string | null
           hero_image_url?: string | null
@@ -1212,6 +1224,8 @@ export type Database = {
       services: {
         Row: {
           created_at: string
+          detail_sections_en: Json | null
+          detail_sections_es: Json | null
           description_en: string | null
           description_es: string | null
           hero_image_url: string | null
@@ -1233,6 +1247,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          detail_sections_en?: Json | null
+          detail_sections_es?: Json | null
           description_en?: string | null
           description_es?: string | null
           hero_image_url?: string | null
@@ -1254,6 +1270,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          detail_sections_en?: Json | null
+          detail_sections_es?: Json | null
           description_en?: string | null
           description_es?: string | null
           hero_image_url?: string | null

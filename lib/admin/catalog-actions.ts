@@ -25,6 +25,8 @@ const catalogResourceSingular = {
 const catalogMutationColumns = {
   destinations: [
     "country",
+    "detail_sections_en",
+    "detail_sections_es",
     "description_en",
     "description_es",
     "hero_image_url",
@@ -41,6 +43,8 @@ const catalogMutationColumns = {
     "thumbnail_image_url",
   ],
   services: [
+    "detail_sections_en",
+    "detail_sections_es",
     "description_en",
     "description_es",
     "hero_image_url",
@@ -59,6 +63,8 @@ const catalogMutationColumns = {
     "thumbnail_image_url",
   ],
   packages: [
+    "detail_sections_en",
+    "detail_sections_es",
     "description_en",
     "description_es",
     "hero_image_url",

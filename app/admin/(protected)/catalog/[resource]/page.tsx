@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { stringifyDetailSectionsEditorValue } from "@/lib/catalog-detail-sections";
 import { CATALOG_MEDIA_ACCEPT, catalogMediaSourceLabel, resolveCatalogMedia, resolveCatalogMediaUrl } from "@/lib/catalog-media";
 import { catalogResources, catalogStatusLabel, getCatalogOptions, getCatalogRows, resolvePromotionServiceIds, type CatalogResource, type DestinationRow, type PackageRow, type PromotionRow, type ServiceRow } from "@/lib/admin/catalog";
 import { requireAdminRole } from "@/lib/admin/auth";
@@ -29,6 +30,19 @@ function TextArea({ name, label, defaultValue }: { name: string; label: string; 
       <span>{label}</span>
       <textarea className="min-h-20 w-full rounded-md border px-3 py-2 text-sm" defaultValue={defaultValue ?? ""} name={name} />
     </label>
+  );
+}
+
+function DetailSectionsField({ row }: { row?: DestinationRow | ServiceRow | PackageRow }) {
+  return (
+    <div className="space-y-3 rounded-lg border p-3 md:col-span-2">
+      <div className="space-y-1">
+        <p className="text-sm font-semibold">Structured detail sections</p>
+        <p className="text-xs text-muted-foreground">Formato: [Título de sección] y bullets con - para cada item. Línea en blanco separa secciones.</p>
+      </div>
+      <TextArea defaultValue={stringifyDetailSectionsEditorValue(row?.detail_sections_es)} label="Secciones ES" name="detail_sections_es_input" />
+      <TextArea defaultValue={stringifyDetailSectionsEditorValue(row?.detail_sections_en)} label="Sections EN" name="detail_sections_en_input" />
+    </div>
   );
 }
 
@@ -150,6 +164,7 @@ function CatalogForm({ resource, row, destinations, services, packages }: { reso
             <SharedBilingualFields row={destination} />
             <TextInput defaultValue={destination?.country} label="País" name="country" required />
             <TextInput defaultValue={destination?.region} label="Región" name="region" />
+            <DetailSectionsField row={destination} />
             <MediaField currentValue={destination?.hero_image_url} label="Hero image" name="hero_image_url" />
             <MediaField currentValue={destination?.thumbnail_image_url} label="Thumbnail image" name="thumbnail_image_url" />
             <div className="md:col-span-2"><MediaPreview heroImageUrl={destination?.hero_image_url} thumbnailImageUrl={destination?.thumbnail_image_url} /></div>
@@ -162,6 +177,7 @@ function CatalogForm({ resource, row, destinations, services, packages }: { reso
             <TextInput defaultValue={service?.price_from_mxn} label="Precio desde MXN" name="price_from_mxn" type="number" />
             <TextInput defaultValue={service?.price_from_usd} label="Precio desde USD" name="price_from_usd" type="number" />
             <TextInput defaultValue={service?.sort_order ?? 0} label="Orden" name="sort_order" type="number" />
+            <DetailSectionsField row={service} />
             <MediaField currentValue={service?.hero_image_url} label="Hero image" name="hero_image_url" />
             <MediaField currentValue={service?.thumbnail_image_url} label="Thumbnail image" name="thumbnail_image_url" />
             <div className="md:col-span-2"><MediaPreview heroImageUrl={service?.hero_image_url} thumbnailImageUrl={service?.thumbnail_image_url} /></div>
@@ -174,6 +190,7 @@ function CatalogForm({ resource, row, destinations, services, packages }: { reso
             <TextInput defaultValue={packageRow?.price_from_mxn} label="Precio desde MXN" name="price_from_mxn" type="number" />
             <TextInput defaultValue={packageRow?.price_from_usd} label="Precio desde USD" name="price_from_usd" type="number" />
             <TextInput defaultValue={packageRow?.sort_order ?? 0} label="Orden" name="sort_order" type="number" />
+            <DetailSectionsField row={packageRow} />
             <MediaField currentValue={packageRow?.hero_image_url} label="Hero image" name="hero_image_url" />
             <MediaField currentValue={packageRow?.thumbnail_image_url} label="Thumbnail image" name="thumbnail_image_url" />
             <div className="md:col-span-2"><MediaPreview heroImageUrl={packageRow?.hero_image_url} thumbnailImageUrl={packageRow?.thumbnail_image_url} /></div>

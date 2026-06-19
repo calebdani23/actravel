@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { optionalFile, removeStoredObject, sameStorageObject } from "@/lib/admin/storage-uploads";
 import { requireAdminRole } from "@/lib/admin/auth";
 import { assertCatalogExistingRecord, assertCatalogMutation, buildCatalogAdminRedirectTarget, catalogActionErrorMessage, catalogActionSuccessMessage, sanitizeCatalogMutationPayload } from "@/lib/admin/catalog-actions";
+import { parseDetailSectionsEditorValue } from "@/lib/catalog-detail-sections";
 import { resolvePromotionServiceIds } from "@/lib/catalog/promotion-relations";
 import { catalogMediaStorageObject, normalizeCatalogMediaValue, uploadCatalogMediaFile } from "@/lib/catalog-media";
 import { createClient } from "@/lib/supabase/server";
@@ -43,6 +44,11 @@ function textValues(formData: FormData, key: string) {
 
 function promotionServiceIds(formData: FormData) {
   return Array.from(new Set(textValues(formData, "service_ids")));
+}
+
+function parseDetailSectionsField(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return typeof value === "string" ? parseDetailSectionsEditorValue(value) : null;
 }
 
 function resourceValue(formData: FormData): CatalogResource {
@@ -232,6 +238,8 @@ function destinationPayload(formData: FormData, publication: { status: CatalogSt
   const base = { ...publication, is_featured: bool(formData, "is_featured") };
   return {
     ...base,
+    detail_sections_es: parseDetailSectionsField(formData, "detail_sections_es_input"),
+    detail_sections_en: parseDetailSectionsField(formData, "detail_sections_en_input"),
     name_es: text(formData, "name_es", true),
     name_en: text(formData, "name_en", true),
     slug_es: text(formData, "slug_es", true),
@@ -250,6 +258,8 @@ function servicePayload(formData: FormData, publication: { status: CatalogStatus
   const base = { ...publication, is_featured: bool(formData, "is_featured") };
   return {
     ...base,
+    detail_sections_es: parseDetailSectionsField(formData, "detail_sections_es_input"),
+    detail_sections_en: parseDetailSectionsField(formData, "detail_sections_en_input"),
     name_es: text(formData, "name_es", true),
     name_en: text(formData, "name_en", true),
     slug_es: text(formData, "slug_es", true),
@@ -269,6 +279,8 @@ function packagePayload(formData: FormData, publication: { status: CatalogStatus
   const base = { ...publication, is_featured: bool(formData, "is_featured") };
   return {
     ...base,
+    detail_sections_es: parseDetailSectionsField(formData, "detail_sections_es_input"),
+    detail_sections_en: parseDetailSectionsField(formData, "detail_sections_en_input"),
     name_es: text(formData, "name_es", true),
     name_en: text(formData, "name_en", true),
     slug_es: text(formData, "slug_es", true),

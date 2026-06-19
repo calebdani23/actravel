@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
+import { normalizeDetailSectionsValue } from "@/lib/catalog-detail-sections";
 import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
 import { buildLivePublicCatalogContent } from "@/lib/content/public-catalog";
 import { buildPublicCatalogStaticParams } from "@/lib/content/public-catalog-utils";
@@ -33,16 +34,23 @@ test("unpublished catalog rows stay hidden from public content", () => {
 });
 
 test("public catalog items expose hero media fields and fallback text", () => {
-  const destination = buildPublicCatalogItem({ id: "cancun", slug_es: "cancun", slug_en: "cancun", name_es: "Cancún", name_en: "Cancun", summary_es: "Resumen", summary_en: "Summary", description_es: "Descripción", description_en: "Description", hero_image_url: "https://example.com/hero.jpg", status: "published" }, "destinations");
+  const destination = buildPublicCatalogItem({ id: "cancun", slug_es: "cancun", slug_en: "cancun", name_es: "Cancún", name_en: "Cancun", summary_es: "Resumen", summary_en: "Summary", description_es: "Descripción", description_en: "Description", hero_image_url: "https://example.com/hero.jpg", detail_sections_es: [{ title: "Incluye", items: ["Hoteles"] }], detail_sections_en: [{ title: "Includes", items: ["Hotels"] }], status: "published" }, "destinations");
   const promotion = buildPublicCatalogItem({ id: "deal-1", slug_es: "oferta", slug_en: "deal", title_es: "Oferta", title_en: "Deal", summary_es: "Resumen", summary_en: "Summary", details_es: "Detalles", details_en: "Details", thumbnail_image_url: "https://example.com/thumb.jpg", status: "published" }, "promotions");
   const storageMedia = buildPublicCatalogItem({ id: "svc-1", slug_es: "servicio", slug_en: "service", name_es: "Servicio", name_en: "Service", summary_es: "Resumen", summary_en: "Summary", description_es: "Descripción", description_en: "Description", hero_image_url: "catalog-media/services/hero.jpg", thumbnail_image_url: "storage://catalog-media/services/thumb.jpg", status: "published" }, "services");
 
   assert.equal(destination.media?.heroImageUrl, "https://example.com/hero.jpg");
+  assert.deepEqual(destination.detailSections?.es, [{ title: "Incluye", items: ["Hoteles"] }]);
   assert.equal(promotion.media?.thumbnailImageUrl, "https://example.com/thumb.jpg");
   assert.equal(storageMedia.media?.heroImageUrl, "catalog-media/services/hero.jpg");
   assert.equal(storageMedia.media?.thumbnailImageUrl, "catalog-media/services/thumb.jpg");
   assert.equal(promotion.description.es, "Detalles");
   assert.equal(promotion.media?.heroImageUrl, null);
+});
+
+test("detail section normalization accepts safe arrays and rejects malformed content", () => {
+  assert.deepEqual(normalizeDetailSectionsValue([{ title: "How we help", items: ["Airport pickup", "Check-in support"] }]), [{ title: "How we help", items: ["Airport pickup", "Check-in support"] }]);
+  assert.equal(normalizeDetailSectionsValue([{ title: "Broken", items: [] }]), null);
+  assert.equal(normalizeDetailSectionsValue("bad-json-shape"), null);
 });
 
 test("catalog media urls resolve storage paths and absolute urls", () => {
@@ -270,6 +278,9 @@ test("public pages use the same resolved catalog helpers as SEO and static param
   assert.match(pageSource, /const catalog = await getPublicCatalogContent\(locale\);/);
   assert.match(pageSource, /const catalogKind = kind === "deal" \? "promotions" : kind === "package" \? "packages" : kind === "service" \? "services" : "destinations";/);
   assert.match(pageSource, /const \[catalog, item\] = await Promise\.all\(\[getPublicCatalogContent\(locale\), getPublicCatalogItem\(locale, catalogKind, slug\)\]\);/);
+  assert.match(pageSource, /const detailSections = item\.detailSections\?\.\[locale\] \?\? null;/);
+  assert.match(pageSource, /detailSections && detailSections\.length \?/);
+  assert.match(pageSource, /section\.title \? <h3/);
   assert.match(pageSource, /kind === "services" \? <CatalogItemGrid locale=\{locale\} items=\{serviceItems\} section="services" \/> : null/);
   assert.match(pageSource, /const relatedPromotions = getRelatedPromotionItems\(catalog, kind === "deal" \? "promotion" : kind, item\);/);
   assert.match(pageSource, /relatedPromotions\.length \? \(/);

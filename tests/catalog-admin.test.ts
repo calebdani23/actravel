@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
+import { parseDetailSectionsEditorValue, stringifyDetailSectionsEditorValue } from "@/lib/catalog-detail-sections";
 import { resolveCatalogWriteState, resolvePromotionServiceIds } from "@/lib/admin/catalog";
 import { assertCatalogMutation, CatalogAdminActionError, buildCatalogAdminRedirectTarget, catalogActionSuccessMessage, sanitizeCatalogMutationPayload } from "@/lib/admin/catalog-actions";
 import { buildCatalogMediaStoragePath, normalizeCatalogMediaValue, parseCatalogMediaStorageRef, validateCatalogMediaUploadFile } from "@/lib/catalog-media";
@@ -73,6 +74,7 @@ test("catalog payload sanitizer strips helper-only fields for every resource", (
       name_es: "Cancún",
       slug_es: "cancun",
       hero_image_url: "storage://catalog-media/destinations/hero.jpg",
+      detail_sections_es: [{ title: "Incluye", items: ["Hoteles"] }],
       uploads: [{ path: "destinations/hero.jpg" }],
       helper_only: true,
     }),
@@ -80,6 +82,7 @@ test("catalog payload sanitizer strips helper-only fields for every resource", (
       name_es: "Cancún",
       slug_es: "cancun",
       hero_image_url: "storage://catalog-media/destinations/hero.jpg",
+      detail_sections_es: [{ title: "Incluye", items: ["Hoteles"] }],
     },
   );
 
@@ -88,12 +91,14 @@ test("catalog payload sanitizer strips helper-only fields for every resource", (
       name_es: "Traslado",
       slug_es: "traslado",
       sort_order: 2,
+      detail_sections_en: [{ title: "How we help", items: ["Airport pickup"] }],
       uploads: [{ path: "services/thumb.jpg" }],
     }),
     {
       name_es: "Traslado",
       slug_es: "traslado",
       sort_order: 2,
+      detail_sections_en: [{ title: "How we help", items: ["Airport pickup"] }],
     },
   );
 
@@ -132,10 +137,23 @@ test("promotion service ids merge legacy and join-table links without duplicates
   assert.deepEqual(resolvePromotionServiceIds({ promotion_services: [{ service_id: "svc-3" }, { service_id: "svc-3" }] }), ["svc-3"]);
 });
 
+test("detail sections editor parser keeps structured bullets and drops invalid rows", () => {
+  const parsed = parseDetailSectionsEditorValue("[Qué resolvemos]\n- Hoteles\n- Tours\n\n[Cómo te ayudamos]\n- WhatsApp\nTexto libre\n- Seguimiento");
+
+  assert.deepEqual(parsed, [
+    { title: "Qué resolvemos", items: ["Hoteles", "Tours"] },
+    { title: "Cómo te ayudamos", items: ["WhatsApp", "Seguimiento"] },
+  ]);
+  assert.equal(stringifyDetailSectionsEditorValue(parsed), "[Qué resolvemos]\n- Hoteles\n- Tours\n\n[Cómo te ayudamos]\n- WhatsApp\n- Seguimiento");
+  assert.equal(parseDetailSectionsEditorValue("Texto libre sin bullets"), null);
+});
+
 test("catalog admin UI exposes real media upload and explicit state actions", () => {
   const page = readFileSync("app/admin/(protected)/catalog/[resource]/page.tsx", "utf8");
   const actions = readFileSync("app/admin/(protected)/catalog/actions.ts", "utf8");
   const catalog = readFileSync("lib/admin/catalog.ts", "utf8");
+  const detailSections = readFileSync("lib/catalog-detail-sections.ts", "utf8");
+  const databaseTypes = readFileSync("lib/supabase/database.types.ts", "utf8");
 
   assert.match(page, /name=\{`\$\{name\}_file`\}/);
   assert.match(page, /name=\{`\$\{name\}_clear`\}/);
@@ -145,14 +163,22 @@ test("catalog admin UI exposes real media upload and explicit state actions", ()
   assert.match(page, /name="package_id"/);
   assert.match(page, /name="service_ids"/);
   assert.match(page, /multiple/);
+  assert.match(page, /detail_sections_es_input/);
+  assert.match(page, /detail_sections_en_input/);
+  assert.match(page, /Formato: \[Título de sección\] y bullets con -/);
   assert.match(page, /searchParams/);
   assert.match(page, /feedbackMessage/);
+  assert.match(databaseTypes, /detail_sections_es/);
+  assert.match(databaseTypes, /detail_sections_en/);
   assert.match(catalog, /from\("promotions"\)\s*\.select\("\*, destinations\(id, name_es\)"\)/);
   assert.doesNotMatch(catalog, /select\("\*, destinations\(id, name_es\), services\(id, name_es\)"\)/);
   assert.match(catalog, /from\("promotion_services"\)\.select\("promotion_id, service_id, services\(id, name_es\)"\)/);
   assert.match(catalog, /\.in\("promotion_id", promotionIds\)/);
   assert.match(actions, /uploadCatalogMediaFile/);
   assert.match(actions, /normalizeCatalogMediaValue/);
+  assert.match(actions, /parseDetailSectionsEditorValue/);
+  assert.match(actions, /detail_sections_es: parseDetailSectionsField\(formData, "detail_sections_es_input"\)/);
+  assert.match(actions, /detail_sections_en: parseDetailSectionsField\(formData, "detail_sections_en_input"\)/);
   assert.match(actions, /allowLegacyRelativePath: true/);
   assert.match(actions, /sanitizeCatalogMutationPayload/);
   assert.match(actions, /media\.fields/);
@@ -164,4 +190,6 @@ test("catalog admin UI exposes real media upload and explicit state actions", ()
   assert.match(actions, /assertCatalogMutation/);
   assert.match(actions, /buildCatalogAdminRedirectTarget/);
   assert.match(actions, /deleted media cleanup failed/);
+  assert.match(detailSections, /export type DetailSection = \{ title: string; items: string\[] \}/);
+  assert.match(detailSections, /export function parseDetailSectionsEditorValue/);
 });
