@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { normalizeDetailSectionsValue } from "@/lib/catalog-detail-sections";
+import { normalizePromotionCommercialSectionsValue } from "@/lib/promotion-commercial-sections";
 import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
 import { buildLivePublicCatalogContent } from "@/lib/content/public-catalog";
 import { buildPublicCatalogStaticParams } from "@/lib/content/public-catalog-utils";
@@ -35,7 +36,7 @@ test("unpublished catalog rows stay hidden from public content", () => {
 
 test("public catalog items expose hero media fields and fallback text", () => {
   const destination = buildPublicCatalogItem({ id: "cancun", slug_es: "cancun", slug_en: "cancun", name_es: "Cancún", name_en: "Cancun", summary_es: "Resumen", summary_en: "Summary", description_es: "Descripción", description_en: "Description", hero_image_url: "https://example.com/hero.jpg", detail_sections_es: [{ title: "Incluye", items: ["Hoteles"] }], detail_sections_en: [{ title: "Includes", items: ["Hotels"] }], status: "published" }, "destinations");
-  const promotion = buildPublicCatalogItem({ id: "deal-1", slug_es: "oferta", slug_en: "deal", title_es: "Oferta", title_en: "Deal", summary_es: "Resumen", summary_en: "Summary", details_es: "Detalles", details_en: "Details", thumbnail_image_url: "https://example.com/thumb.jpg", status: "published" }, "promotions");
+  const promotion = buildPublicCatalogItem({ id: "deal-1", slug_es: "oferta", slug_en: "deal", title_es: "Oferta", title_en: "Deal", summary_es: "Resumen", summary_en: "Summary", details_es: "Detalles", details_en: "Details", thumbnail_image_url: "https://example.com/thumb.jpg", commercial_sections_es: { offerFacts: [{ label: "Precio", value: "Desde $12,900 MXN" }] }, commercial_sections_en: { offerFacts: [{ label: "Price", value: "From $750 USD" }] }, status: "published" }, "promotions");
   const storageMedia = buildPublicCatalogItem({ id: "svc-1", slug_es: "servicio", slug_en: "service", name_es: "Servicio", name_en: "Service", summary_es: "Resumen", summary_en: "Summary", description_es: "Descripción", description_en: "Description", hero_image_url: "catalog-media/services/hero.jpg", thumbnail_image_url: "storage://catalog-media/services/thumb.jpg", status: "published" }, "services");
 
   assert.equal(destination.media?.heroImageUrl, "https://example.com/hero.jpg");
@@ -45,6 +46,15 @@ test("public catalog items expose hero media fields and fallback text", () => {
   assert.equal(storageMedia.media?.thumbnailImageUrl, "catalog-media/services/thumb.jpg");
   assert.equal(promotion.description.es, "Detalles");
   assert.equal(promotion.media?.heroImageUrl, null);
+  assert.deepEqual(promotion.commercialSections?.es, { offerFacts: [{ label: "Precio", value: "Desde $12,900 MXN" }] });
+  assert.equal(promotion.detailSections, undefined);
+});
+
+test("promotion commercial sections normalization rejects malformed content safely", () => {
+  assert.deepEqual(normalizePromotionCommercialSectionsValue({ offerFacts: [{ label: "Precio", value: "Desde" }] }), {
+    offerFacts: [{ label: "Precio", value: "Desde" }],
+  });
+  assert.equal(normalizePromotionCommercialSectionsValue({ offerFacts: "bad" }), null);
 });
 
 test("detail section normalization accepts safe arrays and rejects malformed content", () => {
@@ -124,6 +134,7 @@ test("fallback catalog exposes static sections when live rows are unavailable", 
 
   assert.equal(fallback.destinations.length > 0, true);
   assert.equal(fallback.promotions.length > 0, true);
+  assert.ok(fallback.promotions[0]?.commercialSections?.es);
   assert.equal(fallback.services.length > 0, true);
   assert.equal(fallback.packages.length > 0, true);
 });
@@ -278,7 +289,12 @@ test("public pages use the same resolved catalog helpers as SEO and static param
   assert.match(pageSource, /const catalog = await getPublicCatalogContent\(locale\);/);
   assert.match(pageSource, /const catalogKind = kind === "deal" \? "promotions" : kind === "package" \? "packages" : kind === "service" \? "services" : "destinations";/);
   assert.match(pageSource, /const \[catalog, item\] = await Promise\.all\(\[getPublicCatalogContent\(locale\), getPublicCatalogItem\(locale, catalogKind, slug\)\]\);/);
+  assert.match(pageSource, /const commercialSections = kind === "deal" \? item\.commercialSections\?\.\[locale\] \?\? null : null;/);
   assert.match(pageSource, /const detailSections = item\.detailSections\?\.\[locale\] \?\? null;/);
+  assert.match(pageSource, /commercialSections \? \(/);
+  assert.match(pageSource, /Detalles de la promoción/);
+  assert.match(pageSource, /Promotion details/);
+  assert.match(pageSource, /valueHighlights/);
   assert.match(pageSource, /detailSections && detailSections\.length \?/);
   assert.match(pageSource, /section\.title \? <h3/);
   assert.match(pageSource, /kind === "services" \? <CatalogItemGrid locale=\{locale\} items=\{serviceItems\} section="services" \/> : null/);

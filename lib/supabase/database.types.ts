@@ -1006,6 +1006,8 @@ export type Database = {
       }
       promotions: {
         Row: {
+          commercial_sections_en: Json | null
+          commercial_sections_es: Json | null
           created_at: string
           destination_id: string | null
           details_en: string | null
@@ -1031,6 +1033,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          commercial_sections_en?: Json | null
+          commercial_sections_es?: Json | null
           created_at?: string
           destination_id?: string | null
           details_en?: string | null
@@ -1056,6 +1060,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          commercial_sections_en?: Json | null
+          commercial_sections_es?: Json | null
           created_at?: string
           destination_id?: string | null
           details_en?: string | null

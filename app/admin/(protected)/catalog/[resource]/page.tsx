@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { stringifyDetailSectionsEditorValue } from "@/lib/catalog-detail-sections";
+import { stringifyPromotionCommercialSectionsEditorValue } from "@/lib/promotion-commercial-sections";
 import { CATALOG_MEDIA_ACCEPT, catalogMediaSourceLabel, resolveCatalogMedia, resolveCatalogMediaUrl } from "@/lib/catalog-media";
 import { catalogResources, catalogStatusLabel, getCatalogOptions, getCatalogRows, resolvePromotionServiceIds, type CatalogResource, type DestinationRow, type PackageRow, type PromotionRow, type ServiceRow } from "@/lib/admin/catalog";
 import { requireAdminRole } from "@/lib/admin/auth";
@@ -42,6 +43,19 @@ function DetailSectionsField({ row }: { row?: DestinationRow | ServiceRow | Pack
       </div>
       <TextArea defaultValue={stringifyDetailSectionsEditorValue(row?.detail_sections_es)} label="Secciones ES" name="detail_sections_es_input" />
       <TextArea defaultValue={stringifyDetailSectionsEditorValue(row?.detail_sections_en)} label="Sections EN" name="detail_sections_en_input" />
+    </div>
+  );
+}
+
+function PromotionCommercialSectionsField({ row }: { row?: PromotionRow }) {
+  return (
+    <div className="space-y-3 rounded-lg border p-3 md:col-span-2">
+      <div className="space-y-1">
+        <p className="text-sm font-semibold">Commercial promotion sections</p>
+        <p className="text-xs text-muted-foreground">Use known groups only: [Offer facts], [Included], [Restrictions], [Value highlights], and [CTA note]. Empty or invalid lines are omitted.</p>
+      </div>
+      <TextArea defaultValue={stringifyPromotionCommercialSectionsEditorValue(row?.commercial_sections_es)} label="Contenido comercial ES" name="commercial_sections_es_input" />
+      <TextArea defaultValue={stringifyPromotionCommercialSectionsEditorValue(row?.commercial_sections_en)} label="Commercial content EN" name="commercial_sections_en_input" />
     </div>
   );
 }
@@ -228,6 +242,7 @@ function CatalogForm({ resource, row, destinations, services, packages }: { reso
             <TextArea defaultValue={promotion?.summary_en} label="Resumen EN" name="summary_en" />
             <TextArea defaultValue={promotion?.details_es} label="Detalles ES" name="details_es" />
             <TextArea defaultValue={promotion?.details_en} label="Detalles EN" name="details_en" />
+            <PromotionCommercialSectionsField row={promotion} />
             <TextInput defaultValue={promotion?.price_from_mxn} label="Precio desde MXN" name="price_from_mxn" type="number" />
             <TextInput defaultValue={promotion?.price_from_usd} label="Precio desde USD" name="price_from_usd" type="number" />
             <TextInput defaultValue={promotion?.starts_at?.slice(0, 10)} label="Inicio" name="starts_at" type="date" />

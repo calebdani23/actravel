@@ -89,6 +89,7 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
         ? "Incluye / ideas"
         : "Includes / ideas";
   const highlights = item.highlights[locale];
+  const commercialSections = kind === "deal" ? item.commercialSections?.[locale] ?? null : null;
   const detailSections = item.detailSections?.[locale] ?? null;
   return (
     <PageShell>
@@ -111,8 +112,38 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
           </div>
         </div>
         <div className="rounded-[2rem] bg-[var(--ac-light-bg)] p-6">
-          <h2 className="font-black text-[var(--ac-ink)]">{sidebarTitle}</h2>
-          {detailSections && detailSections.length ? (
+          <h2 className="font-black text-[var(--ac-ink)]">{commercialSections ? (locale === "es" ? "Detalles de la promoción" : "Promotion details") : sidebarTitle}</h2>
+          {commercialSections ? (
+            <div className="mt-4 grid gap-5 text-sm leading-6 text-zinc-700">
+              {commercialSections.offerFacts?.length ? (
+                <div className="grid gap-2">
+                  {commercialSections.offerFacts.map((fact) => (
+                    <div className="flex items-start justify-between gap-3 rounded-2xl bg-white px-4 py-3" key={`${fact.label}:${fact.value}`}>
+                      <span className="font-semibold text-[var(--ac-ink)]">{fact.label}</span>
+                      <span className={fact.emphasis ? "font-black text-[var(--ac-red)]" : "text-right"}>{fact.value}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {commercialSections.includedList?.length ? (
+                <div>
+                  <h3 className="font-black text-[var(--ac-ink)]">{locale === "es" ? "Incluye" : "Included"}</h3>
+                  <ul className="mt-2 grid gap-2">
+                    {commercialSections.includedList.map((item) => <li key={item}>• {item}</li>)}
+                  </ul>
+                </div>
+              ) : null}
+              {commercialSections.restrictionsList?.length ? (
+                <div>
+                  <h3 className="font-black text-[var(--ac-ink)]">{locale === "es" ? "Condiciones" : "Conditions"}</h3>
+                  <ul className="mt-2 grid gap-2">
+                    {commercialSections.restrictionsList.map((item) => <li key={item}>• {item}</li>)}
+                  </ul>
+                </div>
+              ) : null}
+              {commercialSections.ctaNote ? <p className="rounded-3xl bg-white p-4 text-xs leading-5 text-muted-foreground">{commercialSections.ctaNote}</p> : null}
+            </div>
+          ) : detailSections && detailSections.length ? (
             <div className="mt-4 grid gap-4 text-sm leading-6 text-zinc-700">
               {detailSections.map((section) => (
                 <div key={section.title}>
@@ -141,6 +172,16 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
           {item.detailNote?.[locale] ? <p className="mt-6 text-xs leading-5 text-muted-foreground">{item.detailNote[locale]}</p> : null}
         </div>
       </section>
+      {commercialSections?.valueHighlights?.length ? (
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {commercialSections.valueHighlights.map((highlight) => (
+            <article className="rounded-[2rem] border bg-white p-6 shadow-sm" key={`${highlight.title}:${highlight.text ?? ""}`}>
+              <h2 className="text-lg font-black text-[var(--ac-ink)]">{highlight.title}</h2>
+              {highlight.text ? <p className="mt-2 text-sm leading-6 text-muted-foreground">{highlight.text}</p> : null}
+            </article>
+          ))}
+        </section>
+      ) : null}
       {relatedPromotions.length ? (
         <section className="space-y-4">
           <SectionHeader

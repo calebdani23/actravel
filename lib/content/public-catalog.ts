@@ -28,6 +28,10 @@ function shouldRetryWithoutDetailSections(error: CatalogQueryError | null) {
   return error?.code === "42703" && /detail_sections_(es|en)/.test(error.message);
 }
 
+function shouldRetryWithoutCommercialSections(error: CatalogQueryError | null) {
+  return error?.code === "42703" && /commercial_sections_(es|en)/.test(error.message);
+}
+
 async function getPublishedCatalogRows(
   supabase: ReturnType<typeof createPublicSupabaseClient>,
   table: "destinations" | "services" | "packages",
@@ -48,16 +52,25 @@ async function getPublishedPromotions() {
   const supabase = createPublicSupabaseClient();
   const baseResult = await supabase
     .from("promotions")
-    .select("id, slug_es, slug_en, title_es, title_en, summary_es, summary_en, details_es, details_en, hero_image_url, thumbnail_image_url, price_from_mxn, price_from_usd, destination_id, service_id, is_featured, status, published_at")
+    .select("id, slug_es, slug_en, title_es, title_en, summary_es, summary_en, details_es, details_en, commercial_sections_es, commercial_sections_en, hero_image_url, thumbnail_image_url, price_from_mxn, price_from_usd, destination_id, service_id, is_featured, status, published_at")
     .eq("status", "published")
     .order("updated_at", { ascending: false })
     .limit(100);
 
-  if (baseResult.error) {
-    return { data: null, error: baseResult.error };
+  const promotionResult = shouldRetryWithoutCommercialSections(baseResult.error)
+    ? await supabase
+      .from("promotions")
+      .select("id, slug_es, slug_en, title_es, title_en, summary_es, summary_en, details_es, details_en, hero_image_url, thumbnail_image_url, price_from_mxn, price_from_usd, destination_id, service_id, is_featured, status, published_at")
+      .eq("status", "published")
+      .order("updated_at", { ascending: false })
+      .limit(100)
+    : baseResult;
+
+  if (promotionResult.error) {
+    return { data: null, error: promotionResult.error };
   }
 
-  const promotions = (baseResult.data ?? []) as CatalogRowLike[];
+  const promotions = (promotionResult.data ?? []) as CatalogRowLike[];
   const promotionIds = promotions.map((row) => row.id);
   if (!promotionIds.length) {
     return { data: promotions, error: null };

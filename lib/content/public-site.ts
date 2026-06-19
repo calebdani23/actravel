@@ -2,6 +2,7 @@ import { type Locale } from "@/lib/i18n/config";
 import { normalizeDetailSectionsValue, type DetailSection } from "@/lib/catalog-detail-sections";
 import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
 import { resolvePromotionServiceIds } from "@/lib/catalog/promotion-relations";
+import { normalizePromotionCommercialSectionsValue, type PromotionCommercialSections } from "@/lib/promotion-commercial-sections";
 
 type Localized = Record<Locale, string>;
 export type PriceDisplay = { type: "from"; mxn?: number; usd?: number } | { type: "consult" };
@@ -30,6 +31,7 @@ export type PublicItem = {
   };
   eyebrow?: Localized;
   highlights: Record<Locale, string[]>;
+  commercialSections?: Partial<Record<Locale, PromotionCommercialSections>>;
   detailSections?: Partial<Record<Locale, DetailSection[]>>;
   bestFor?: Localized;
   planningNotes?: Record<Locale, string[]>;
@@ -182,6 +184,22 @@ const promotions: PublicItem[] = [
     planningNotes: { es: ["La muestra ayuda a definir presupuesto y estilo; no bloquea hotel ni tarifa.", "Edades de menores y fechas cambian la propuesta final."], en: ["The sample helps define budget and style; it does not hold hotel or rate.", "Children's ages and dates change the final proposal."] },
     detailCta: { es: "Pedir propuesta familiar", en: "Request a family proposal" },
     detailNote: { es: "Promoción muestra: disponibilidad, impuestos y hotel se confirman con una asesora.", en: "Sample deal: availability, taxes, and hotel are confirmed by an advisor." },
+    commercialSections: {
+      es: {
+        offerFacts: [{ label: "Precio", value: "Desde $12,900 MXN", emphasis: true }, { label: "Ideal para", value: "Familias" }],
+        includedList: ["Hotel sugerido", "Traslados", "Asesoría por WhatsApp"],
+        restrictionsList: ["Sujeto a disponibilidad", "Impuestos se confirman antes del pago"],
+        valueHighlights: [{ title: "Planeación fácil", text: "Armamos una primera propuesta para ordenar fechas y presupuesto." }],
+        ctaNote: "Compártenos fechas y edades para validar hotel y tarifa final.",
+      },
+      en: {
+        offerFacts: [{ label: "Price", value: "From $750 USD", emphasis: true }, { label: "Best for", value: "Families" }],
+        includedList: ["Suggested hotel", "Transfers", "WhatsApp guidance"],
+        restrictionsList: ["Subject to availability", "Taxes confirmed before payment"],
+        valueHighlights: [{ title: "Easy planning", text: "We shape a first offer to align dates and budget." }],
+        ctaNote: "Share your dates and ages so we can validate hotel and final pricing.",
+      },
+    },
     price: { type: "from", mxn: 12900, usd: 750 },
     featured: true,
   },
@@ -199,6 +217,20 @@ const promotions: PublicItem[] = [
     planningNotes: { es: ["Podemos orientar entre resort, boutique, adultos-only o ubicación más privada.", "Los extras dependen de proveedor, fecha y condiciones confirmadas."], en: ["We can guide resort, boutique, adults-only, or more private location choices.", "Extras depend on supplier, date, and confirmed conditions."] },
     detailCta: { es: "Diseñar escapada romántica", en: "Design a romantic escape" },
     detailNote: { es: "Idea flexible bajo consulta; no representa inventario en tiempo real.", en: "Flexible check-availability idea; not real-time inventory." },
+    commercialSections: {
+      es: {
+        offerFacts: [{ label: "Formato", value: "Escapada para pareja" }],
+        includedList: ["Hotel", "Detalles opcionales"],
+        restrictionsList: ["Propuesta sujeta a proveedor"],
+        valueHighlights: [{ title: "Diseño personalizado", text: "Ajustamos hotel y detalles al estilo de viaje." }],
+      },
+      en: {
+        offerFacts: [{ label: "Format", value: "Couple getaway" }],
+        includedList: ["Hotel", "Optional touches"],
+        restrictionsList: ["Supplier confirmation required"],
+        valueHighlights: [{ title: "Tailored planning", text: "We adapt the stay and extras to the trip style." }],
+      },
+    },
     price: { type: "consult" },
     featured: true,
   },
@@ -216,6 +248,20 @@ const promotions: PublicItem[] = [
     planningNotes: { es: ["Ordenamos tiempos de traslado para evitar itinerarios poco realistas.", "Tours, horarios y precios se validan antes de confirmar."], en: ["We organize transfer times to avoid unrealistic itineraries.", "Tours, schedules, and prices are validated before confirmation."] },
     detailCta: { es: "Armar viaje de aventura", en: "Build an adventure trip" },
     detailNote: { es: "Precio desde orientativo; actividades y horarios finales se confirman manualmente.", en: "Orientational from-price; final activities and schedules are manually confirmed." },
+    commercialSections: {
+      es: {
+        offerFacts: [{ label: "Tipo", value: "Viaje activo" }],
+        includedList: ["Hotel base", "Opciones de tours"],
+        restrictionsList: ["Horarios sujetos a operación"],
+        valueHighlights: [{ title: "Rutas realistas", text: "Ordenamos traslados y actividades con tiempos viables." }],
+      },
+      en: {
+        offerFacts: [{ label: "Type", value: "Active trip" }],
+        includedList: ["Hotel base", "Tour options"],
+        restrictionsList: ["Schedules subject to operations"],
+        valueHighlights: [{ title: "Realistic routes", text: "We coordinate transfers and activities with viable timing." }],
+      },
+    },
     price: { type: "from", mxn: 15400, usd: 890 },
   },
 ];
@@ -273,6 +319,8 @@ export type CatalogRowLike = {
   region?: string | null;
   hero_image_url?: string | null;
   thumbnail_image_url?: string | null;
+  commercial_sections_es?: unknown;
+  commercial_sections_en?: unknown;
   detail_sections_es?: unknown;
   detail_sections_en?: unknown;
   price_from_mxn?: number | string | null;
@@ -301,6 +349,16 @@ function catalogMedia(row: CatalogRowLike) {
 function detailSections(row: CatalogRowLike) {
   const es = normalizeDetailSectionsValue(row.detail_sections_es);
   const en = normalizeDetailSectionsValue(row.detail_sections_en);
+  if (!es && !en) return undefined;
+  return {
+    ...(es ? { es } : {}),
+    ...(en ? { en } : {}),
+  };
+}
+
+function commercialSections(row: CatalogRowLike) {
+  const es = normalizePromotionCommercialSectionsValue(row.commercial_sections_es);
+  const en = normalizePromotionCommercialSectionsValue(row.commercial_sections_en);
   if (!es && !en) return undefined;
   return {
     ...(es ? { es } : {}),
@@ -350,6 +408,7 @@ export function buildPublicCatalogItem(row: CatalogRowLike, kind: "destinations"
     eyebrow: { es: "Promoción", en: "Promotion" },
     media: catalogMedia(row),
     highlights: { es: [], en: [] },
+    commercialSections: commercialSections(row),
     price: priceFrom ? { type: "from", mxn: toNumber(row.price_from_mxn), usd: toNumber(row.price_from_usd) } : { type: "consult" },
     featured: Boolean(row.is_featured),
     relations: {

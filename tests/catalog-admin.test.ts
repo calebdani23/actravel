@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { parseDetailSectionsEditorValue, stringifyDetailSectionsEditorValue } from "@/lib/catalog-detail-sections";
+import { parsePromotionCommercialSectionsEditorValue, stringifyPromotionCommercialSectionsEditorValue } from "@/lib/promotion-commercial-sections";
 import { resolveCatalogWriteState, resolvePromotionServiceIds } from "@/lib/admin/catalog";
 import { assertCatalogMutation, CatalogAdminActionError, buildCatalogAdminRedirectTarget, catalogActionSuccessMessage, sanitizeCatalogMutationPayload } from "@/lib/admin/catalog-actions";
 import { buildCatalogMediaStoragePath, normalizeCatalogMediaValue, parseCatalogMediaStorageRef, validateCatalogMediaUploadFile } from "@/lib/catalog-media";
@@ -121,12 +122,16 @@ test("catalog payload sanitizer strips helper-only fields for every resource", (
       title_es: "Promo",
       slug_es: "promo",
       destination_id: "dest-1",
+      package_id: "pkg-1",
+      commercial_sections_es: { offerFacts: [{ label: "Price", value: "From $12,900 MXN" }] },
       uploads: [{ path: "promotions/thumb.jpg" }],
     }),
     {
       title_es: "Promo",
       slug_es: "promo",
       destination_id: "dest-1",
+      package_id: "pkg-1",
+      commercial_sections_es: { offerFacts: [{ label: "Price", value: "From $12,900 MXN" }] },
     },
   );
 });
@@ -148,6 +153,22 @@ test("detail sections editor parser keeps structured bullets and drops invalid r
   assert.equal(parseDetailSectionsEditorValue("Texto libre sin bullets"), null);
 });
 
+test("promotion commercial editor parser keeps grouped structured sections", () => {
+  const parsed = parsePromotionCommercialSectionsEditorValue("[Offer facts]\nPrice | From $12,900 MXN | emphasis\n\n[Included]\n- Hotel\n\n[Restrictions]\n- Subject to availability\n\n[Value highlights]\nFamily friendly | Easy planning\n\n[CTA note]\nShare your dates on WhatsApp.");
+
+  assert.deepEqual(parsed, {
+    offerFacts: [{ label: "Price", value: "From $12,900 MXN", emphasis: true }],
+    includedList: ["Hotel"],
+    restrictionsList: ["Subject to availability"],
+    valueHighlights: [{ title: "Family friendly", text: "Easy planning" }],
+    ctaNote: "Share your dates on WhatsApp.",
+  });
+  assert.equal(
+    stringifyPromotionCommercialSectionsEditorValue(parsed),
+    "[Offer facts]\nPrice | From $12,900 MXN | emphasis\n\n[Included]\n- Hotel\n\n[Restrictions]\n- Subject to availability\n\n[Value highlights]\nFamily friendly | Easy planning\n\n[CTA note]\nShare your dates on WhatsApp.",
+  );
+});
+
 test("catalog admin UI exposes real media upload and explicit state actions", () => {
   const page = readFileSync("app/admin/(protected)/catalog/[resource]/page.tsx", "utf8");
   const actions = readFileSync("app/admin/(protected)/catalog/actions.ts", "utf8");
@@ -165,11 +186,16 @@ test("catalog admin UI exposes real media upload and explicit state actions", ()
   assert.match(page, /multiple/);
   assert.match(page, /detail_sections_es_input/);
   assert.match(page, /detail_sections_en_input/);
+  assert.match(page, /commercial_sections_es_input/);
+  assert.match(page, /commercial_sections_en_input/);
+  assert.match(page, /Commercial promotion sections/);
   assert.match(page, /Formato: \[Título de sección\] y bullets con -/);
   assert.match(page, /searchParams/);
   assert.match(page, /feedbackMessage/);
   assert.match(databaseTypes, /detail_sections_es/);
   assert.match(databaseTypes, /detail_sections_en/);
+  assert.match(databaseTypes, /commercial_sections_es/);
+  assert.match(databaseTypes, /commercial_sections_en/);
   assert.match(catalog, /from\("promotions"\)\s*\.select\("\*, destinations\(id, name_es\)"\)/);
   assert.doesNotMatch(catalog, /select\("\*, destinations\(id, name_es\), services\(id, name_es\)"\)/);
   assert.match(catalog, /from\("promotion_services"\)\.select\("promotion_id, service_id, services\(id, name_es\)"\)/);
@@ -177,8 +203,11 @@ test("catalog admin UI exposes real media upload and explicit state actions", ()
   assert.match(actions, /uploadCatalogMediaFile/);
   assert.match(actions, /normalizeCatalogMediaValue/);
   assert.match(actions, /parseDetailSectionsEditorValue/);
+  assert.match(actions, /parsePromotionCommercialSectionsEditorValue/);
   assert.match(actions, /detail_sections_es: parseDetailSectionsField\(formData, "detail_sections_es_input"\)/);
   assert.match(actions, /detail_sections_en: parseDetailSectionsField\(formData, "detail_sections_en_input"\)/);
+  assert.match(actions, /commercial_sections_es: parsePromotionCommercialSectionsField\(formData, "commercial_sections_es_input"\)/);
+  assert.match(actions, /commercial_sections_en: parsePromotionCommercialSectionsField\(formData, "commercial_sections_en_input"\)/);
   assert.match(actions, /allowLegacyRelativePath: true/);
   assert.match(actions, /sanitizeCatalogMutationPayload/);
   assert.match(actions, /media\.fields/);

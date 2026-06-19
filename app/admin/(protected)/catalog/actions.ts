@@ -6,6 +6,7 @@ import { optionalFile, removeStoredObject, sameStorageObject } from "@/lib/admin
 import { requireAdminRole } from "@/lib/admin/auth";
 import { assertCatalogExistingRecord, assertCatalogMutation, buildCatalogAdminRedirectTarget, catalogActionErrorMessage, catalogActionSuccessMessage, sanitizeCatalogMutationPayload } from "@/lib/admin/catalog-actions";
 import { parseDetailSectionsEditorValue } from "@/lib/catalog-detail-sections";
+import { parsePromotionCommercialSectionsEditorValue } from "@/lib/promotion-commercial-sections";
 import { resolvePromotionServiceIds } from "@/lib/catalog/promotion-relations";
 import { catalogMediaStorageObject, normalizeCatalogMediaValue, uploadCatalogMediaFile } from "@/lib/catalog-media";
 import { createClient } from "@/lib/supabase/server";
@@ -49,6 +50,11 @@ function promotionServiceIds(formData: FormData) {
 function parseDetailSectionsField(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? parseDetailSectionsEditorValue(value) : null;
+}
+
+function parsePromotionCommercialSectionsField(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return typeof value === "string" ? parsePromotionCommercialSectionsEditorValue(value) : null;
 }
 
 function resourceValue(formData: FormData): CatalogResource {
@@ -301,6 +307,8 @@ function promotionPayload(formData: FormData, publication: { status: CatalogStat
   const serviceIds = promotionServiceIds(formData);
   return {
     ...base,
+    commercial_sections_es: parsePromotionCommercialSectionsField(formData, "commercial_sections_es_input"),
+    commercial_sections_en: parsePromotionCommercialSectionsField(formData, "commercial_sections_en_input"),
     title_es: text(formData, "title_es", true),
     title_en: text(formData, "title_en", true),
     slug_es: text(formData, "slug_es", true),
