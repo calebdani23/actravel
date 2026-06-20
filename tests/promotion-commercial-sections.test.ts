@@ -4,6 +4,8 @@ import test from "node:test";
 import {
   normalizePromotionCommercialSectionsValue,
   parsePromotionCommercialSectionsEditorValue,
+  parsePromotionCommercialSectionsEditorValueOrThrow,
+  PromotionCommercialSectionsValidationError,
   stringifyPromotionCommercialSectionsEditorValue,
 } from "@/lib/promotion-commercial-sections";
 
@@ -32,25 +34,25 @@ test("promotion commercial sections reject invalid roots and collapse empty cont
   assert.equal(normalizePromotionCommercialSectionsValue({ offerFacts: [{ label: "", value: "" }] }), null);
 });
 
-test("promotion commercial sections parser reads all supported groups and ignores malformed lines", () => {
+test("promotion commercial sections parser reads supported Spanish groups and tolerates English aliases", () => {
   const parsed = parsePromotionCommercialSectionsEditorValue(`
-[Offer facts]
-Price | From $12,900 MXN | emphasis
-Audience | Families
+[Datos de oferta]
+Precio | Desde $12,900 MXN | destacado
+Audiencia | Familias
 
-[Included]
-- Hotel stay
-- Airport transfers
+[Incluye]
+- Hotel
+- Traslados aeropuerto
 
 [Restrictions]
-- Subject to availability
+- Sujeto a disponibilidad
 
-[Value highlights]
-Family friendly | Easy first quote
-Human review | Final taxes validated
+[Valor]
+Ideal para familias | Cotización inicial fácil
+Revisión humana | Impuestos finales validados
 
-[CTA note]
-Share your dates on WhatsApp.
+[Nota CTA]
+Comparte tus fechas por WhatsApp.
 
 [Unknown]
 Ignored section
@@ -58,27 +60,40 @@ Ignored section
 
   assert.deepEqual(parsed, {
     offerFacts: [
-      { label: "Price", value: "From $12,900 MXN", emphasis: true },
-      { label: "Audience", value: "Families" },
+      { label: "Precio", value: "Desde $12,900 MXN", emphasis: true },
+      { label: "Audiencia", value: "Familias" },
     ],
-    includedList: ["Hotel stay", "Airport transfers"],
-    restrictionsList: ["Subject to availability"],
+    includedList: ["Hotel", "Traslados aeropuerto"],
+    restrictionsList: ["Sujeto a disponibilidad"],
     valueHighlights: [
-      { title: "Family friendly", text: "Easy first quote" },
-      { title: "Human review", text: "Final taxes validated" },
+      { title: "Ideal para familias", text: "Cotización inicial fácil" },
+      { title: "Revisión humana", text: "Impuestos finales validados" },
     ],
-    ctaNote: "Share your dates on WhatsApp.",
+    ctaNote: "Comparte tus fechas por WhatsApp.",
   });
 });
 
-test("promotion commercial sections stringify emits stable grouped editor text", () => {
+test("promotion commercial sections invalid non-empty editor input throws a Spanish validation error", () => {
+  assert.throws(
+    () => parsePromotionCommercialSectionsEditorValueOrThrow("Texto libre sin bloques válidos"),
+    (error) => {
+      assert.ok(error instanceof PromotionCommercialSectionsValidationError);
+      assert.match(String(error.message), /Formato inválido en secciones comerciales/);
+      assert.match(String(error.message), /Datos de oferta/);
+      return true;
+    },
+  );
+  assert.equal(parsePromotionCommercialSectionsEditorValueOrThrow("   \n  "), null);
+});
+
+test("promotion commercial sections stringify emits stable grouped editor text in Spanish", () => {
   const text = stringifyPromotionCommercialSectionsEditorValue({
-    offerFacts: [{ label: "Price", value: "From $12,900 MXN" }],
-    includedList: ["Hotel stay"],
-    restrictionsList: ["Subject to availability"],
-    valueHighlights: [{ title: "Family friendly", text: "Easy first quote" }],
-    ctaNote: "Share your dates on WhatsApp.",
+    offerFacts: [{ label: "Precio", value: "Desde $12,900 MXN", emphasis: true }],
+    includedList: ["Hotel"],
+    restrictionsList: ["Sujeto a disponibilidad"],
+    valueHighlights: [{ title: "Ideal para familias", text: "Cotización inicial fácil" }],
+    ctaNote: "Comparte tus fechas por WhatsApp.",
   });
 
-  assert.equal(text, `[Offer facts]\nPrice | From $12,900 MXN\n\n[Included]\n- Hotel stay\n\n[Restrictions]\n- Subject to availability\n\n[Value highlights]\nFamily friendly | Easy first quote\n\n[CTA note]\nShare your dates on WhatsApp.`);
+  assert.equal(text, `[Datos de oferta]\nPrecio | Desde $12,900 MXN | destacado\n\n[Incluye]\n- Hotel\n\n[Restricciones]\n- Sujeto a disponibilidad\n\n[Valor]\nIdeal para familias | Cotización inicial fácil\n\n[Nota CTA]\nComparte tus fechas por WhatsApp.`);
 });

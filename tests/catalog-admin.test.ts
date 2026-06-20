@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { parseDetailSectionsEditorValue, stringifyDetailSectionsEditorValue } from "@/lib/catalog-detail-sections";
-import { parsePromotionCommercialSectionsEditorValue, stringifyPromotionCommercialSectionsEditorValue } from "@/lib/promotion-commercial-sections";
+import { parsePromotionCommercialSectionsEditorValue, parsePromotionCommercialSectionsEditorValueOrThrow, stringifyPromotionCommercialSectionsEditorValue } from "@/lib/promotion-commercial-sections";
 import { resolveCatalogWriteState, resolvePromotionServiceIds } from "@/lib/admin/catalog";
 import { assertCatalogMutation, CatalogAdminActionError, buildCatalogAdminRedirectTarget, catalogActionSuccessMessage, sanitizeCatalogMutationPayload } from "@/lib/admin/catalog-actions";
 import { buildCatalogMediaStoragePath, normalizeCatalogMediaValue, parseCatalogMediaStorageRef, validateCatalogMediaUploadFile } from "@/lib/catalog-media";
@@ -165,8 +165,13 @@ test("promotion commercial editor parser keeps grouped structured sections", () 
   });
   assert.equal(
     stringifyPromotionCommercialSectionsEditorValue(parsed),
-    "[Offer facts]\nPrice | From $12,900 MXN | emphasis\n\n[Included]\n- Hotel\n\n[Restrictions]\n- Subject to availability\n\n[Value highlights]\nFamily friendly | Easy planning\n\n[CTA note]\nShare your dates on WhatsApp.",
+    "[Datos de oferta]\nPrice | From $12,900 MXN | destacado\n\n[Incluye]\n- Hotel\n\n[Restricciones]\n- Subject to availability\n\n[Valor]\nFamily friendly | Easy planning\n\n[Nota CTA]\nShare your dates on WhatsApp.",
   );
+});
+
+test("promotion commercial editor strict parser rejects malformed non-empty text", () => {
+  assert.throws(() => parsePromotionCommercialSectionsEditorValueOrThrow("texto libre"), /Formato inválido en secciones comerciales/);
+  assert.equal(parsePromotionCommercialSectionsEditorValueOrThrow(""), null);
 });
 
 test("catalog admin UI exposes real media upload and explicit state actions", () => {
@@ -188,7 +193,8 @@ test("catalog admin UI exposes real media upload and explicit state actions", ()
   assert.match(page, /detail_sections_en_input/);
   assert.match(page, /commercial_sections_es_input/);
   assert.match(page, /commercial_sections_en_input/);
-  assert.match(page, /Commercial promotion sections/);
+  assert.match(page, /Secciones comerciales de promoción/);
+  assert.match(page, /\[Datos de oferta\], \[Incluye\], \[Restricciones\], \[Valor\] y \[Nota CTA\]/);
   assert.match(page, /Formato: \[Título de sección\] y bullets con -/);
   assert.match(page, /searchParams/);
   assert.match(page, /feedbackMessage/);
@@ -203,7 +209,7 @@ test("catalog admin UI exposes real media upload and explicit state actions", ()
   assert.match(actions, /uploadCatalogMediaFile/);
   assert.match(actions, /normalizeCatalogMediaValue/);
   assert.match(actions, /parseDetailSectionsEditorValue/);
-  assert.match(actions, /parsePromotionCommercialSectionsEditorValue/);
+  assert.match(actions, /parsePromotionCommercialSectionsEditorValueOrThrow/);
   assert.match(actions, /detail_sections_es: parseDetailSectionsField\(formData, "detail_sections_es_input"\)/);
   assert.match(actions, /detail_sections_en: parseDetailSectionsField\(formData, "detail_sections_en_input"\)/);
   assert.match(actions, /commercial_sections_es: parsePromotionCommercialSectionsField\(formData, "commercial_sections_es_input"\)/);

@@ -9,6 +9,13 @@ export type PromotionCommercialSections = {
   ctaNote?: string;
 };
 
+export class PromotionCommercialSectionsValidationError extends Error {
+  constructor(message = "Formato inválido en secciones comerciales. Usa solo los bloques [Datos de oferta], [Incluye], [Restricciones], [Valor] y [Nota CTA].") {
+    super(message);
+    this.name = "PromotionCommercialSectionsValidationError";
+  }
+}
+
 const LIMITS = {
   offerFacts: 8,
   includedList: 12,
@@ -31,6 +38,14 @@ const SECTION_HEADERS: Record<string, SectionKey> = {
   valor: "valueHighlights",
   "cta note": "ctaNote",
   "nota cta": "ctaNote",
+};
+
+const CANONICAL_HEADERS: Record<SectionKey, string> = {
+  offerFacts: "Datos de oferta",
+  includedList: "Incluye",
+  restrictionsList: "Restricciones",
+  valueHighlights: "Valor",
+  ctaNote: "Nota CTA",
 };
 
 function cleanText(value: unknown, limit: number) {
@@ -129,7 +144,8 @@ export function parsePromotionCommercialSectionsEditorValue(input: string | null
 
     if (currentSection === "offerFacts") {
       const [label, value, marker] = line.split("|").map((item) => item.trim());
-      if (label && value) draft.offerFacts.push({ label, value, ...(marker?.toLowerCase() === "emphasis" ? { emphasis: true } : {}) });
+      const normalizedMarker = marker?.toLowerCase();
+      if (label && value) draft.offerFacts.push({ label, value, ...(["emphasis", "destacado", "enfasis", "énfasis"].includes(normalizedMarker ?? "") ? { emphasis: true } : {}) });
       continue;
     }
 
@@ -151,16 +167,25 @@ export function parsePromotionCommercialSectionsEditorValue(input: string | null
   });
 }
 
+export function parsePromotionCommercialSectionsEditorValueOrThrow(input: string | null | undefined): PromotionCommercialSections | null {
+  const source = input?.trim();
+  if (!source) return null;
+
+  const parsed = parsePromotionCommercialSectionsEditorValue(source);
+  if (!parsed) throw new PromotionCommercialSectionsValidationError();
+  return parsed;
+}
+
 export function stringifyPromotionCommercialSectionsEditorValue(value: unknown) {
   const normalized = normalizePromotionCommercialSectionsValue(value);
   if (!normalized) return "";
 
   const groups = [
-    normalized.offerFacts?.length ? ["[Offer facts]", ...normalized.offerFacts.map((item) => `${item.label} | ${item.value}${item.emphasis ? " | emphasis" : ""}`)].join("\n") : null,
-    normalized.includedList?.length ? ["[Included]", ...normalized.includedList.map((item) => `- ${item}`)].join("\n") : null,
-    normalized.restrictionsList?.length ? ["[Restrictions]", ...normalized.restrictionsList.map((item) => `- ${item}`)].join("\n") : null,
-    normalized.valueHighlights?.length ? ["[Value highlights]", ...normalized.valueHighlights.map((item) => item.text ? `${item.title} | ${item.text}` : item.title)].join("\n") : null,
-    normalized.ctaNote ? ["[CTA note]", normalized.ctaNote].join("\n") : null,
+    normalized.offerFacts?.length ? [`[${CANONICAL_HEADERS.offerFacts}]`, ...normalized.offerFacts.map((item) => `${item.label} | ${item.value}${item.emphasis ? " | destacado" : ""}`)].join("\n") : null,
+    normalized.includedList?.length ? [`[${CANONICAL_HEADERS.includedList}]`, ...normalized.includedList.map((item) => `- ${item}`)].join("\n") : null,
+    normalized.restrictionsList?.length ? [`[${CANONICAL_HEADERS.restrictionsList}]`, ...normalized.restrictionsList.map((item) => `- ${item}`)].join("\n") : null,
+    normalized.valueHighlights?.length ? [`[${CANONICAL_HEADERS.valueHighlights}]`, ...normalized.valueHighlights.map((item) => item.text ? `${item.title} | ${item.text}` : item.title)].join("\n") : null,
+    normalized.ctaNote ? [`[${CANONICAL_HEADERS.ctaNote}]`, normalized.ctaNote].join("\n") : null,
   ].filter(Boolean);
 
   return groups.join("\n\n");

@@ -6,7 +6,7 @@ import { optionalFile, removeStoredObject, sameStorageObject } from "@/lib/admin
 import { requireAdminRole } from "@/lib/admin/auth";
 import { assertCatalogExistingRecord, assertCatalogMutation, buildCatalogAdminRedirectTarget, catalogActionErrorMessage, catalogActionSuccessMessage, sanitizeCatalogMutationPayload } from "@/lib/admin/catalog-actions";
 import { parseDetailSectionsEditorValue } from "@/lib/catalog-detail-sections";
-import { parsePromotionCommercialSectionsEditorValue } from "@/lib/promotion-commercial-sections";
+import { parsePromotionCommercialSectionsEditorValueOrThrow } from "@/lib/promotion-commercial-sections";
 import { resolvePromotionServiceIds } from "@/lib/catalog/promotion-relations";
 import { catalogMediaStorageObject, normalizeCatalogMediaValue, uploadCatalogMediaFile } from "@/lib/catalog-media";
 import { createClient } from "@/lib/supabase/server";
@@ -54,7 +54,7 @@ function parseDetailSectionsField(formData: FormData, key: string) {
 
 function parsePromotionCommercialSectionsField(formData: FormData, key: string) {
   const value = formData.get(key);
-  return typeof value === "string" ? parsePromotionCommercialSectionsEditorValue(value) : null;
+  return typeof value === "string" ? parsePromotionCommercialSectionsEditorValueOrThrow(value) : null;
 }
 
 function resourceValue(formData: FormData): CatalogResource {

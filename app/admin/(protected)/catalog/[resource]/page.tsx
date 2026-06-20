@@ -51,11 +51,11 @@ function PromotionCommercialSectionsField({ row }: { row?: PromotionRow }) {
   return (
     <div className="space-y-3 rounded-lg border p-3 md:col-span-2">
       <div className="space-y-1">
-        <p className="text-sm font-semibold">Commercial promotion sections</p>
-        <p className="text-xs text-muted-foreground">Use known groups only: [Offer facts], [Included], [Restrictions], [Value highlights], and [CTA note]. Empty or invalid lines are omitted.</p>
+        <p className="text-sm font-semibold">Secciones comerciales de promoción</p>
+        <p className="text-xs text-muted-foreground">Usa solo estos bloques: [Datos de oferta], [Incluye], [Restricciones], [Valor] y [Nota CTA]. En datos de oferta usa `Etiqueta | Valor | destacado` y en listas usa `-` por renglón.</p>
       </div>
       <TextArea defaultValue={stringifyPromotionCommercialSectionsEditorValue(row?.commercial_sections_es)} label="Contenido comercial ES" name="commercial_sections_es_input" />
-      <TextArea defaultValue={stringifyPromotionCommercialSectionsEditorValue(row?.commercial_sections_en)} label="Commercial content EN" name="commercial_sections_en_input" />
+      <TextArea defaultValue={stringifyPromotionCommercialSectionsEditorValue(row?.commercial_sections_en)} label="Contenido comercial EN" name="commercial_sections_en_input" />
     </div>
   );
 }
