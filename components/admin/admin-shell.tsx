@@ -33,8 +33,14 @@ export function AdminShell({ children, email, profile, roles }: Readonly<{ child
     <div className="min-h-screen bg-zinc-50">
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
-          <Link href="/admin/dashboard" className="font-bold">
-            AC Travel Admin
+          <Link href="/admin/dashboard" className="inline-flex items-center" aria-label="AC Travel Admin">
+            <span className="overflow-hidden rounded-2xl bg-white/80 px-3 py-2 shadow-sm shadow-orange-900/10 transition-transform hover:scale-[1.02]">
+              <img
+                src="/brand/ac-travel-logo-original-500x135.png"
+                alt="AC Travel"
+                className="h-9 w-auto object-contain sm:h-10"
+              />
+            </span>
           </Link>
           <nav className="flex flex-wrap gap-4 text-sm font-medium">
             {visibleLinks.map((link) => (

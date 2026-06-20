@@ -3,19 +3,13 @@ import { type Locale } from "@/lib/i18n/config";
 
 export function BrandMark({ locale }: Readonly<{ locale: Locale }>) {
   return (
-    <Link href={`/${locale}`} className="group inline-flex items-center gap-3" aria-label="AC Travel home">
-      <span className="grid size-11 place-items-center overflow-hidden rounded-2xl bg-white shadow-sm shadow-orange-900/10 transition-transform group-hover:scale-[1.03]">
+    <Link href={`/${locale}`} className="group inline-flex items-center" aria-label="AC Travel home">
+      <span className="overflow-hidden rounded-2xl bg-white/80 px-3 py-2 shadow-sm shadow-orange-900/10 transition-transform group-hover:scale-[1.02]">
         <img
-          src="/brand/ac-travel-logo-500x500-v3.png"
+          src="/brand/ac-travel-logo-original-500x135.png"
           alt="AC Travel"
-          className="h-8 w-8 object-contain"
+          className="h-9 w-auto object-contain sm:h-10"
         />
-      </span>
-      <span className="leading-tight">
-        <span className="block text-lg font-extrabold tracking-tight text-[var(--ac-ink)]">AC Travel</span>
-        <span className="hidden text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ac-blue)] sm:block">
-          Mx
-        </span>
       </span>
     </Link>
   );
