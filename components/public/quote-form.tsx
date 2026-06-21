@@ -1,13 +1,16 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type React from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import { Button } from "@/components/ui/button";
+import { type Currency } from "@/lib/currency/config";
 import { getPublicSiteContent } from "@/lib/content/public-site";
+import { getClientCurrencyPreference, setClientCurrencyPreference, subscribeToCurrencyPreference, syncClientCurrencyPreference } from "@/lib/currency/preference-client";
 import { type Locale } from "@/lib/i18n/config";
+import { shouldSyncQuoteFormCurrency } from "@/lib/quote-form-currency-sync";
 import { buildAbandonmentSnapshot, buildDraftSnapshot, mergeRecoveredDraft, QUOTE_FORM_RECOVERY_TTL_MS, quoteFormStorageKey, readStoredRecovery, safeStorageRemoveItem, safeStorageSetItem, type QuoteFormAbandonmentSnapshot, type QuoteFormRecoveryDraft } from "@/lib/quote-form-recovery";
 import { createQuoteRequestSchema, type QuoteRequestInput, type QuoteRequestResponse } from "@/lib/validations/quote-request";
 
@@ -58,6 +61,7 @@ export function QuoteForm({ locale, initialContext }: Props) {
     initialContext?.campaignContext ? "campaignContext" : null,
   ].filter((field): field is "mainDestination" | "serviceInterest" | "sourceChannel" | "preferredCurrency" | "campaignContext" => Boolean(field))), [initialContext]);
   const recoveryLoaded = useRef(false);
+  const lastSyncedCurrencyRef = useRef<Currency>(formDefaults.preferredCurrency);
   const draftStorageKey = useMemo(() => quoteFormStorageKey(locale, "draft"), [locale]);
   const abandonmentStorageKey = useMemo(() => quoteFormStorageKey(locale, "abandonment"), [locale]);
 
@@ -68,8 +72,40 @@ export function QuoteForm({ locale, initialContext }: Props) {
   });
   const preferredCurrency = useWatch({ control: form.control, name: "preferredCurrency" });
   const watchedValues = useWatch({ control: form.control });
+  const selectedCurrency = useSyncExternalStore(
+    subscribeToCurrencyPreference,
+    () => getClientCurrencyPreference(formDefaults.preferredCurrency),
+    () => formDefaults.preferredCurrency,
+  );
   const serviceOptions = optionList(copy.serviceOptions, formDefaults.serviceInterest);
   const sourceOptions = optionList(copy.sourceOptions, formDefaults.sourceChannel);
+
+  useEffect(() => {
+    syncClientCurrencyPreference(formDefaults.preferredCurrency);
+  }, [formDefaults.preferredCurrency]);
+
+  useEffect(() => {
+    const currentCurrency = form.getValues("preferredCurrency");
+    const isDirty = form.getFieldState("preferredCurrency").isDirty;
+
+    if (!shouldSyncQuoteFormCurrency({
+      currentCurrency,
+      nextCurrency: selectedCurrency,
+      lastSyncedCurrency: lastSyncedCurrencyRef.current,
+      isDirty,
+    })) {
+      return;
+    }
+
+    form.setValue("preferredCurrency", selectedCurrency, { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+    lastSyncedCurrencyRef.current = selectedCurrency;
+  }, [form, selectedCurrency]);
+
+  useEffect(() => {
+    if (preferredCurrency && !form.getFieldState("preferredCurrency").isDirty) {
+      lastSyncedCurrencyRef.current = preferredCurrency;
+    }
+  }, [form, preferredCurrency]);
 
   useEffect(() => {
     if (typeof window === "undefined" || recoveryLoaded.current) return;
@@ -80,7 +116,9 @@ export function QuoteForm({ locale, initialContext }: Props) {
 
     const savedDraft = readStoredRecovery<QuoteFormRecoveryDraft>(window.localStorage, draftStorageKey, QUOTE_FORM_RECOVERY_TTL_MS.draft);
     if (savedDraft) {
-      form.reset(mergeRecoveredDraft(formDefaults, savedDraft, { preferDefaultFields: recoveryPriorityFields }));
+      const recoveredValues = mergeRecoveredDraft(formDefaults, savedDraft, { preferDefaultFields: recoveryPriorityFields });
+      form.reset(recoveredValues);
+      lastSyncedCurrencyRef.current = recoveredValues.preferredCurrency;
       restoredDraft = true;
     }
 
@@ -118,6 +156,14 @@ export function QuoteForm({ locale, initialContext }: Props) {
     };
   }, [abandonmentStorageKey, draftStorageKey, form, form.formState.dirtyFields, form.formState.errors, form.formState.isDirty, result?.ok]);
 
+  const preferredCurrencyField = form.register("preferredCurrency", {
+    onChange: (event) => {
+      const nextCurrency = event.target.value === "USD" ? "USD" : "MXN";
+      lastSyncedCurrencyRef.current = nextCurrency;
+      setClientCurrencyPreference(nextCurrency);
+    },
+  });
+
   async function onSubmit(values: QuoteRequestInput) {
     setResult(null);
     const response = await fetch("/api/quote-request", {
@@ -154,7 +200,7 @@ export function QuoteForm({ locale, initialContext }: Props) {
           <p className="mt-4 text-sm leading-6 text-zinc-700">{copy.successWhatsAppHelp}</p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <WhatsAppCta message="" label={copy.whatsappCta} href={result.whatsapp.href} target="_blank" rel="noreferrer" className="rounded-full" />
-            <Button type="button" variant="outline" className="rounded-full" onClick={() => { form.reset(formDefaults); setResult(null); setRecoveryNotice(null); }}>
+            <Button type="button" variant="outline" className="rounded-full" onClick={() => { form.reset({ ...formDefaults, preferredCurrency: selectedCurrency }); lastSyncedCurrencyRef.current = selectedCurrency; setResult(null); setRecoveryNotice(null); }}>
               {copy.reset}
             </Button>
           </div>
@@ -198,7 +244,7 @@ export function QuoteForm({ locale, initialContext }: Props) {
             {serviceOptions.map((option) => <option key={option} value={option}>{option}</option>)}
           </SelectField>
           <TextField label={`${copy.fields.approximateBudget} (${preferredCurrency})`} marker={copy.requiredMarker} hint={copy.hints.approximateBudget} type="number" min={0} placeholder={copy.placeholders.budget} error={form.formState.errors.approximateBudget?.message} {...form.register("approximateBudget", { valueAsNumber: true })} />
-          <SelectField label={copy.fields.preferredCurrency} marker={copy.requiredMarker} error={form.formState.errors.preferredCurrency?.message} {...form.register("preferredCurrency")}>
+          <SelectField label={copy.fields.preferredCurrency} marker={copy.requiredMarker} error={form.formState.errors.preferredCurrency?.message} {...preferredCurrencyField}>
             <option value="MXN">MXN</option>
             <option value="USD">USD</option>
           </SelectField>

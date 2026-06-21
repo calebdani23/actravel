@@ -5,47 +5,44 @@ import {
   buildCurrencyCookieValue,
   CURRENCY_PREFERENCE_EVENT,
   CURRENCY_STORAGE_KEY,
-  normalizeCurrencyPreference,
   parseCurrencyCookie,
+  resolveCurrencyPreference,
 } from "@/lib/currency/preference";
+import { safeStorageSetItem } from "@/lib/quote-form-recovery";
+
+function safeStorageGetItem(key: string) {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
 
 export function getClientCurrencyPreference(fallback: Currency): Currency {
   if (typeof window === "undefined") return fallback;
 
-  const stored = window.localStorage.getItem(CURRENCY_STORAGE_KEY);
-  if (stored) return normalizeCurrencyPreference(stored);
-
-  const cookieCurrency = parseCurrencyCookie(document.cookie);
-  return cookieCurrency ?? fallback;
+  return resolveCurrencyPreference(parseCurrencyCookie(document.cookie), safeStorageGetItem(CURRENCY_STORAGE_KEY), fallback).currency;
 }
 
 export function setClientCurrencyPreference(currency: Currency) {
   if (typeof window === "undefined") return;
 
-  window.localStorage.setItem(CURRENCY_STORAGE_KEY, currency);
   document.cookie = buildCurrencyCookieValue(currency);
+  safeStorageSetItem(window.localStorage, CURRENCY_STORAGE_KEY, currency);
   window.dispatchEvent(new Event(CURRENCY_PREFERENCE_EVENT));
 }
 
 export function syncClientCurrencyPreference(fallback: Currency) {
   if (typeof window === "undefined") return;
 
-  const stored = window.localStorage.getItem(CURRENCY_STORAGE_KEY);
-  const cookieCurrency = parseCurrencyCookie(document.cookie);
+  const resolution = resolveCurrencyPreference(parseCurrencyCookie(document.cookie), safeStorageGetItem(CURRENCY_STORAGE_KEY), fallback);
 
-  if (stored && !cookieCurrency) {
-    document.cookie = buildCurrencyCookieValue(normalizeCurrencyPreference(stored));
-    return;
+  if (parseCurrencyCookie(document.cookie) !== resolution.cookieCurrency) {
+    document.cookie = buildCurrencyCookieValue(resolution.cookieCurrency);
   }
 
-  if (!stored && cookieCurrency) {
-    window.localStorage.setItem(CURRENCY_STORAGE_KEY, cookieCurrency);
-    return;
-  }
-
-  if (!stored && !cookieCurrency) {
-    window.localStorage.setItem(CURRENCY_STORAGE_KEY, fallback);
-    document.cookie = buildCurrencyCookieValue(fallback);
+  if (safeStorageGetItem(CURRENCY_STORAGE_KEY) !== resolution.storageCurrency) {
+    safeStorageSetItem(window.localStorage, CURRENCY_STORAGE_KEY, resolution.storageCurrency);
   }
 }
 

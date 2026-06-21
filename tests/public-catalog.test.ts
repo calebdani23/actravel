@@ -3,7 +3,9 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { normalizeDetailSectionsValue } from "@/lib/catalog-detail-sections";
-import { normalizeCurrencyPreference, parseCurrencyCookie } from "@/lib/currency/preference";
+import { getClientCurrencyPreference, syncClientCurrencyPreference } from "@/lib/currency/preference-client";
+import { normalizeCurrencyPreference, parseCurrencyCookie, resolveCurrencyPreference } from "@/lib/currency/preference";
+import { shouldSyncQuoteFormCurrency } from "@/lib/quote-form-currency-sync";
 import { normalizePromotionCommercialSectionsValue } from "@/lib/promotion-commercial-sections";
 import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
 import { buildLivePublicCatalogContent } from "@/lib/content/public-catalog";
@@ -73,9 +75,82 @@ test("catalog media urls resolve storage paths and absolute urls", () => {
 
 test("currency helpers prefer valid cookie values and keep language copy independent", () => {
   assert.equal(parseCurrencyCookie("foo=bar; ac-travel-currency=USD"), "USD");
+  assert.equal(parseCurrencyCookie("foo=bar; ac-travel-currency=oops"), undefined);
   assert.equal(normalizeCurrencyPreference("invalid"), "MXN");
+  assert.deepEqual(resolveCurrencyPreference("USD", "MXN", "MXN"), {
+    currency: "USD",
+    cookieCurrency: "USD",
+    storageCurrency: "USD",
+  });
+  assert.deepEqual(resolveCurrencyPreference(undefined, "USD", "MXN"), {
+    currency: "USD",
+    cookieCurrency: "USD",
+    storageCurrency: "USD",
+  });
   assert.equal(priceLabel("es", { type: "from", mxn: 12900, usd: 750 }, "USD"), "Desde $750");
   assert.equal(priceLabel("en", { type: "from", mxn: 12900, usd: 750 }, "MXN"), "From MX$12,900");
+});
+
+test("client currency sync rewrites divergent valid localStorage to cookie canonical value", () => {
+  const originalWindow = globalThis.window;
+  const originalDocument = globalThis.document;
+
+  const storage = new Map<string, string>([["ac-travel-currency", "MXN"]]);
+  let cookie = "ac-travel-currency=USD";
+
+  const windowMock = {
+    localStorage: {
+      getItem(key: string) {
+        return storage.get(key) ?? null;
+      },
+      setItem(key: string, value: string) {
+        storage.set(key, value);
+      },
+      removeItem(key: string) {
+        storage.delete(key);
+      },
+    },
+    dispatchEvent() {
+      return true;
+    },
+    addEventListener() {},
+    removeEventListener() {},
+  } as unknown as Window & typeof globalThis;
+
+  const documentMock = {
+    get cookie() {
+      return cookie;
+    },
+    set cookie(value: string) {
+      cookie = value.split(";")[0] ?? value;
+    },
+  } as Document;
+
+  Object.assign(globalThis, {
+    window: windowMock,
+    document: documentMock,
+  });
+
+  try {
+    assert.equal(getClientCurrencyPreference("MXN"), "USD");
+
+    syncClientCurrencyPreference("MXN");
+
+    assert.equal(storage.get("ac-travel-currency"), "USD");
+    assert.equal(cookie, "ac-travel-currency=USD");
+  } finally {
+    Object.assign(globalThis, {
+      window: originalWindow,
+      document: originalDocument,
+    });
+  }
+});
+
+test("quote form currency sync updates only when the field is still following global preference", () => {
+  assert.equal(shouldSyncQuoteFormCurrency({ currentCurrency: "MXN", nextCurrency: "USD", lastSyncedCurrency: "MXN", isDirty: false }), true);
+  assert.equal(shouldSyncQuoteFormCurrency({ currentCurrency: "MXN", nextCurrency: "USD", lastSyncedCurrency: "MXN", isDirty: true }), true);
+  assert.equal(shouldSyncQuoteFormCurrency({ currentCurrency: "USD", nextCurrency: "MXN", lastSyncedCurrency: "MXN", isDirty: true }), false);
+  assert.equal(shouldSyncQuoteFormCurrency({ currentCurrency: "USD", nextCurrency: "USD", lastSyncedCurrency: "MXN", isDirty: false }), false);
 });
 
 test("quote page context lets query currency override cookie fallback", () => {
