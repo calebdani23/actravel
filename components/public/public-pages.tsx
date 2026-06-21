@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { CatalogCardSlider } from "@/components/public/catalog-card-slider";
 import { FormattedPrice } from "@/components/public/formatted-price";
+import { PublicRouteAlternates } from "@/components/public/public-route-alternates";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import { ItemCard } from "@/components/public/item-card";
 import { LegalNotice } from "@/components/public/legal-notice";
@@ -13,6 +14,7 @@ import { type Currency } from "@/lib/currency/config";
 import { getServerCurrencyPreference } from "@/lib/currency/preference-server";
 import { getPublicCatalogContent, getPublicCatalogItem } from "@/lib/content/public-catalog";
 import { type Locale } from "@/lib/i18n/config";
+import { buildDetailAlternatePaths } from "@/lib/i18n/public-routes";
 import {
   getPublicSiteContent,
   getRelatedPromotionItems,
@@ -85,6 +87,7 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
   const catalogKind = kind === "deal" ? "promotions" : kind === "package" ? "packages" : kind === "service" ? "services" : "destinations";
   const [catalog, item, currency] = await Promise.all([getPublicCatalogContent(locale), getPublicCatalogItem(locale, catalogKind, slug), getServerCurrencyPreference()]);
   if (!item) notFound();
+  const alternatePaths = buildDetailAlternatePaths(kind, item.slug);
   const relatedPromotions = getRelatedPromotionItems(catalog, kind === "deal" ? "promotion" : kind, item);
   const back = kind === "deal" ? "deals" : kind === "package" ? "packages" : kind === "service" ? "services" : "destinations";
   const sidebarTitle = kind === "package"
@@ -99,6 +102,7 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
   const detailSections = item.detailSections?.[locale] ?? null;
   return (
     <PageShell>
+      <PublicRouteAlternates alternatePaths={alternatePaths} />
       <section className="grid gap-8 rounded-[2rem] border bg-white p-6 shadow-sm lg:grid-cols-[1.1fr_0.9fr] lg:p-10">
         <div>
           {item.media?.heroImageUrl ?? item.media?.thumbnailImageUrl ? <img alt="" className="mb-5 h-72 w-full rounded-[2rem] object-cover" loading="lazy" src={item.media?.heroImageUrl ?? item.media?.thumbnailImageUrl ?? ""} /> : null}

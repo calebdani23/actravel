@@ -1,6 +1,10 @@
 import { type Locale } from "@/lib/i18n/config";
 import { translateSlug } from "@/lib/content/public-site";
 
+export type LocalizedAlternatePaths = Partial<Record<Locale, string>>;
+
+type DetailRouteKind = "destination" | "service" | "package" | "deal";
+
 type RouteInfo = {
   title: string;
   description: string;
@@ -60,6 +64,20 @@ const localizedRoutePairs: Record<Locale, Record<string, string>> = {
     "payments-cancellations": "pagos-cancelaciones",
   },
 };
+
+const detailRouteSections: Record<DetailRouteKind, Record<Locale, string>> = {
+  destination: { es: "destinos", en: "destinations" },
+  service: { es: "servicios", en: "services" },
+  package: { es: "paquetes", en: "packages" },
+  deal: { es: "promociones", en: "deals" },
+};
+
+export function buildDetailAlternatePaths(kind: DetailRouteKind, slug: Record<Locale, string>): Record<Locale, string> {
+  return {
+    es: `/es/${detailRouteSections[kind].es}/${slug.es}`,
+    en: `/en/${detailRouteSections[kind].en}/${slug.en}`,
+  };
+}
 
 export function getLocalizedPath(pathname: string, targetLocale: Locale, alternateHref?: string | null) {
   const alternatePath = resolveAlternateLocalizedPath(targetLocale, alternateHref);

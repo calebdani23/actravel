@@ -11,7 +11,7 @@ import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
 import { buildLivePublicCatalogContent } from "@/lib/content/public-catalog";
 import { buildPublicCatalogStaticParams } from "@/lib/content/public-catalog-utils";
 import { buildFallbackCatalogContent, buildPublicCatalogContent, buildPublicCatalogItem, buildPublicHomeContent, getPublicSiteContent, getRelatedPromotionItems, mergeCatalogWithFallback, priceLabel, publishedCatalogRows, translateSlug } from "@/lib/content/public-site";
-import { getLocalizedPath, resolveAlternateLocalizedPath } from "@/lib/i18n/public-routes";
+import { buildDetailAlternatePaths, getLocalizedPath, resolveAlternateLocalizedPath } from "@/lib/i18n/public-routes";
 import { buildQuotePageInitialContext } from "@/lib/quote-page-context";
 
 function buildQueryResult(data: unknown, error: { message: string; code?: string } | null = null) {
@@ -342,21 +342,37 @@ test("package static params and slug translation support package detail routes",
   assert.equal(translateSlug(getPublicSiteContent("es").routes.packages, "es", "en", "paquete-1"), "package-1");
 });
 
-test("localized package detail routes prefer live alternate slugs when available", () => {
-  const liveAlternateHref = "https://actravel.test/en/packages/family-riviera";
+test("localized catalog detail routes prefer trusted live alternate slugs across sections", () => {
+  const destinationAlternates = buildDetailAlternatePaths("destination", { es: "riviera-maya", en: "mayan-riviera" });
+  const serviceAlternates = buildDetailAlternatePaths("service", { es: "traslado-privado", en: "private-transfer" });
+  const packageAlternates = buildDetailAlternatePaths("package", { es: "riviera-familiar", en: "family-riviera" });
+  const dealAlternates = buildDetailAlternatePaths("deal", { es: "verano-total", en: "summer-special" });
 
-  assert.equal(resolveAlternateLocalizedPath("en", liveAlternateHref), "/en/packages/family-riviera");
-  assert.equal(getLocalizedPath("/es/paquetes/riviera-familiar", "en", liveAlternateHref), "/en/packages/family-riviera");
-  assert.equal(getLocalizedPath("/es/paquetes/riviera-familiar", "en"), "/en/packages/riviera-familiar");
+  assert.deepEqual(destinationAlternates, { es: "/es/destinos/riviera-maya", en: "/en/destinations/mayan-riviera" });
+  assert.deepEqual(serviceAlternates, { es: "/es/servicios/traslado-privado", en: "/en/services/private-transfer" });
+  assert.deepEqual(packageAlternates, { es: "/es/paquetes/riviera-familiar", en: "/en/packages/family-riviera" });
+  assert.deepEqual(dealAlternates, { es: "/es/promociones/verano-total", en: "/en/deals/summer-special" });
+
+  assert.equal(resolveAlternateLocalizedPath("en", packageAlternates.en), "/en/packages/family-riviera");
+  assert.equal(getLocalizedPath(packageAlternates.es, "en", packageAlternates.en), "/en/packages/family-riviera");
+  assert.equal(getLocalizedPath(packageAlternates.es, "en"), "/en/packages/riviera-familiar");
+  assert.equal(getLocalizedPath(destinationAlternates.en, "es", destinationAlternates.es), "/es/destinos/riviera-maya");
+  assert.equal(getLocalizedPath(serviceAlternates.es, "en", serviceAlternates.en), "/en/services/private-transfer");
+  assert.equal(getLocalizedPath(dealAlternates.en, "es", dealAlternates.es), "/es/promociones/verano-total");
 });
 
 test("localized routes no longer depend on document alternates for language switching", () => {
   const switchSource = readFileSync("components/public/language-switch.tsx", "utf8");
+  const providerSource = readFileSync("components/public/public-route-provider.tsx", "utf8");
+  const detailSource = readFileSync("components/public/public-pages.tsx", "utf8");
   const routesSource = readFileSync("lib/i18n/public-routes.ts", "utf8");
 
-  assert.match(switchSource, /href=\{getLocalizedPath\(pathname, option\)\}/);
+  assert.match(switchSource, /href=\{getLocalizedPath\(pathname, option, alternatePaths\?\.\[option\]\)\}/);
   assert.doesNotMatch(switchSource, /document\.head/);
   assert.doesNotMatch(switchSource, /querySelector\(`link\[rel="alternate"\]\[hreflang=/);
+  assert.match(detailSource, /const alternatePaths = buildDetailAlternatePaths\(kind, item\.slug\);/);
+  assert.match(detailSource, /<PublicRouteAlternates alternatePaths=\{alternatePaths\} \/>/);
+  assert.match(providerSource, /return \(\) => \{\s+setAlternatePaths\(null\);\s+\};/m);
   assert.doesNotMatch(routesSource, /function localizedAlternatePath/);
   assert.doesNotMatch(routesSource, /document\.head/);
 });
