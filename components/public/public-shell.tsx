@@ -3,7 +3,7 @@ import { Navbar } from "@/components/public/navbar";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import { getDictionary, type Locale } from "@/lib/i18n/config";
 
-export function PublicShell({ children, locale }: Readonly<{ children: React.ReactNode; locale: Locale }>) {
+export async function PublicShell({ children, locale }: Readonly<{ children: React.ReactNode; locale: Locale }>) {
   const dictionary = getDictionary(locale);
 
   return (

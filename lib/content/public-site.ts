@@ -1,3 +1,5 @@
+import { type Currency } from "@/lib/currency/config";
+import { formatCurrencyAmount } from "@/lib/currency/preference";
 import { type Locale } from "@/lib/i18n/config";
 import { normalizeDetailSectionsValue, type DetailSection } from "@/lib/catalog-detail-sections";
 import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
@@ -587,11 +589,10 @@ export function translateSlug(section: string, from: Locale, to: Locale, slug?: 
   return collection.find((item) => item.slug[from] === slug)?.slug[to];
 }
 
-export function priceLabel(locale: Locale, price: PriceDisplay) {
+export function priceLabel(locale: Locale, price: PriceDisplay, currency: Currency = "MXN") {
   if (price.type === "consult") return locale === "es" ? "Consultar" : "Check availability";
-  const amount = locale === "es" ? price.mxn : price.usd;
-  const currency = locale === "es" ? "MXN" : "USD";
-  return `${locale === "es" ? "Desde" : "From"} ${new Intl.NumberFormat(locale === "es" ? "es-MX" : "en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount ?? 0)}`;
+  const amount = currency === "USD" ? price.usd : price.mxn;
+  return `${locale === "es" ? "Desde" : "From"} ${formatCurrencyAmount(locale, currency, amount ?? 0)}`;
 }
 
 export function waMessage(locale: Locale, topic: string) {

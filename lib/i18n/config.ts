@@ -1,6 +1,6 @@
 export const locales = ["es", "en"] as const;
 export type Locale = (typeof locales)[number];
-export type Currency = "MXN" | "USD";
+export type { Currency } from "@/lib/currency/config";
 
 export function isLocale(value: string): value is Locale {
   return locales.includes(value as Locale);

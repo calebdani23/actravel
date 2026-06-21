@@ -1,3 +1,4 @@
+import { getServerCurrencyPreference } from "@/lib/currency/preference-server";
 import Link from "next/link";
 import { BrandMark } from "@/components/public/brand-mark";
 import { CurrencySwitch } from "@/components/public/currency-switch";
@@ -5,8 +6,9 @@ import { LanguageSwitch } from "@/components/public/language-switch";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import { getDictionary, type Locale } from "@/lib/i18n/config";
 
-export function Navbar({ locale }: Readonly<{ locale: Locale }>) {
+export async function Navbar({ locale }: Readonly<{ locale: Locale }>) {
   const dictionary = getDictionary(locale);
+  const currency = await getServerCurrencyPreference();
 
   return (
     <header className="sticky top-0 z-20 border-b border-white/70 bg-white/85 backdrop-blur-xl">
@@ -18,7 +20,7 @@ export function Navbar({ locale }: Readonly<{ locale: Locale }>) {
               <LanguageSwitch locale={locale} label={dictionary.controls.languageLabel} />
             </div>
             <div className="hidden md:block">
-              <CurrencySwitch label={dictionary.controls.currencyLabel} />
+              <CurrencySwitch label={dictionary.controls.currencyLabel} initialCurrency={currency} />
             </div>
             <WhatsAppCta message={dictionary.home.whatsappMessage} label={dictionary.nav.whatsapp} locale={locale} pagePath={`/${locale}:nav`} className="hidden rounded-full md:inline-flex" />
           </div>
@@ -40,7 +42,7 @@ export function Navbar({ locale }: Readonly<{ locale: Locale }>) {
           </div>
           <div className="ml-auto flex items-center gap-2 sm:hidden">
             <LanguageSwitch locale={locale} label={dictionary.controls.languageLabel} />
-            <CurrencySwitch label={dictionary.controls.currencyLabel} />
+            <CurrencySwitch label={dictionary.controls.currencyLabel} initialCurrency={currency} />
           </div>
         </div>
       </nav>

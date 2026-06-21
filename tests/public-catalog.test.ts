@@ -3,12 +3,14 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { normalizeDetailSectionsValue } from "@/lib/catalog-detail-sections";
+import { normalizeCurrencyPreference, parseCurrencyCookie } from "@/lib/currency/preference";
 import { normalizePromotionCommercialSectionsValue } from "@/lib/promotion-commercial-sections";
 import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
 import { buildLivePublicCatalogContent } from "@/lib/content/public-catalog";
 import { buildPublicCatalogStaticParams } from "@/lib/content/public-catalog-utils";
-import { buildFallbackCatalogContent, buildPublicCatalogContent, buildPublicCatalogItem, buildPublicHomeContent, getPublicSiteContent, getRelatedPromotionItems, mergeCatalogWithFallback, publishedCatalogRows, translateSlug } from "@/lib/content/public-site";
+import { buildFallbackCatalogContent, buildPublicCatalogContent, buildPublicCatalogItem, buildPublicHomeContent, getPublicSiteContent, getRelatedPromotionItems, mergeCatalogWithFallback, priceLabel, publishedCatalogRows, translateSlug } from "@/lib/content/public-site";
 import { getLocalizedPath, resolveAlternateLocalizedPath } from "@/lib/i18n/public-routes";
+import { buildQuotePageInitialContext } from "@/lib/quote-page-context";
 
 function buildQueryResult(data: unknown, error: { message: string; code?: string } | null = null) {
   return { data, error };
@@ -67,6 +69,31 @@ test("catalog media urls resolve storage paths and absolute urls", () => {
   assert.equal(resolveCatalogMediaUrl("https://example.com/image.jpg"), "https://example.com/image.jpg");
   assert.match(resolveCatalogMediaUrl("storage://catalog-media/items/hero.jpg", { baseUrl: "https://project.supabase.co" }) ?? "", /https:\/\/project\.supabase\.co\/storage\/v1\/object\/public\/catalog-media\/items\/hero\.jpg/);
   assert.equal(resolveCatalogMediaUrl("catalog-media/items/thumb.jpg", { baseUrl: "https://project.supabase.co" }), "https://project.supabase.co/storage/v1/object/public/catalog-media/items/thumb.jpg");
+});
+
+test("currency helpers prefer valid cookie values and keep language copy independent", () => {
+  assert.equal(parseCurrencyCookie("foo=bar; ac-travel-currency=USD"), "USD");
+  assert.equal(normalizeCurrencyPreference("invalid"), "MXN");
+  assert.equal(priceLabel("es", { type: "from", mxn: 12900, usd: 750 }, "USD"), "Desde $750");
+  assert.equal(priceLabel("en", { type: "from", mxn: 12900, usd: 750 }, "MXN"), "From MX$12,900");
+});
+
+test("quote page context lets query currency override cookie fallback", () => {
+  assert.deepEqual(buildQuotePageInitialContext({}, "USD"), {
+    mainDestination: undefined,
+    serviceInterest: undefined,
+    sourceChannel: undefined,
+    campaignContext: undefined,
+    preferredCurrency: "USD",
+  });
+
+  assert.deepEqual(buildQuotePageInitialContext({ currency: "mxn", destination: " Cancún " }, "USD"), {
+    mainDestination: "Cancún",
+    serviceInterest: undefined,
+    sourceChannel: undefined,
+    campaignContext: undefined,
+    preferredCurrency: "MXN",
+  });
 });
 
 test("public catalog content returns only published rows and keeps live filtering", () => {
@@ -286,9 +313,9 @@ test("public pages use the same resolved catalog helpers as SEO and static param
   const pageSource = readFileSync("components/public/public-pages.tsx", "utf8");
 
   assert.match(pageSource, /import \{ getPublicCatalogContent, getPublicCatalogItem \} from "@\/lib\/content\/public-catalog"/);
-  assert.match(pageSource, /const catalog = await getPublicCatalogContent\(locale\);/);
+  assert.match(pageSource, /const \[catalog, currency\] = await Promise\.all\(\[getPublicCatalogContent\(locale\), getServerCurrencyPreference\(\)\]\);/);
   assert.match(pageSource, /const catalogKind = kind === "deal" \? "promotions" : kind === "package" \? "packages" : kind === "service" \? "services" : "destinations";/);
-  assert.match(pageSource, /const \[catalog, item\] = await Promise\.all\(\[getPublicCatalogContent\(locale\), getPublicCatalogItem\(locale, catalogKind, slug\)\]\);/);
+  assert.match(pageSource, /const \[catalog, item, currency\] = await Promise\.all\(\[getPublicCatalogContent\(locale\), getPublicCatalogItem\(locale, catalogKind, slug\), getServerCurrencyPreference\(\)\]\);/);
   assert.match(pageSource, /const commercialSections = kind === "deal" \? item\.commercialSections\?\.\[locale\] \?\? null : null;/);
   assert.match(pageSource, /const detailSections = item\.detailSections\?\.\[locale\] \?\? null;/);
   assert.match(pageSource, /commercialSections \? \(/);
@@ -297,7 +324,7 @@ test("public pages use the same resolved catalog helpers as SEO and static param
   assert.match(pageSource, /valueHighlights/);
   assert.match(pageSource, /detailSections && detailSections\.length \?/);
   assert.match(pageSource, /section\.title \? <h3/);
-  assert.match(pageSource, /kind === "services" \? <CatalogItemGrid locale=\{locale\} items=\{serviceItems\} section="services" \/> : null/);
+  assert.match(pageSource, /kind === "services" \? <CatalogItemGrid locale=\{locale\} items=\{serviceItems\} section="services" initialCurrency=\{currency\} \/> : null/);
   assert.match(pageSource, /const relatedPromotions = getRelatedPromotionItems\(catalog, kind === "deal" \? "promotion" : kind, item\);/);
   assert.match(pageSource, /relatedPromotions\.length \? \(/);
   assert.match(pageSource, /section="deals"/);
@@ -313,9 +340,9 @@ test("home page and localized route config expose service, package, and promotio
   const serviciosRouteSource = readFileSync("app/[locale]/servicios/[slug]/page.tsx", "utf8");
   const publicPagesSource = readFileSync("components/public/public-pages.tsx", "utf8");
 
-  assert.match(homeSource, /<CatalogItemGrid locale=\{locale\} items=\{content\.packages\.slice\(0, 3\)\} section="packages" \/>/);
-  assert.match(homeSource, /<HomeServicesSection locale=\{locale\} items=\{content\.services\} \/>/);
-  assert.match(homeSource, /<HomePromotionsSection locale=\{locale\} items=\{content\.promotions\} \/>/);
+  assert.match(homeSource, /<CatalogItemGrid locale=\{locale\} items=\{content\.packages\.slice\(0, 3\)\} section="packages" initialCurrency=\{currency\} \/>/);
+  assert.match(homeSource, /<HomeServicesSection locale=\{locale\} items=\{content\.services\} initialCurrency=\{currency\} \/>/);
+  assert.match(homeSource, /<HomePromotionsSection locale=\{locale\} items=\{content\.promotions\} initialCurrency=\{currency\} \/>/);
   assert.match(routesSource, /servicios: \{ title: "Servicios", description: .* allowsSlug: true \}/);
   assert.match(routesSource, /paquetes: \{ title: "Paquetes", description: .* allowsSlug: true \}/);
   assert.match(routesSource, /services: \{ title: "Services", description: .* allowsSlug: true \}/);
@@ -326,7 +353,7 @@ test("home page and localized route config expose service, package, and promotio
   assert.match(serviciosRouteSource, /buildDetailMetadata\(locale, "service", slug\)/);
   assert.match(publicPagesSource, /export function HomePromotionsSection/);
   assert.match(publicPagesSource, /if \(items\.length <= 3\) \{/);
-  assert.match(publicPagesSource, /return <CatalogItemGrid locale=\{locale\} items=\{items\} section="deals" \/>/);
+  assert.match(publicPagesSource, /return <CatalogItemGrid locale=\{locale\} items=\{items\} section="deals" initialCurrency=\{initialCurrency\} \/>/);
   assert.match(publicPagesSource, /section="deals"/);
 });
 

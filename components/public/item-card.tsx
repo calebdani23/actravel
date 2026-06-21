@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type React from "react";
 import { ChevronRight } from "lucide-react";
 
 export function ItemCard({
@@ -11,7 +12,7 @@ export function ItemCard({
   highlights = [],
   note,
   imageUrl,
-}: Readonly<{ title: string; summary: string; eyebrow?: string; price?: string; href?: string; cta: string; highlights?: string[]; note?: string; imageUrl?: string }>) {
+}: Readonly<{ title: string; summary: string; eyebrow?: string; price?: React.ReactNode; href?: string; cta: string; highlights?: string[]; note?: string; imageUrl?: string }>) {
   const hasSupportingContent = highlights.length > 0 || Boolean(note);
 
   const card = (

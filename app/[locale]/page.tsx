@@ -8,6 +8,7 @@ import { TrustBlock } from "@/components/public/trust-block";
 import { ValueGrid } from "@/components/public/value-grid";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import { Button } from "@/components/ui/button";
+import { getServerCurrencyPreference } from "@/lib/currency/preference-server";
 import { getPublicCatalogContent } from "@/lib/content/public-catalog";
 import { buildPublicHomeContent, localizedPath, waMessage } from "@/lib/content/public-site";
 import { type Locale } from "@/lib/i18n/config";
@@ -20,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 
 export default async function LocaleHome({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
-  const catalog = await getPublicCatalogContent(locale);
+  const [catalog, currency] = await Promise.all([getPublicCatalogContent(locale), getServerCurrencyPreference()]);
   const content = buildPublicHomeContent(locale, catalog);
   const { t } = content;
   const heroBannerSrc = locale === "en" ? "/brand/ac-travel-hero-banner-en.png" : "/brand/ac-travel-hero-banner-es.png";
@@ -71,21 +72,21 @@ export default async function LocaleHome({ params }: { params: Promise<{ locale:
 
       <section className="space-y-6">
         <SectionHeader title={t.sections.destinations[0]} description={t.sections.destinations[1]} />
-        <CatalogItemGrid locale={locale} items={content.destinations.filter((item) => item.featured)} section="destinations" />
+        <CatalogItemGrid locale={locale} items={content.destinations.filter((item) => item.featured)} section="destinations" initialCurrency={currency} />
       </section>
       <HowItWorks title={t.sections.process[0]} description={t.sections.process[1]} steps={[...t.process]} />
       <section className="space-y-6">
         <SectionHeader title={t.sections.services[0]} description={t.sections.services[1]} />
-        <HomeServicesSection locale={locale} items={content.services} />
+        <HomeServicesSection locale={locale} items={content.services} initialCurrency={currency} />
       </section>
       <section className="space-y-6">
         <SectionHeader title={t.sections.deals[0]} description={t.sections.deals[1]} />
-        <HomePromotionsSection locale={locale} items={content.promotions} />
+        <HomePromotionsSection locale={locale} items={content.promotions} initialCurrency={currency} />
       </section>
       {content.packages.length ? (
         <section className="space-y-6">
           <SectionHeader title={locale === "es" ? "Paquetes" : "Packages"} description={locale === "es" ? "Paquetes publicados desde el catálogo live." : "Published packages from the live catalog."} />
-          <CatalogItemGrid locale={locale} items={content.packages.slice(0, 3)} section="packages" />
+          <CatalogItemGrid locale={locale} items={content.packages.slice(0, 3)} section="packages" initialCurrency={currency} />
         </section>
       ) : null}
       <TrustBlock

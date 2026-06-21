@@ -1,18 +1,30 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import { type Currency } from "@/lib/i18n/config";
+import { useEffect, useSyncExternalStore } from "react";
+import { type Currency } from "@/lib/currency/config";
+import {
+  getClientCurrencyPreference,
+  setClientCurrencyPreference,
+  subscribeToCurrencyPreference,
+  syncClientCurrencyPreference,
+} from "@/lib/currency/preference-client";
 import { cn } from "@/lib/utils/cn";
 
-const STORAGE_KEY = "ac-travel-currency";
 const currencies: Currency[] = ["MXN", "USD"];
 
-export function CurrencySwitch({ label }: Readonly<{ label: string }>) {
-  const currency = useSyncExternalStore(subscribeToCurrency, getCurrencySnapshot, getServerCurrencySnapshot);
+export function CurrencySwitch({ label, initialCurrency }: Readonly<{ label: string; initialCurrency: Currency }>) {
+  const currency = useSyncExternalStore(
+    subscribeToCurrencyPreference,
+    () => getClientCurrencyPreference(initialCurrency),
+    () => initialCurrency,
+  );
+
+  useEffect(() => {
+    syncClientCurrencyPreference(initialCurrency);
+  }, [initialCurrency]);
 
   function chooseCurrency(nextCurrency: Currency) {
-    window.localStorage.setItem(STORAGE_KEY, nextCurrency);
-    window.dispatchEvent(new Event("ac-travel-currency-change"));
+    setClientCurrencyPreference(nextCurrency);
   }
 
   return (
@@ -33,23 +45,4 @@ export function CurrencySwitch({ label }: Readonly<{ label: string }>) {
       ))}
     </div>
   );
-}
-
-function getCurrencySnapshot(): Currency {
-  const saved = window.localStorage.getItem(STORAGE_KEY);
-  return saved === "USD" ? "USD" : "MXN";
-}
-
-function getServerCurrencySnapshot(): Currency {
-  return "MXN";
-}
-
-function subscribeToCurrency(callback: () => void) {
-  window.addEventListener("storage", callback);
-  window.addEventListener("ac-travel-currency-change", callback);
-
-  return () => {
-    window.removeEventListener("storage", callback);
-    window.removeEventListener("ac-travel-currency-change", callback);
-  };
 }

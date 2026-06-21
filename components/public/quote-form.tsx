@@ -23,7 +23,7 @@ type RecoveryNotice = {
 function defaultValues(locale: Locale, initialContext: QuoteFormInitialContext = {}): QuoteRequestInput {
   return {
     locale,
-    preferredCurrency: initialContext.preferredCurrency ?? (locale === "es" ? "MXN" : "USD"),
+    preferredCurrency: initialContext.preferredCurrency ?? "MXN",
     holderName: "",
     email: "",
     whatsapp: "",

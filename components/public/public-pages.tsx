@@ -2,23 +2,25 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { CatalogCardSlider } from "@/components/public/catalog-card-slider";
+import { FormattedPrice } from "@/components/public/formatted-price";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import { ItemCard } from "@/components/public/item-card";
 import { LegalNotice } from "@/components/public/legal-notice";
 import { QuoteForm, type QuoteFormInitialContext } from "@/components/public/quote-form";
 import { SectionHeader } from "@/components/public/section-header";
 import { Button } from "@/components/ui/button";
+import { type Currency } from "@/lib/currency/config";
+import { getServerCurrencyPreference } from "@/lib/currency/preference-server";
+import { getPublicCatalogContent, getPublicCatalogItem } from "@/lib/content/public-catalog";
 import { type Locale } from "@/lib/i18n/config";
 import {
   getPublicSiteContent,
   getRelatedPromotionItems,
   localizedPath,
-  priceLabel,
   type LegalKey,
   type PublicItem,
   waMessage,
 } from "@/lib/content/public-site";
-import { getPublicCatalogContent, getPublicCatalogItem } from "@/lib/content/public-catalog";
 
 function PageShell({ children }: Readonly<{ children: ReactNode }>) {
   return <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-10 sm:px-6 lg:px-8">{children}</main>;
@@ -27,7 +29,7 @@ function PageShell({ children }: Readonly<{ children: ReactNode }>) {
 export async function ListingPage({ locale, kind }: Readonly<{ locale: Locale; kind: "services" | "packages" | "deals" | "destinations" }>) {
   const staticContent = getPublicSiteContent(locale);
   const page = staticContent.t.listingPages[kind];
-  const catalog = await getPublicCatalogContent(locale);
+  const [catalog, currency] = await Promise.all([getPublicCatalogContent(locale), getServerCurrencyPreference()]);
 
   const serviceItems = catalog?.services ?? [];
   const packageItems = catalog?.packages ?? [];
@@ -36,10 +38,10 @@ export async function ListingPage({ locale, kind }: Readonly<{ locale: Locale; k
   return (
     <PageShell>
       <SectionHeader eyebrow={page.eyebrow} title={page.title} description={page.description} />
-      {kind === "services" ? <CatalogItemGrid locale={locale} items={serviceItems} section="services" /> : null}
-      {kind === "packages" ? <CatalogItemGrid locale={locale} items={packageItems} section="packages" /> : null}
-      {kind === "deals" ? <CatalogItemGrid locale={locale} items={promotionItems} section="deals" /> : null}
-      {kind === "destinations" ? <CatalogItemGrid locale={locale} items={destinationItems} section="destinations" /> : null}
+      {kind === "services" ? <CatalogItemGrid locale={locale} items={serviceItems} section="services" initialCurrency={currency} /> : null}
+      {kind === "packages" ? <CatalogItemGrid locale={locale} items={packageItems} section="packages" initialCurrency={currency} /> : null}
+      {kind === "deals" ? <CatalogItemGrid locale={locale} items={promotionItems} section="deals" initialCurrency={currency} /> : null}
+      {kind === "destinations" ? <CatalogItemGrid locale={locale} items={destinationItems} section="destinations" initialCurrency={currency} /> : null}
       <p className="rounded-3xl bg-[var(--ac-light-bg)] p-5 text-sm leading-6 text-muted-foreground">{page.note}</p>
       <FinalCta locale={locale} title={page.ctaTitle} text={page.ctaText} whatsappTopic={page.ctaTopic} />
     </PageShell>
@@ -50,7 +52,7 @@ function CatalogEmptyState({ locale }: Readonly<{ locale: Locale }>) {
   return <p className="rounded-3xl border bg-white p-6 text-sm text-muted-foreground">{locale === "es" ? "No hay contenido publicado todavía." : "No published content yet."}</p>;
 }
 
-export function CatalogItemGrid({ locale, items, section }: Readonly<{ locale: Locale; items: PublicItem[]; section: "services" | "packages" | "deals" | "destinations" }>) {
+export function CatalogItemGrid({ locale, items, section, initialCurrency }: Readonly<{ locale: Locale; items: PublicItem[]; section: "services" | "packages" | "deals" | "destinations"; initialCurrency: Currency }>) {
   if (!items.length) {
     return <CatalogEmptyState locale={locale} />;
   }
@@ -63,7 +65,7 @@ export function CatalogItemGrid({ locale, items, section }: Readonly<{ locale: L
           title={item.title[locale]}
           summary={item.summary[locale]}
           eyebrow={item.eyebrow?.[locale]}
-          price={priceLabel(locale, item.price)}
+          price={<FormattedPrice locale={locale} price={item.price} initialCurrency={initialCurrency} />}
           highlights={item.highlights[locale]}
           note={item.detailNote?.[locale] ?? undefined}
           href={localizedPath(locale, section, item.slug[locale])}
@@ -77,7 +79,7 @@ export function CatalogItemGrid({ locale, items, section }: Readonly<{ locale: L
 
 export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Locale; slug: string; kind: "deal" | "destination" | "package" | "service" }>) {
   const catalogKind = kind === "deal" ? "promotions" : kind === "package" ? "packages" : kind === "service" ? "services" : "destinations";
-  const [catalog, item] = await Promise.all([getPublicCatalogContent(locale), getPublicCatalogItem(locale, catalogKind, slug)]);
+  const [catalog, item, currency] = await Promise.all([getPublicCatalogContent(locale), getPublicCatalogItem(locale, catalogKind, slug), getServerCurrencyPreference()]);
   if (!item) notFound();
   const relatedPromotions = getRelatedPromotionItems(catalog, kind === "deal" ? "promotion" : kind, item);
   const back = kind === "deal" ? "deals" : kind === "package" ? "packages" : kind === "service" ? "services" : "destinations";
@@ -100,7 +102,7 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
           <h1 className="mt-3 text-4xl font-black text-[var(--ac-ink)] md:text-5xl">{item.title[locale]}</h1>
           <p className="mt-5 text-lg leading-8 text-muted-foreground">{item.description[locale]}</p>
           {item.bestFor ? <p className="mt-4 rounded-3xl bg-[var(--ac-light-bg)] p-4 text-sm font-semibold leading-6 text-[var(--ac-ink)]">{item.bestFor[locale]}</p> : null}
-          <p className="mt-5 text-xl font-extrabold text-[var(--ac-red)]">{priceLabel(locale, item.price)}</p>
+          <FormattedPrice locale={locale} price={item.price} initialCurrency={currency} className="mt-5 text-xl font-extrabold text-[var(--ac-red)]" />
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
              <WhatsAppCta message={waMessage(locale, item.title[locale])} label={item.detailCta?.[locale] ?? (locale === "es" ? "Consultar por WhatsApp" : "Ask on WhatsApp")} locale={locale} pagePath={`/${locale}/${back}/${item.slug[locale]}:detail`} className="rounded-full" />
             <Button asChild variant="outline" className="rounded-full">
@@ -189,14 +191,14 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
             title={locale === "es" ? "Promociones publicadas para seguir explorando" : "Published promotions to keep exploring"}
             description={locale === "es" ? "Mostramos solo promociones publicadas conectadas a este detalle." : "We only show published promotions connected to this detail."}
           />
-          <CatalogItemGrid locale={locale} items={relatedPromotions} section="deals" />
+          <CatalogItemGrid locale={locale} items={relatedPromotions} section="deals" initialCurrency={currency} />
         </section>
       ) : null}
     </PageShell>
   );
 }
 
-export function HomeServicesSection({ locale, items }: Readonly<{ locale: Locale; items: PublicItem[] }>) {
+export function HomeServicesSection({ locale, items, initialCurrency }: Readonly<{ locale: Locale; items: PublicItem[]; initialCurrency: Currency }>) {
   if (!items.length) {
     return <CatalogEmptyState locale={locale} />;
   }
@@ -206,6 +208,7 @@ export function HomeServicesSection({ locale, items }: Readonly<{ locale: Locale
       locale={locale}
       items={items}
       section="services"
+      initialCurrency={initialCurrency}
       cta={locale === "es" ? "Ver detalle" : "View detail"}
       previousLabel={locale === "es" ? "Ver servicios anteriores" : "View previous services"}
       nextLabel={locale === "es" ? "Ver más servicios" : "View more services"}
@@ -213,13 +216,13 @@ export function HomeServicesSection({ locale, items }: Readonly<{ locale: Locale
   );
 }
 
-export function HomePromotionsSection({ locale, items }: Readonly<{ locale: Locale; items: PublicItem[] }>) {
+export function HomePromotionsSection({ locale, items, initialCurrency }: Readonly<{ locale: Locale; items: PublicItem[]; initialCurrency: Currency }>) {
   if (!items.length) {
     return <CatalogEmptyState locale={locale} />;
   }
 
   if (items.length <= 3) {
-    return <CatalogItemGrid locale={locale} items={items} section="deals" />;
+    return <CatalogItemGrid locale={locale} items={items} section="deals" initialCurrency={initialCurrency} />;
   }
 
   return (
@@ -227,6 +230,7 @@ export function HomePromotionsSection({ locale, items }: Readonly<{ locale: Loca
       locale={locale}
       items={items}
       section="deals"
+      initialCurrency={initialCurrency}
       cta={locale === "es" ? "Ver detalle" : "View detail"}
       previousLabel={locale === "es" ? "Ver promociones anteriores" : "View previous promotions"}
       nextLabel={locale === "es" ? "Ver más promociones" : "View more promotions"}

@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { FormattedPrice } from "@/components/public/formatted-price";
 import { ItemCard } from "@/components/public/item-card";
 import { Button } from "@/components/ui/button";
-import { localizedPath, priceLabel, type PublicItem } from "@/lib/content/public-site";
+import { type Currency } from "@/lib/currency/config";
+import { localizedPath, type PublicItem } from "@/lib/content/public-site";
 import { type Locale } from "@/lib/i18n/config";
 
 type SliderSection = "services" | "packages" | "deals" | "destinations";
@@ -14,6 +16,7 @@ export function CatalogCardSlider({
   items,
   section,
   cta,
+  initialCurrency,
   previousLabel,
   nextLabel,
 }: Readonly<{
@@ -21,6 +24,7 @@ export function CatalogCardSlider({
   items: PublicItem[];
   section: SliderSection;
   cta: string;
+  initialCurrency: Currency;
   previousLabel?: string;
   nextLabel?: string;
 }>) {
@@ -72,7 +76,7 @@ export function CatalogCardSlider({
               title={item.title[locale]}
               summary={item.summary[locale]}
               eyebrow={item.eyebrow?.[locale]}
-              price={priceLabel(locale, item.price)}
+              price={<FormattedPrice locale={locale} price={item.price} initialCurrency={initialCurrency} />}
               highlights={item.highlights[locale]}
               note={item.detailNote?.[locale] ?? undefined}
               href={localizedPath(locale, section, item.slug[locale])}
