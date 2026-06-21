@@ -22,6 +22,10 @@ import {
   waMessage,
 } from "@/lib/content/public-site";
 
+function isPromotionPriceFactLabel(label: string) {
+  return /^(precio|price)$/i.test(label.trim());
+}
+
 function PageShell({ children }: Readonly<{ children: ReactNode }>) {
   return <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-10 sm:px-6 lg:px-8">{children}</main>;
 }
@@ -122,7 +126,11 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
                   {commercialSections.offerFacts.map((fact) => (
                     <div className="flex items-start justify-between gap-3 rounded-2xl bg-white px-4 py-3" key={`${fact.label}:${fact.value}`}>
                       <span className="font-semibold text-[var(--ac-ink)]">{fact.label}</span>
-                      <span className={fact.emphasis ? "font-black text-[var(--ac-red)]" : "text-right"}>{fact.value}</span>
+                      <span className={fact.emphasis ? "font-black text-[var(--ac-red)]" : "text-right"}>
+                        {isPromotionPriceFactLabel(fact.label)
+                          ? <FormattedPrice locale={locale} price={item.price} initialCurrency={currency} />
+                          : fact.value}
+                      </span>
                     </div>
                   ))}
                 </div>

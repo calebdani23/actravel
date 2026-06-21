@@ -62,7 +62,7 @@ const localizedRoutePairs: Record<Locale, Record<string, string>> = {
 };
 
 export function getLocalizedPath(pathname: string, targetLocale: Locale, alternateHref?: string | null) {
-  const alternatePath = resolveAlternateLocalizedPath(targetLocale, alternateHref) ?? localizedAlternatePath(targetLocale);
+  const alternatePath = resolveAlternateLocalizedPath(targetLocale, alternateHref);
 
   if (alternatePath) {
     return alternatePath;
@@ -100,16 +100,6 @@ export function resolveAlternateLocalizedPath(targetLocale: Locale, href?: strin
   } catch {
     return null;
   }
-}
-
-function localizedAlternatePath(targetLocale: Locale) {
-  if (typeof document === "undefined") return null;
-
-  const alternateHref = document.head
-    .querySelector(`link[rel="alternate"][hreflang="${targetLocale}"]`)
-    ?.getAttribute("href");
-
-  return resolveAlternateLocalizedPath(targetLocale, alternateHref);
 }
 
 function isKnownLocale(value: string | undefined): value is Locale {

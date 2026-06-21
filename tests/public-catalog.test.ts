@@ -347,6 +347,18 @@ test("localized package detail routes prefer live alternate slugs when available
 
   assert.equal(resolveAlternateLocalizedPath("en", liveAlternateHref), "/en/packages/family-riviera");
   assert.equal(getLocalizedPath("/es/paquetes/riviera-familiar", "en", liveAlternateHref), "/en/packages/family-riviera");
+  assert.equal(getLocalizedPath("/es/paquetes/riviera-familiar", "en"), "/en/packages/riviera-familiar");
+});
+
+test("localized routes no longer depend on document alternates for language switching", () => {
+  const switchSource = readFileSync("components/public/language-switch.tsx", "utf8");
+  const routesSource = readFileSync("lib/i18n/public-routes.ts", "utf8");
+
+  assert.match(switchSource, /href=\{getLocalizedPath\(pathname, option\)\}/);
+  assert.doesNotMatch(switchSource, /document\.head/);
+  assert.doesNotMatch(switchSource, /querySelector\(`link\[rel="alternate"\]\[hreflang=/);
+  assert.doesNotMatch(routesSource, /function localizedAlternatePath/);
+  assert.doesNotMatch(routesSource, /document\.head/);
 });
 
 test("catalog fallback is reused end-to-end when live loading fails", () => {
@@ -396,6 +408,9 @@ test("public pages use the same resolved catalog helpers as SEO and static param
   assert.match(pageSource, /commercialSections \? \(/);
   assert.match(pageSource, /Detalles de la promoción/);
   assert.match(pageSource, /Promotion details/);
+  assert.match(pageSource, /function isPromotionPriceFactLabel\(label: string\)/);
+  assert.match(pageSource, /isPromotionPriceFactLabel\(fact\.label\)/);
+  assert.match(pageSource, /<FormattedPrice locale=\{locale\} price=\{item\.price\} initialCurrency=\{currency\} \/>/);
   assert.match(pageSource, /valueHighlights/);
   assert.match(pageSource, /detailSections && detailSections\.length \?/);
   assert.match(pageSource, /section\.title \? <h3/);
