@@ -25,14 +25,19 @@ function TextInput({ name, label, defaultValue, required = false, type = "text" 
   );
 }
 
-function TextArea({ name, label, defaultValue }: { name: string; label: string; defaultValue?: string | null }) {
+function TextArea({ name, label, defaultValue, placeholder, hint }: { name: string; label: string; defaultValue?: string | null; placeholder?: string; hint?: string }) {
   return (
     <label className="space-y-1 text-sm font-medium md:col-span-2">
       <span>{label}</span>
-      <textarea className="min-h-20 w-full rounded-md border px-3 py-2 text-sm" defaultValue={defaultValue ?? ""} name={name} />
+      <textarea className="min-h-20 w-full rounded-md border px-3 py-2 text-sm" defaultValue={defaultValue ?? ""} name={name} placeholder={placeholder} />
+      {hint ? <p className="text-xs font-normal text-muted-foreground">{hint}</p> : null}
     </label>
   );
 }
+
+const DESCRIPTION_FIELD_HINT = "Usa párrafos cortos con una línea en blanco entre ideas. Si necesitas listar puntos rápidos, escribe cada renglón con `- ` al inicio.";
+const DESCRIPTION_ES_PLACEHOLDER = "Párrafo inicial con contexto claro.\n\nSegundo párrafo con beneficios o enfoque.\n\n- Punto breve\n- Otro punto breve";
+const DESCRIPTION_EN_PLACEHOLDER = "Opening paragraph with clear context.\n\nSecond paragraph with benefits or approach.\n\n- Short point\n- Another short point";
 
 function DetailSectionsField({ row }: { row?: DestinationRow | ServiceRow | PackageRow }) {
   return (
@@ -155,8 +160,8 @@ function SharedBilingualFields({ row }: { row?: DestinationRow | ServiceRow | Pa
       <TextInput defaultValue={row?.slug_en} label="Slug EN" name="slug_en" required />
       <TextArea defaultValue={row?.summary_es} label="Resumen ES" name="summary_es" />
       <TextArea defaultValue={row?.summary_en} label="Resumen EN" name="summary_en" />
-      <TextArea defaultValue={row?.description_es} label="Descripción ES" name="description_es" />
-      <TextArea defaultValue={row?.description_en} label="Descripción EN" name="description_en" />
+      <TextArea defaultValue={row?.description_es} hint={DESCRIPTION_FIELD_HINT} label="Descripción ES" name="description_es" placeholder={DESCRIPTION_ES_PLACEHOLDER} />
+      <TextArea defaultValue={row?.description_en} hint={DESCRIPTION_FIELD_HINT} label="Descripción EN" name="description_en" placeholder={DESCRIPTION_EN_PLACEHOLDER} />
     </>
   );
 }
@@ -240,8 +245,8 @@ function CatalogForm({ resource, row, destinations, services, packages }: { reso
             </label>
             <TextArea defaultValue={promotion?.summary_es} label="Resumen ES" name="summary_es" />
             <TextArea defaultValue={promotion?.summary_en} label="Resumen EN" name="summary_en" />
-            <TextArea defaultValue={promotion?.details_es} label="Detalles ES" name="details_es" />
-            <TextArea defaultValue={promotion?.details_en} label="Detalles EN" name="details_en" />
+             <TextArea defaultValue={promotion?.details_es} hint={DESCRIPTION_FIELD_HINT} label="Detalles ES" name="details_es" placeholder={DESCRIPTION_ES_PLACEHOLDER} />
+             <TextArea defaultValue={promotion?.details_en} hint={DESCRIPTION_FIELD_HINT} label="Detalles EN" name="details_en" placeholder={DESCRIPTION_EN_PLACEHOLDER} />
             <PromotionCommercialSectionsField row={promotion} />
             <TextInput defaultValue={promotion?.price_from_mxn} label="Precio desde MXN" name="price_from_mxn" type="number" />
             <TextInput defaultValue={promotion?.price_from_usd} label="Precio desde USD" name="price_from_usd" type="number" />

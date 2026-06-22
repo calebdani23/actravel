@@ -10,6 +10,7 @@ import { LegalNotice } from "@/components/public/legal-notice";
 import { QuoteForm, type QuoteFormInitialContext } from "@/components/public/quote-form";
 import { SectionHeader } from "@/components/public/section-header";
 import { Button } from "@/components/ui/button";
+import { parseCatalogDescriptionBlocks } from "@/lib/catalog-description-blocks";
 import { type Currency } from "@/lib/currency/config";
 import { getServerCurrencyPreference } from "@/lib/currency/preference-server";
 import { getPublicCatalogContent, getPublicCatalogItem } from "@/lib/content/public-catalog";
@@ -30,6 +31,31 @@ function isPromotionPriceFactLabel(label: string) {
 
 function PageShell({ children }: Readonly<{ children: ReactNode }>) {
   return <main className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-10 sm:px-6 lg:px-8">{children}</main>;
+}
+
+function CatalogDescriptionContent({
+  text,
+  className,
+}: Readonly<{
+  text: string;
+  className?: string;
+}>) {
+  const blocks = parseCatalogDescriptionBlocks(text);
+  if (!blocks.length) return null;
+
+  return (
+    <div className={className}>
+      {blocks.map((block, index) =>
+        block.type === "paragraph" ? (
+          <p key={`paragraph:${index}`}>{block.text}</p>
+        ) : (
+          <ul className="grid gap-2 pl-5" key={`list:${index}`}>
+            {block.items.map((item) => <li className="list-disc" key={item}>{item}</li>)}
+          </ul>
+        ),
+      )}
+    </div>
+  );
 }
 
 export async function ListingPage({ locale, kind }: Readonly<{ locale: Locale; kind: "services" | "packages" | "deals" | "destinations" }>) {
@@ -108,7 +134,7 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
           {item.media?.heroImageUrl ?? item.media?.thumbnailImageUrl ? <img alt="" className="mb-5 h-72 w-full rounded-[2rem] object-cover" loading="lazy" src={item.media?.heroImageUrl ?? item.media?.thumbnailImageUrl ?? ""} /> : null}
           <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-[var(--ac-blue)]">{item.eyebrow?.[locale] ?? "AC Travel"}</p>
           <h1 className="mt-3 text-4xl font-black text-[var(--ac-ink)] md:text-5xl">{item.title[locale]}</h1>
-          <p className="mt-5 text-lg leading-8 text-muted-foreground">{item.description[locale]}</p>
+          <CatalogDescriptionContent className="mt-5 grid gap-4 text-lg leading-8 text-muted-foreground" text={item.description[locale]} />
           {item.bestFor ? <p className="mt-4 rounded-3xl bg-[var(--ac-light-bg)] p-4 text-sm font-semibold leading-6 text-[var(--ac-ink)]">{item.bestFor[locale]}</p> : null}
           <FormattedPrice locale={locale} price={item.price} initialCurrency={currency} className="mt-5 text-xl font-extrabold text-[var(--ac-red)]" />
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -173,7 +199,10 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
               {highlights.map((highlight) => <li key={highlight}>• {highlight}</li>)}
             </ul>
           ) : (
-            <p className="mt-4 text-sm leading-6 text-zinc-700">{kind === "package" || kind === "service" ? item.summary[locale] : item.description[locale]}</p>
+            <CatalogDescriptionContent
+              className="mt-4 grid gap-3 text-sm leading-6 text-zinc-700"
+              text={kind === "package" || kind === "service" ? item.summary[locale] : item.description[locale]}
+            />
           )}
           {item.planningNotes ? (
             <div className="mt-6 rounded-3xl bg-white p-5">

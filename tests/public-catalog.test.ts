@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { normalizeDetailSectionsValue } from "@/lib/catalog-detail-sections";
+import { parseCatalogDescriptionBlocks } from "@/lib/catalog-description-blocks";
 import { getClientCurrencyPreference, syncClientCurrencyPreference } from "@/lib/currency/preference-client";
 import { normalizeCurrencyPreference, parseCurrencyCookie, resolveCurrencyPreference } from "@/lib/currency/preference";
 import { shouldSyncQuoteFormCurrency } from "@/lib/quote-form-currency-sync";
@@ -65,6 +66,19 @@ test("detail section normalization accepts safe arrays and rejects malformed con
   assert.deepEqual(normalizeDetailSectionsValue([{ title: "How we help", items: ["Airport pickup", "Check-in support"] }]), [{ title: "How we help", items: ["Airport pickup", "Check-in support"] }]);
   assert.equal(normalizeDetailSectionsValue([{ title: "Broken", items: [] }]), null);
   assert.equal(normalizeDetailSectionsValue("bad-json-shape"), null);
+});
+
+test("catalog description blocks keep paragraphs and list groups stable", () => {
+  assert.deepEqual(parseCatalogDescriptionBlocks(""), []);
+  assert.deepEqual(parseCatalogDescriptionBlocks("Primer párrafo.\nSigue la misma idea.\n\n- Punto uno\n- Punto dos\n\nCierre final."), [
+    { type: "paragraph", text: "Primer párrafo. Sigue la misma idea." },
+    { type: "list", items: ["Punto uno", "Punto dos"] },
+    { type: "paragraph", text: "Cierre final." },
+  ]);
+  assert.deepEqual(parseCatalogDescriptionBlocks("- Uno\n- Dos\nTexto final"), [
+    { type: "list", items: ["Uno", "Dos"] },
+    { type: "paragraph", text: "Texto final" },
+  ]);
 });
 
 test("catalog media urls resolve storage paths and absolute urls", () => {
@@ -375,6 +389,19 @@ test("localized routes no longer depend on document alternates for language swit
   assert.match(providerSource, /return \(\) => \{\s+setAlternatePaths\(null\);\s+\};/m);
   assert.doesNotMatch(routesSource, /function localizedAlternatePath/);
   assert.doesNotMatch(routesSource, /document\.head/);
+});
+
+test("public catalog detail pages render structured description blocks", () => {
+  const detailSource = readFileSync("components/public/public-pages.tsx", "utf8");
+  const helperSource = readFileSync("lib/catalog-description-blocks.ts", "utf8");
+
+  assert.match(detailSource, /parseCatalogDescriptionBlocks/);
+  assert.match(detailSource, /function CatalogDescriptionContent/);
+  assert.match(detailSource, /<CatalogDescriptionContent className="mt-5 grid gap-4 text-lg leading-8 text-muted-foreground" text=\{item\.description\[locale\]\} \/>/);
+  assert.match(detailSource, /<CatalogDescriptionContent[\s\S]+text=\{kind === "package" \|\| kind === "service" \? item\.summary\[locale\] : item\.description\[locale\]\}/);
+  assert.match(helperSource, /type: "paragraph"/);
+  assert.match(helperSource, /type: "list"/);
+  assert.match(helperSource, /^export function parseCatalogDescriptionBlocks/m);
 });
 
 test("catalog fallback is reused end-to-end when live loading fails", () => {

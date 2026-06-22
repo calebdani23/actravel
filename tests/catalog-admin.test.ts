@@ -196,6 +196,11 @@ test("catalog admin UI exposes real media upload and explicit state actions", ()
   assert.match(page, /Secciones comerciales de promoción/);
   assert.match(page, /\[Datos de oferta\], \[Incluye\], \[Restricciones\], \[Valor\] y \[Nota CTA\]/);
   assert.match(page, /Formato: \[Título de sección\] y bullets con -/);
+  assert.match(page, /DESCRIPTION_FIELD_HINT/);
+  assert.match(page, /placeholder=\{DESCRIPTION_ES_PLACEHOLDER\}/);
+  assert.match(page, /placeholder=\{DESCRIPTION_EN_PLACEHOLDER\}/);
+  assert.match(page, /línea en blanco entre ideas/);
+  assert.match(page, /- Punto breve/);
   assert.match(page, /searchParams/);
   assert.match(page, /feedbackMessage/);
   assert.match(databaseTypes, /detail_sections_es/);
