@@ -31,6 +31,13 @@ Para crear el primer usuario administrador, configura `NEXT_PUBLIC_SUPABASE_URL`
 
 - `NEXT_PUBLIC_WHATSAPP_PHONE`: número internacional sin símbolos para links `wa.me`. Valor base: `529988453455`.
 - `WHATSAPP_CLICK_HASH_SALT`: secreto server-only opcional para hashear IPs en el tracking de clicks. Si no está configurado, no se guarda IP ni hash.
+- `META_WHATSAPP_VERIFY_TOKEN`: token compartido para validar el `hub.challenge` del webhook Meta/WhatsApp.
+- `META_APP_SECRET`: app secret server-only usado para validar `X-Hub-Signature-256` del webhook inbound.
+- `META_WHATSAPP_PHONE_NUMBER_ID`: `phone_number_id` exacto aceptado por `/api/meta/whatsapp`.
+- `WHATSAPP_INBOUND_TRIGGER_TEXTS`: lista opcional de textos permitidos para captura inbound automática. Acepta separadores por coma, `|` o salto de línea. El valor por defecto cubre `!Hola! Quiero mas informacion.` con normalización tolerante a acentos/puntuación.
+- `WHATSAPP_INBOUND_RAW_PAYLOAD_LIMIT_BYTES`: límite opcional de bytes serializados retenidos en `whatsapp_inbound_messages.raw_payload`; valor recomendado `12000`.
+
+El webhook inbound falla en modo cerrado si falta `META_APP_SECRET` o `META_WHATSAPP_PHONE_NUMBER_ID`. Las solicitudes con firma inválida no deben persistir payloads. Los leads inbound/manual no disparan emails ni Google Sheets de cotización en este cambio.
 
 ### Email
 

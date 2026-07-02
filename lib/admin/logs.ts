@@ -7,6 +7,7 @@ export type IncidentStatus = "open" | "resolved";
 export type WhatsappClickRow = Tables<"whatsapp_clicks"> & { contacts: { first_name: string; last_name: string | null; phone: string | null } | null };
 export type NotificationLogRow = Tables<"notification_logs"> & { contacts: { first_name: string; last_name: string | null; email: string | null; phone: string | null } | null };
 export type SheetSyncLogRow = Tables<"sheet_sync_logs">;
+export type WhatsappInboundMessageRow = Tables<"whatsapp_inbound_messages">;
 
 export type OperationalIncidentRow = {
   id: string;
@@ -100,8 +101,9 @@ export async function setSheetIncidentStatus(logId: string, incidentStatus: Inci
 export async function getAdminLogs() {
   const supabase = await createClient();
   const errors: string[] = [];
-  const [whatsapp, notifications, sheets, openNotifications, openSheets] = await Promise.all([
+  const [whatsapp, inboundMessages, notifications, sheets, openNotifications, openSheets] = await Promise.all([
     supabase.from("whatsapp_clicks").select("*, contacts(first_name, last_name, phone)").order("created_at", { ascending: false }).limit(25),
+    supabase.from("whatsapp_inbound_messages").select("*").order("received_at", { ascending: false }).limit(25),
     supabase.from("notification_logs").select("*, contacts(first_name, last_name, email, phone)").order("created_at", { ascending: false }).limit(50),
     supabase.from("sheet_sync_logs").select("*").order("created_at", { ascending: false }).limit(50),
     safeCount(
@@ -125,6 +127,7 @@ export async function getAdminLogs() {
 
   return {
     whatsapp: (whatsapp.data ?? []) as unknown as WhatsappClickRow[],
+    inboundMessages: (inboundMessages.data ?? []) as WhatsappInboundMessageRow[],
     notifications: notificationRows,
     sheets: sheetRows,
     recentIncidents,
@@ -133,7 +136,7 @@ export async function getAdminLogs() {
       openSheets,
       resolvedIncidents: recentIncidents.filter((row) => row.incidentStatus === "resolved").length,
     },
-    errors: [...errors, whatsapp.error?.message, notifications.error?.message, sheets.error?.message].filter(Boolean),
+    errors: [...errors, whatsapp.error?.message, inboundMessages.error?.message, notifications.error?.message, sheets.error?.message].filter(Boolean),
   };
 }
 

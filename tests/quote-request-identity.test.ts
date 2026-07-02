@@ -103,8 +103,22 @@ test("split phone and email matches do not blindly attach to either contact", ()
 test("matched contacts only fill missing identity fields instead of overwriting", () => {
   const update = buildSafeContactUpdate(contact({ email: "existing@example.com", phone: "529988453455", notes: "Known customer", source: "manual_import" }), input, "adatest@gmail.com", "529988453455");
 
+  assert.deepEqual(update, {});
+});
+
+test("matched contacts still backfill blank safe contact fields", () => {
+  const update = buildSafeContactUpdate(
+    { ...contact({ preferred_locale: "", email: "", phone: "", notes: null }), source: null },
+    input,
+    "adatest@gmail.com",
+    "529988453455",
+  );
+
   assert.deepEqual(update, {
     preferred_locale: "es",
-    consent_marketing: true,
+    source: "website_quote",
+    email: "adatest@gmail.com",
+    phone: "529988453455",
+    notes: "Quote request notes: Cliente repetido",
   });
 });

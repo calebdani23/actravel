@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { requireAdminRole } from "@/lib/admin/auth";
 import { hasAnyRole } from "@/lib/supabase/roles";
-import { getAdvisors, getLeadDetail, getLeadStatuses } from "@/lib/admin/leads";
+import { formatLeadSourceLabel, getAdvisors, getLeadDetail, getLeadStatuses } from "@/lib/admin/leads";
 import { getActiveMessageTemplates } from "@/lib/admin/templates";
 import { leadTemplateVariables } from "@/lib/admin/template-renderer";
 import { LeadTemplateActions } from "@/components/admin/leads/whatsapp-template-actions";
@@ -72,7 +72,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
                   <Field label="Viaje" value={`${lead.travel_start_date ?? "—"} → ${lead.travel_end_date ?? "—"}`} />
                   <Field label="Viajeros" value={lead.travelers_count} />
                   <Field label="Budget" value={money(lead.budget_mxn, lead.budget_usd)} />
-                  <Field label="Canal" value={lead.source} />
+                  <Field label="Canal" value={formatLeadSourceLabel(lead.source)} />
                   <Field label="Prioridad" value={lead.priority} />
                   <Field label="Asesor" value={lead.profiles?.full_name ?? "Sin asignar"} />
                   <Field label="Actualizado" value={new Date(lead.updated_at).toLocaleString("es-MX")} />

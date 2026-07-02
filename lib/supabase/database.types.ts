@@ -1380,6 +1380,90 @@ export type Database = {
           },
         ]
       }
+      whatsapp_inbound_messages: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          error_message: string | null
+          from_phone: string
+          id: string
+          ignored_reason: string | null
+          lead_id: string | null
+          message_text: string | null
+          message_type: string
+          meta_message_id: string
+          normalized_text: string | null
+          phone_number_id: string
+          processed_at: string | null
+          processing_status: string
+          profile_name: string | null
+          raw_payload: Json
+          received_at: string
+          referral: Json
+          updated_at: string
+          wa_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          from_phone: string
+          id?: string
+          ignored_reason?: string | null
+          lead_id?: string | null
+          message_text?: string | null
+          message_type: string
+          meta_message_id: string
+          normalized_text?: string | null
+          phone_number_id: string
+          processed_at?: string | null
+          processing_status?: string
+          profile_name?: string | null
+          raw_payload?: Json
+          received_at?: string
+          referral?: Json
+          updated_at?: string
+          wa_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          from_phone?: string
+          id?: string
+          ignored_reason?: string | null
+          lead_id?: string | null
+          message_text?: string | null
+          message_type?: string
+          meta_message_id?: string
+          normalized_text?: string | null
+          phone_number_id?: string
+          processed_at?: string | null
+          processing_status?: string
+          profile_name?: string | null
+          raw_payload?: Json
+          received_at?: string
+          referral?: Json
+          updated_at?: string
+          wa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_inbound_messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_inbound_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_clicks: {
         Row: {
           contact_id: string | null

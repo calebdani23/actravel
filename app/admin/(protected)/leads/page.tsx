@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { requireAdminRole } from "@/lib/admin/auth";
-import { getAdvisors, getDestinations, getLeads, getLeadSources, getLeadStatuses, type LeadFilters } from "@/lib/admin/leads";
+import { formatLeadSourceLabel, getAdvisors, getDestinations, getLeads, getLeadSources, getLeadStatuses, type LeadFilters } from "@/lib/admin/leads";
 
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -34,10 +34,13 @@ export default async function LeadsPage({ searchParams }: PageProps) {
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
-      <div>
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--ac-blue)]">CRM</p>
         <h1 className="mt-2 text-3xl font-bold">Leads</h1>
         <p className="mt-2 text-muted-foreground">Listado protegido por sesión, rol y RLS.</p>
+        </div>
+        <Button asChild><Link href="/admin/leads/new">Nuevo lead</Link></Button>
       </div>
 
       <Card>
@@ -100,7 +103,7 @@ export default async function LeadsPage({ searchParams }: PageProps) {
                     <td className="py-3 pr-4">{lead.travel_start_date ?? "—"} → {lead.travel_end_date ?? "—"}<div className="text-xs text-muted-foreground">{lead.travelers_count} pax</div></td>
                     <td className="py-3 pr-4">{money(lead.budget_mxn, lead.budget_usd)}</td>
                     <td className="py-3 pr-4">{lead.lead_statuses?.label_es ?? "—"}</td>
-                    <td className="py-3 pr-4">{lead.source}</td>
+                    <td className="py-3 pr-4">{formatLeadSourceLabel(lead.source)}</td>
                     <td className="py-3 pr-4">{lead.profiles?.full_name ?? "Sin asignar"}</td>
                     <td className="py-3 pr-4">{new Date(lead.updated_at).toLocaleString("es-MX")}</td>
                   </tr>

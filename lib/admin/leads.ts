@@ -88,6 +88,24 @@ function compact(values: Array<string | undefined | null | false>) {
   return values.filter((value): value is string => Boolean(value));
 }
 
+export function formatLeadSourceLabel(source: string | null | undefined) {
+  const labels: Record<string, string> = {
+    website: "Website",
+    website_quote: "Website Quote",
+    whatsapp_inbound_ad: "WhatsApp Ad Lead",
+    whatsapp_inbound_facebook: "WhatsApp Facebook Lead",
+    whatsapp_inbound_instagram: "WhatsApp Instagram Lead",
+    manual_admin: "Manual Admin",
+    manual_asesor: "Manual Advisor",
+    phone_call: "Phone Call",
+    whatsapp_manual: "WhatsApp Manual",
+    instagram_dm: "Instagram DM",
+    referral: "Referral",
+    walk_in: "Walk-in",
+  };
+  return labels[source ?? ""] ?? source ?? "—";
+}
+
 export async function getLeadStatuses() {
   const supabase = await createClient();
   const { data } = await supabase.from("lead_statuses").select("id, name, label_es").order("sort_order");
@@ -166,6 +184,19 @@ function buildQuoteRequestSearchClauses(search: LeadSearchPlan) {
   }).join(",");
 }
 
+function buildLeadEventSearchClauses(search: LeadSearchPlan) {
+  return search.terms.flatMap((term) => {
+    const like = `%${escapeSearch(term)}%`;
+    return [
+      `event_type.ilike.${like}`,
+      `payload->>messageText.ilike.${like}`,
+      `payload->>source.ilike.${like}`,
+      `payload->referral->>headline.ilike.${like}`,
+      `payload->referral->>body.ilike.${like}`,
+    ];
+  }).join(",");
+}
+
 async function findSearchMatches(supabase: Awaited<ReturnType<typeof createClient>>, q?: string) {
   const search = buildLeadSearchPlan(q);
   if (!search) return null;
@@ -188,19 +219,21 @@ async function findSearchMatches(supabase: Awaited<ReturnType<typeof createClien
   }).join(",");
 
   const quoteFilters = buildQuoteRequestSearchClauses(search);
+  const eventFilters = buildLeadEventSearchClauses(search);
 
-  const [{ data: contacts }, { data: destinations }, { data: leads }, { data: quoteRequests }] = await Promise.all([
+  const [{ data: contacts }, { data: destinations }, { data: leads }, { data: quoteRequests }, { data: leadEvents }] = await Promise.all([
     supabase.from("contacts").select("id").or(contactFilters).limit(100),
     supabase.from("destinations").select("id").or(destinationFilters).limit(100),
     supabase.from("leads").select("id, contact_id").or(leadFilters).limit(100),
     supabase.from("quote_requests").select("lead_id, contact_id").or(quoteFilters).limit(100),
+    supabase.from("lead_events").select("lead_id").or(eventFilters).limit(100),
   ]);
 
   return {
     ...search,
     contactIds: unique([...(contacts ?? []).map((row) => row.id), ...(leads ?? []).map((row) => row.contact_id).filter(Boolean), ...(quoteRequests ?? []).map((row) => row.contact_id).filter(Boolean)]),
     destinationIds: unique((destinations ?? []).map((row) => row.id)),
-    leadIds: unique([...(leads ?? []).map((row) => row.id), ...(quoteRequests ?? []).map((row) => row.lead_id).filter(Boolean)]),
+    leadIds: unique([...(leads ?? []).map((row) => row.id), ...(quoteRequests ?? []).map((row) => row.lead_id).filter(Boolean), ...(leadEvents ?? []).map((row) => row.lead_id).filter(Boolean)]),
   };
 }
 
@@ -233,13 +266,47 @@ export async function getLeads(filters: LeadFilters) {
 }
 
 function eventLabel(type: string) {
-  const labels: Record<string, string> = { status_changed: "Estado actualizado", assigned: "Asesor asignado", note_added: "Nota agregada", follow_up_registered: "Seguimiento registrado", quote_received: "Cotización recibida", contact_identity_ambiguous: "Identidad ambigua" };
+  const labels: Record<string, string> = { status_changed: "Estado actualizado", assigned: "Asesor asignado", note_added: "Nota agregada", follow_up_registered: "Seguimiento registrado", quote_received: "Cotización recibida", quote_submitted: "Cotización recibida", contact_identity_ambiguous: "Identidad ambigua", whatsapp_inbound_received: "WhatsApp recibido", manual_lead_created: "Lead manual creado" };
   return labels[type] ?? type.replaceAll("_", " ");
 }
 
 function statusLabel(status: string) {
   const labels: Record<string, string> = { queued: "En cola", processing: "Procesando", sent: "Enviado", success: "Sincronizado", failed: "Fallido", skipped: "Omitido", ambiguous: "Ambiguo" };
   return labels[status] ?? status;
+}
+
+function eventSummary(eventType: string, payload: JsonRecord) {
+  if (eventType === "whatsapp_inbound_received") return payloadString(payload, "messageText");
+  if (eventType === "manual_lead_created") return payloadString(payload, "source") ? `Origen: ${payloadString(payload, "source")}` : undefined;
+  return undefined;
+}
+
+function eventMetadata(eventType: string, payload: JsonRecord) {
+  const referral = jsonObject(payload.referral);
+  const base = compact([
+    payloadString(payload, "statusLabel"),
+    payloadString(payload, "statusId") ? `Estado: ${payloadString(payload, "statusId")}` : undefined,
+    payloadString(payload, "assignedTo") ? `Asignado a: ${payloadString(payload, "assignedTo")}` : undefined,
+    payloadString(payload, "followUpAt") ? `Próximo: ${payloadString(payload, "followUpAt")}` : undefined,
+  ]);
+  if (eventType === "whatsapp_inbound_received") {
+    return compact([
+      ...base,
+      payloadString(payload, "fromPhone") ? `Tel: ${payloadString(payload, "fromPhone")}` : undefined,
+      payloadString(payload, "source") ? `Canal: ${formatLeadSourceLabel(payloadString(payload, "source"))}` : undefined,
+      payloadString(referral, "headline") ? `Anuncio: ${payloadString(referral, "headline")}` : undefined,
+      payloadString(referral, "source_type") ? `Red: ${payloadString(referral, "source_type")}` : undefined,
+      payloadString(referral, "ctwa_clid") ? `CTWA: ${payloadString(referral, "ctwa_clid")}` : undefined,
+    ]);
+  }
+  if (eventType === "manual_lead_created") {
+    return compact([
+      ...base,
+      payloadString(payload, "source") ? `Canal: ${formatLeadSourceLabel(payloadString(payload, "source"))}` : undefined,
+      payload.hasNote === true ? "Con nota inicial" : undefined,
+    ]);
+  }
+  return base;
 }
 
 function buildTimeline(input: { events: unknown[]; notes: unknown[]; whatsappClicks: unknown[]; notifications: unknown[]; sheetLogs: unknown[] }) {
@@ -254,7 +321,8 @@ function buildTimeline(input: { events: unknown[]; notes: unknown[]; whatsappCli
       kind: "event",
       label: eventLabel(event.event_type),
       actorName: event.profiles?.full_name ?? undefined,
-      metadata: compact([payloadString(payload, "statusLabel"), payloadString(payload, "statusId") ? `Estado: ${payloadString(payload, "statusId")}` : undefined, payloadString(payload, "assignedTo") ? `Asignado a: ${payloadString(payload, "assignedTo")}` : undefined, payloadString(payload, "followUpAt") ? `Próximo: ${payloadString(payload, "followUpAt")}` : undefined]),
+      summary: eventSummary(event.event_type, payload),
+      metadata: eventMetadata(event.event_type, payload),
     });
   }
 
@@ -305,4 +373,4 @@ export async function getLeadDetail(id: string) {
   return { lead: (lead ?? null) as unknown as LeadDetail | null, notes: notes ?? [], events: events ?? [], timeline, payments: payments ?? [], bookings: bookings ?? [], documents: documents ?? [], error: error?.message ?? null };
 }
 
-export const leadSearchInternals = { splitSearchTerms, buildLeadSearchPlan, buildLeadSearchClauses, buildQuoteRequestSearchClauses, validDate, resolveCreatedAtRange };
+export const leadSearchInternals = { splitSearchTerms, buildLeadSearchPlan, buildLeadSearchClauses, buildQuoteRequestSearchClauses, buildLeadEventSearchClauses, validDate, resolveCreatedAtRange, formatLeadSourceLabel };
