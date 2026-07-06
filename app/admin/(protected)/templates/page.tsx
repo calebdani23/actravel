@@ -1,31 +1,17 @@
 import Link from "next/link";
+import { TemplateForm } from "@/components/admin/templates/template-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAdminRole } from "@/lib/admin/auth";
+import { getTemplateVariableCatalog } from "@/lib/admin/template-variables";
 import { getMessageTemplates, type MessageTemplateChannel, type MessageTemplateRow } from "@/lib/admin/templates";
-import { renderMessageTemplate, SUPPORTED_LEAD_TEMPLATE_VARIABLES, validateTemplatePlaceholders } from "@/lib/admin/template-renderer";
-import { deleteTemplateAction, upsertTemplateAction } from "./actions";
+import { validateTemplatePlaceholders } from "@/lib/admin/template-renderer";
 
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
-
-const SAMPLE_VARIABLES = {
-  name: "María",
-  destination: "Riviera Maya",
-  startDate: "2026-07-15",
-  endDate: "2026-07-20",
-  travelers: 2,
-  budget: "$45,000 MXN",
-  advisor: "AC Travel",
-  status: "Cotizando",
-};
 
 function value(params: Record<string, string | string[] | undefined>, key: string) {
   const raw = params[key];
   return Array.isArray(raw) ? raw[0] : raw;
-}
-
-function variablesText(template?: MessageTemplateRow) {
-  return Array.isArray(template?.variables) ? template.variables.join(", ") : "";
 }
 
 function declaredVariables(template?: MessageTemplateRow) {
@@ -38,123 +24,32 @@ function categoryLabel(category: string | null | undefined) {
 
 function templateValidation(template?: MessageTemplateRow) {
   if (!template) return null;
+  const channel = template.channel === "email" || template.channel === "whatsapp" ? template.channel : undefined;
   return validateTemplatePlaceholders({
-    subject: [template.subject_es, template.subject_en].filter(Boolean).join("\n"),
+    subject: channel === "email" ? [template.subject_es, template.subject_en].filter(Boolean).join("\n") : null,
     body: [template.body_es, template.body_en].join("\n"),
     declaredVariables: declaredVariables(template),
+    channel,
   });
 }
 
-function TemplatePreview({ template }: { template?: MessageTemplateRow }) {
-  if (!template) {
-    return (
-      <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground md:col-span-2">
-        Usa la hoja de variables de abajo para armar la plantilla. Las plantillas guardadas muestran vista previa con datos de ejemplo y advertencias.
-      </div>
-    );
-  }
-
-  const validation = templateValidation(template);
-  const subjectEs = template.subject_es ? renderMessageTemplate(template.subject_es, SAMPLE_VARIABLES) : null;
-  const subjectEn = template.subject_en ? renderMessageTemplate(template.subject_en, SAMPLE_VARIABLES) : null;
-  const bodyEs = renderMessageTemplate(template.body_es, SAMPLE_VARIABLES);
-  const bodyEn = renderMessageTemplate(template.body_en, SAMPLE_VARIABLES);
-  const warnings = [
-    validation?.unknownVariables.length ? `Variables no soportadas: ${validation.unknownVariables.join(", ")}` : null,
-    validation?.undeclaredVariables.length ? `Usadas pero no declaradas: ${validation.undeclaredVariables.join(", ")}` : null,
-    validation?.unusedDeclaredVariables.length ? `Declaradas sin uso: ${validation.unusedDeclaredVariables.join(", ")}` : null,
-  ].filter(Boolean);
-
-  return (
-    <div className="space-y-3 rounded-lg border bg-muted/30 p-3 text-sm md:col-span-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Vista previa con datos de ejemplo</span>
-        {validation?.usedVariables.length ? <span className="rounded-full bg-white px-2 py-1 text-xs text-muted-foreground">Usa: {validation.usedVariables.join(", ")}</span> : null}
-      </div>
-      {warnings.length ? (
-        <ul className="space-y-1 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
-          {warnings.map((warning) => <li key={warning}>⚠ {warning}</li>)}
-        </ul>
-      ) : null}
-      <div className="grid gap-3 md:grid-cols-2">
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground">ES</p>
-          {subjectEs ? <p className="font-medium">{subjectEs}</p> : null}
-          <p className="whitespace-pre-wrap rounded-md bg-white p-3 text-xs leading-relaxed">{bodyEs}</p>
-        </div>
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground">EN</p>
-          {subjectEn ? <p className="font-medium">{subjectEn}</p> : null}
-          <p className="whitespace-pre-wrap rounded-md bg-white p-3 text-xs leading-relaxed">{bodyEn}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TextInput({ name, label, defaultValue, required = false }: { name: string; label: string; defaultValue?: string | null; required?: boolean }) {
-  return (
-    <label className="space-y-1 text-sm font-medium">
-      <span>{label}</span>
-      <input className="w-full rounded-md border px-3 py-2 text-sm" defaultValue={defaultValue ?? ""} name={name} required={required} />
-    </label>
-  );
-}
-
-function TextArea({ name, label, defaultValue, required = false }: { name: string; label: string; defaultValue?: string | null; required?: boolean }) {
-  return (
-    <label className="space-y-1 text-sm font-medium md:col-span-2">
-      <span>{label}</span>
-      <textarea className="min-h-24 w-full rounded-md border px-3 py-2 text-sm" defaultValue={defaultValue ?? ""} name={name} required={required} />
-    </label>
-  );
-}
-
-function TemplateForm({ template }: { template?: MessageTemplateRow }) {
-  return (
-    <form action={upsertTemplateAction} className="space-y-4 rounded-lg border p-4">
-      {template ? <input name="id" type="hidden" value={template.id} /> : null}
-      <div className="grid gap-3 md:grid-cols-2">
-        <TextInput defaultValue={template?.name} label="Nombre" name="name" required />
-        <label className="space-y-1 text-sm font-medium">
-          <span>Canal</span>
-          <select className="w-full rounded-md border px-3 py-2 text-sm" defaultValue={template?.channel ?? "whatsapp"} name="channel">
-            <option value="whatsapp">WhatsApp</option>
-            <option value="email">Email</option>
-          </select>
-        </label>
-        <TextInput defaultValue={template?.category ?? "general"} label="Categoría" name="category" />
-        <TextInput defaultValue={String(template?.sort_order ?? 100)} label="Orden" name="sort_order" />
-        <TextInput defaultValue={template?.description} label="Descripción" name="description" />
-        <TextInput defaultValue={template?.subject_es} label="Asunto ES" name="subject_es" />
-        <TextInput defaultValue={template?.subject_en} label="Asunto EN" name="subject_en" />
-        <TextArea defaultValue={template?.body_es} label="Cuerpo ES" name="body_es" required />
-        <TextArea defaultValue={template?.body_en} label="Cuerpo EN" name="body_en" required />
-        <TextInput defaultValue={variablesText(template)} label="Variables (separadas por coma)" name="variables" />
-        <label className="flex items-center gap-2 pt-7 text-sm font-medium">
-          <input defaultChecked={template?.is_active ?? true} name="is_active" type="checkbox" /> Activa
-        </label>
-        <TemplatePreview template={template} />
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit">{template ? "Guardar cambios" : "Crear plantilla"}</Button>
-        {template ? <Button formAction={deleteTemplateAction} type="submit" variant="outline">Eliminar</Button> : null}
-      </div>
-    </form>
-  );
-}
-
 function VariableCheatSheet() {
+  const catalog = getTemplateVariableCatalog();
   return (
     <Card>
       <CardHeader><CardTitle>Variables disponibles</CardTitle></CardHeader>
       <CardContent className="space-y-3 text-sm">
-        <p className="text-muted-foreground">Usa doble llave, por ejemplo <code className="rounded bg-muted px-1">{"{{name}}"}</code>. Los valores faltantes se renderizan vacío para no mostrar placeholders al cliente.</p>
-        <div className="grid gap-2 md:grid-cols-4">
-          {SUPPORTED_LEAD_TEMPLATE_VARIABLES.map((variable) => (
-            <div className="rounded-md border p-2" key={variable}>
-              <code>{`{{${variable}}}`}</code>
-              <p className="mt-1 text-xs text-muted-foreground">Ejemplo: {String(SAMPLE_VARIABLES[variable])}</p>
+        <p className="text-muted-foreground">La edición detallada ahora vive dentro de cada formulario. Todas las rutas usan el mismo catálogo, validación y ejemplos de preview.</p>
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+          {catalog.map((variable) => (
+            <div className="rounded-md border p-3" key={variable.key}>
+              <div className="flex flex-wrap items-center gap-2">
+                <code>{`{{${variable.key}}}`}</code>
+                <span className="rounded bg-muted px-2 py-0.5 text-[11px] uppercase text-muted-foreground">{variable.source}</span>
+              </div>
+              <p className="mt-2 text-sm font-medium">{variable.label}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{variable.description}</p>
+              <p className="mt-2 text-xs text-muted-foreground">Ejemplo: {String(variable.example)}</p>
             </div>
           ))}
         </div>
@@ -177,6 +72,7 @@ function groupTemplates(templates: MessageTemplateRow[]) {
 
 export default async function TemplatesPage({ searchParams }: PageProps) {
   const [params] = await Promise.all([searchParams, requireAdminRole(["admin", "marketing"])]);
+  const catalog = getTemplateVariableCatalog();
   const channel = value(params, "channel");
   const category = value(params, "category");
   const active = value(params, "active");
@@ -234,7 +130,7 @@ export default async function TemplatesPage({ searchParams }: PageProps) {
 
       <Card>
         <CardHeader><CardTitle>Nueva plantilla</CardTitle></CardHeader>
-        <CardContent><TemplateForm /></CardContent>
+        <CardContent><TemplateForm catalog={catalog} /></CardContent>
       </Card>
 
       <Card>
@@ -248,7 +144,7 @@ export default async function TemplatesPage({ searchParams }: PageProps) {
               </div>
               {group.templates.map((template) => {
                 const validation = templateValidation(template);
-                const hasWarnings = Boolean(validation && (validation.unknownVariables.length || validation.undeclaredVariables.length || validation.unusedDeclaredVariables.length));
+                const hasWarnings = Boolean(validation && (validation.errors.length || validation.warnings.length));
                 return (
                   <details className="rounded-lg border p-4" key={template.id}>
                     <summary className="cursor-pointer font-semibold">
@@ -256,7 +152,7 @@ export default async function TemplatesPage({ searchParams }: PageProps) {
                       {hasWarnings ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900">revisar variables</span> : null}
                     </summary>
                     {template.description ? <p className="mt-2 text-sm text-muted-foreground">{template.description}</p> : null}
-                    <div className="mt-4"><TemplateForm template={template} /></div>
+                    <div className="mt-4"><TemplateForm catalog={catalog} template={template} /></div>
                   </details>
                 );
               })}

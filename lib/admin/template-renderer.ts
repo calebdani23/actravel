@@ -1,15 +1,23 @@
-export type TemplateVariables = Record<string, string | number | null | undefined>;
+import {
+  getTemplateVariableCatalog,
+  getTemplateVariableExamples,
+  isTemplateVariableSupportedForChannel,
+  leadTemplateVariables,
+  SUPPORTED_LEAD_TEMPLATE_VARIABLES,
+  type LeadTemplateVariableInput,
+  type MessageTemplateChannel,
+  type TemplateVariables,
+} from "./template-variables";
 
-export const SUPPORTED_LEAD_TEMPLATE_VARIABLES = [
-  "name",
-  "destination",
-  "startDate",
-  "endDate",
-  "travelers",
-  "budget",
-  "advisor",
-  "status",
-] as const;
+export {
+  getTemplateVariableCatalog,
+  getTemplateVariableExamples,
+  leadTemplateVariables,
+  SUPPORTED_LEAD_TEMPLATE_VARIABLES,
+  type LeadTemplateVariableInput,
+  type MessageTemplateChannel,
+  type TemplateVariables,
+};
 
 const PLACEHOLDER_PATTERN = /{{\s*([a-zA-Z0-9_]+)\s*}}/g;
 
@@ -36,46 +44,52 @@ export function validateTemplatePlaceholders(input: {
   subject?: string | null;
   body: string;
   declaredVariables?: readonly string[];
+  channel?: MessageTemplateChannel;
+  requireDeclared?: boolean;
   supportedVariables?: readonly string[];
 }) {
   const usedVariables = new Set([
     ...extractTemplateVariables(input.subject),
     ...extractTemplateVariables(input.body),
   ]);
-  const declaredVariables = new Set(input.declaredVariables ?? []);
+  const declaredVariables = [...new Set(input.declaredVariables ?? [])].sort();
+  const declaredVariableSet = new Set(declaredVariables);
   const supportedVariables = new Set(input.supportedVariables ?? SUPPORTED_LEAD_TEMPLATE_VARIABLES);
+  const requireDeclared = input.requireDeclared ?? Boolean(input.declaredVariables);
 
-  const undeclaredVariables = [...usedVariables].filter((variable) => declaredVariables.size > 0 && !declaredVariables.has(variable)).sort();
   const unknownVariables = [...usedVariables].filter((variable) => !supportedVariables.has(variable)).sort();
-  const unusedDeclaredVariables = [...declaredVariables].filter((variable) => !usedVariables.has(variable)).sort();
+  const invalidDeclaredVariables = declaredVariables.filter((variable) => !supportedVariables.has(variable)).sort();
+  const undeclaredVariables = [...usedVariables].filter((variable) => requireDeclared && !declaredVariableSet.has(variable)).sort();
+  const unusedDeclaredVariables = declaredVariables.filter((variable) => !usedVariables.has(variable) && supportedVariables.has(variable)).sort();
+
+  const channelIncompatibleVariables = input.channel
+    ? [...new Set([
+      ...[...usedVariables].filter((variable) => supportedVariables.has(variable) && !isTemplateVariableSupportedForChannel(variable, input.channel)),
+      ...declaredVariables.filter((variable) => supportedVariables.has(variable) && !isTemplateVariableSupportedForChannel(variable, input.channel)),
+    ])].sort()
+    : [];
+
+  const errors = [
+    unknownVariables.length ? `Unsupported template variables: ${unknownVariables.join(", ")}` : null,
+    invalidDeclaredVariables.length ? `Invalid selected variables: ${invalidDeclaredVariables.join(", ")}` : null,
+    channelIncompatibleVariables.length ? `Channel-incompatible variables: ${channelIncompatibleVariables.join(", ")}` : null,
+    undeclaredVariables.length ? `Used variables not selected: ${undeclaredVariables.join(", ")}` : null,
+  ].filter((value): value is string => Boolean(value));
+
+  const warnings = [
+    unusedDeclaredVariables.length ? `Selected variables not used: ${unusedDeclaredVariables.join(", ")}` : null,
+  ].filter((value): value is string => Boolean(value));
 
   return {
     usedVariables: [...usedVariables].sort(),
+    declaredVariables,
     undeclaredVariables,
     unknownVariables,
     unusedDeclaredVariables,
-    isValid: unknownVariables.length === 0,
+    channelIncompatibleVariables,
+    invalidDeclaredVariables,
+    errors,
+    warnings,
+    isValid: errors.length === 0,
   };
-}
-
-export function leadTemplateVariables(input: {
-  contactName?: string | null;
-  destination?: string | null;
-  travelStartDate?: string | null;
-  travelEndDate?: string | null;
-  travelersCount?: number | null;
-  budget?: string | null;
-  advisorName?: string | null;
-  status?: string | null;
-}) {
-  return {
-    name: input.contactName ?? "",
-    destination: input.destination ?? "",
-    startDate: input.travelStartDate ?? "",
-    endDate: input.travelEndDate ?? "",
-    travelers: input.travelersCount ?? "",
-    budget: input.budget ?? "",
-    advisor: input.advisorName ?? "AC Travel",
-    status: input.status ?? "",
-  } satisfies TemplateVariables;
 }
