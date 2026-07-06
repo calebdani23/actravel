@@ -72,7 +72,6 @@ function groupTemplates(templates: MessageTemplateRow[]) {
 
 export default async function TemplatesPage({ searchParams }: PageProps) {
   const [params] = await Promise.all([searchParams, requireAdminRole(["admin", "marketing"])]);
-  const catalog = getTemplateVariableCatalog();
   const channel = value(params, "channel");
   const category = value(params, "category");
   const active = value(params, "active");
@@ -130,7 +129,7 @@ export default async function TemplatesPage({ searchParams }: PageProps) {
 
       <Card>
         <CardHeader><CardTitle>Nueva plantilla</CardTitle></CardHeader>
-        <CardContent><TemplateForm catalog={catalog} /></CardContent>
+        <CardContent><TemplateForm /></CardContent>
       </Card>
 
       <Card>
@@ -152,7 +151,7 @@ export default async function TemplatesPage({ searchParams }: PageProps) {
                       {hasWarnings ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900">revisar variables</span> : null}
                     </summary>
                     {template.description ? <p className="mt-2 text-sm text-muted-foreground">{template.description}</p> : null}
-                    <div className="mt-4"><TemplateForm catalog={catalog} template={template} /></div>
+                    <div className="mt-4"><TemplateForm template={template} /></div>
                   </details>
                 );
               })}

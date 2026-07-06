@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState, type RefObject } from "react";
 import { deleteTemplateAction, upsertTemplateAction } from "@/app/admin/(protected)/templates/actions";
 import { Button } from "@/components/ui/button";
-import { getTemplateVariableExamples, type MessageTemplateChannel, type TemplateVariableDefinition } from "@/lib/admin/template-variables";
+import { getTemplateVariableCatalog, getTemplateVariableExamples, type MessageTemplateChannel } from "@/lib/admin/template-variables";
 import { renderMessageTemplate, validateTemplatePlaceholders } from "@/lib/admin/template-renderer";
 
 type TemplateFormTemplate = {
@@ -34,8 +34,8 @@ function selectedTemplateVariables(template?: TemplateFormTemplate) {
   return Array.isArray(template?.variables) ? template.variables.filter((item): item is string => typeof item === "string") : [];
 }
 
-function sortSelectedVariables(keys: string[], catalog: readonly TemplateVariableDefinition[]) {
-  const order = new Map(catalog.map((item, index) => [item.key, index]));
+function sortSelectedVariables(keys: string[], catalog: ReturnType<typeof getTemplateVariableCatalog>) {
+  const order = new Map<string, number>(catalog.map((item, index) => [item.key, index]));
   return [...new Set(keys)].sort((left, right) => {
     const leftOrder = order.get(left) ?? Number.MAX_SAFE_INTEGER;
     const rightOrder = order.get(right) ?? Number.MAX_SAFE_INTEGER;
@@ -90,7 +90,8 @@ function FieldInput({
   );
 }
 
-export function TemplateForm({ catalog, template }: { catalog: readonly TemplateVariableDefinition[]; template?: TemplateFormTemplate }) {
+export function TemplateForm({ template }: { template?: TemplateFormTemplate }) {
+  const catalog = useMemo(() => getTemplateVariableCatalog(), []);
   const [channel, setChannel] = useState<MessageTemplateChannel>(template?.channel === "email" || template?.channel === "whatsapp" ? template.channel : "whatsapp");
   const [subjectEs, setSubjectEs] = useState(template?.subject_es ?? "");
   const [subjectEn, setSubjectEn] = useState(template?.subject_en ?? "");
