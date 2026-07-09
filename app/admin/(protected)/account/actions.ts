@@ -1,17 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { PasswordChangeActionState } from "@/app/admin/(protected)/account/action-state";
 import { requireAdminRole } from "@/lib/admin/auth";
 import { changeCurrentStaffPassword } from "@/lib/admin/staff";
 import { parsePasswordChangeFormData } from "@/lib/validations/staff";
-
-export type PasswordChangeActionState = {
-  ok: boolean;
-  message: string | null;
-  fieldErrors: Record<string, string[]>;
-};
-
-export const initialPasswordChangeActionState: PasswordChangeActionState = { ok: false, message: null, fieldErrors: {} };
 
 export async function changePasswordAction(_previous: PasswordChangeActionState, formData: FormData): Promise<PasswordChangeActionState> {
   const session = await requireAdminRole();

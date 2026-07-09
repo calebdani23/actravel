@@ -1,31 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { initialStaffCreateActionState, type StaffCreateActionState, type StaffUpdateActionState } from "@/app/admin/(protected)/staff/action-state";
 import { requireAdminRole } from "@/lib/admin/auth";
 import { createStaffAccount, updateStaffAccount } from "@/lib/admin/staff";
-import { parseCreateStaffFormData, parseUpdateStaffFormData, type ManagedStaffRole } from "@/lib/validations/staff";
-
-export type StaffCreateActionState = {
-  ok: boolean;
-  message: string | null;
-  fieldErrors: Record<string, string[]>;
-  values: { email: string; full_name: string; role: ManagedStaffRole; is_active: boolean };
-};
-
-export type StaffUpdateActionState = {
-  ok: boolean;
-  message: string | null;
-  fieldErrors: Record<string, string[]>;
-};
-
-export const initialStaffCreateActionState: StaffCreateActionState = {
-  ok: false,
-  message: null,
-  fieldErrors: {},
-  values: { email: "", full_name: "", role: "asesor", is_active: true },
-};
-
-export const initialStaffUpdateActionState: StaffUpdateActionState = { ok: false, message: null, fieldErrors: {} };
+import { parseCreateStaffFormData, parseUpdateStaffFormData } from "@/lib/validations/staff";
 
 function revalidateStaffPages() {
   revalidatePath("/admin/staff");

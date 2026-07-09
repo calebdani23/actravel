@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import { initialStaffUpdateActionState, updateStaffAction } from "@/app/admin/(protected)/staff/actions";
+import { updateStaffAction } from "@/app/admin/(protected)/staff/actions";
+import { initialStaffUpdateActionState } from "@/app/admin/(protected)/staff/action-state";
 import type { StaffAccount } from "@/lib/admin/staff";
 
 function RowForm({ staff }: { staff: StaffAccount }) {

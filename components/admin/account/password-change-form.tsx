@@ -1,9 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
-import { changePasswordAction, initialPasswordChangeActionState } from "@/app/admin/(protected)/account/actions";
+import { changePasswordAction } from "@/app/admin/(protected)/account/actions";
+import { initialPasswordChangeActionState, type PasswordChangeActionState } from "@/app/admin/(protected)/account/action-state";
 
-function fieldError(state: typeof initialPasswordChangeActionState, key: string) {
+function fieldError(state: PasswordChangeActionState, key: string) {
   return state.fieldErrors[key]?.[0] ?? null;
 }
 

@@ -1,9 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
-import { createStaffAction, initialStaffCreateActionState } from "@/app/admin/(protected)/staff/actions";
+import { createStaffAction } from "@/app/admin/(protected)/staff/actions";
+import { initialStaffCreateActionState, type StaffCreateActionState } from "@/app/admin/(protected)/staff/action-state";
 
-function fieldError(state: typeof initialStaffCreateActionState, key: string) {
+function fieldError(state: StaffCreateActionState, key: string) {
   return state.fieldErrors[key]?.[0] ?? null;
 }
 
