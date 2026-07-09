@@ -106,6 +106,10 @@ export function buildSafeContactUpdate(existing: ContactRow, input: { preferredL
   return update;
 }
 
+function hasSafeContactUpdate(update: Database["public"]["Tables"]["contacts"]["Update"]) {
+  return Object.keys(update).length > 0;
+}
+
 export async function getInitialStatusId(supabase: SupabaseAdminClient) {
   const byName = await supabase.from("lead_statuses").select("id").eq("name", "new").maybeSingle();
   if (byName.data?.id) return byName.data.id;
@@ -158,6 +162,9 @@ export async function resolveOrCreateContact(supabase: SupabaseAdminClient, inpu
   if (decision.existingContactId) {
     const existingContact = candidates.find((candidate) => candidate.id === decision.existingContactId);
     const update = existingContact ? buildSafeContactUpdate(existingContact, { preferredLocale, source: input.source, notes, consentMarketing }, normalizedEmail, normalizedWhatsapp) : { preferred_locale: preferredLocale, consent_marketing: consentMarketing };
+    if (!hasSafeContactUpdate(update)) {
+      return { contactId: decision.existingContactId, status: "matched_existing", reason: decision.reason, ambiguous: false, phoneVariants: decision.phoneVariants, phoneMatchIds: decision.phoneMatchIds, emailMatchIds: decision.emailMatchIds, matchedContactIds: decision.matchedContactIds };
+    }
     const { data, error } = await supabase.from("contacts").update(update).eq("id", decision.existingContactId).select("id").single();
     if (error) throw error;
     return { contactId: data.id, status: "matched_existing", reason: decision.reason, ambiguous: false, phoneVariants: decision.phoneVariants, phoneMatchIds: decision.phoneMatchIds, emailMatchIds: decision.emailMatchIds, matchedContactIds: decision.matchedContactIds };

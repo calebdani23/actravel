@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { buildPhoneIdentityVariants, buildSafeContactUpdate, resolveContactIdentity } from "@/lib/leads/quote-request-service";
+import { resolveOrCreateContact } from "@/lib/leads/lead-intake-core";
 import type { Database } from "@/lib/supabase/database.types";
 import { normalizeEmail, normalizeWhatsApp, type QuoteRequestInput } from "@/lib/validations/quote-request";
 
@@ -121,4 +122,57 @@ test("matched contacts still backfill blank safe contact fields", () => {
     phone: "529988453455",
     notes: "Quote request notes: Cliente repetido",
   });
+});
+
+test("resolveOrCreateContact skips empty matched-contact updates and returns the existing contact", async () => {
+  let updateCalled = false;
+
+  const supabase = {
+    from(table: string) {
+      assert.equal(table, "contacts");
+      return {
+        select(selectClause: string) {
+          assert.equal(selectClause, "id, first_name, last_name, email, phone, preferred_locale, source, consent_marketing, notes, created_at, updated_at");
+          return {
+            in(column: string, values: string[]) {
+              assert.equal(column, "phone");
+              assert.deepEqual(values, ["529988453455", "5219988453455", "9988453455"]);
+              return Promise.resolve({
+                data: [contact({ id: "contact-repeat", email: "adatest@gmail.com", phone: "5219988453455", notes: "Quote request notes: Cliente repetido" })],
+                error: null,
+              });
+            },
+            ilike(column: string, value: string) {
+              assert.equal(column, "email");
+              assert.equal(value, "adatest@gmail.com");
+              return Promise.resolve({
+                data: [contact({ id: "contact-repeat", email: "adatest@gmail.com", phone: "5219988453455", notes: "Quote request notes: Cliente repetido" })],
+                error: null,
+              });
+            },
+          };
+        },
+        update() {
+          updateCalled = true;
+          throw new Error("update should be skipped when safe contact update is empty");
+        },
+      };
+    },
+  };
+
+  const resolution = await resolveOrCreateContact(supabase as never, {
+    name: input.holderName,
+    email: normalizeEmail(input.email),
+    phone: normalizeWhatsApp(input.whatsapp),
+    preferredLocale: input.locale,
+    source: input.sourceChannel,
+    notes: `Quote request notes: ${input.notes}`,
+    consentMarketing: true,
+  });
+
+  assert.equal(updateCalled, false);
+  assert.equal(resolution.contactId, "contact-repeat");
+  assert.equal(resolution.status, "matched_existing");
+  assert.equal(resolution.reason, "phone_and_email");
+  assert.equal(resolution.ambiguous, false);
 });
