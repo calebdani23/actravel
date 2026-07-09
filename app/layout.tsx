@@ -15,6 +15,13 @@ export const metadata: Metadata = {
     template: "%s | AC Travel",
   },
   description: "AC Travel — Suma viajes, suma experiencias, suma sueños.",
+  icons: {
+    icon: [
+      { url: "/brand/ac-travel-logo-500x500-v3.png", type: "image/png", sizes: "500x500" },
+      { url: "/brand/ac-travel-logo-500x500-v3.png", rel: "shortcut icon", type: "image/png", sizes: "500x500" },
+    ],
+    apple: [{ url: "/brand/ac-travel-logo-500x500-v3.png", type: "image/png", sizes: "500x500" }],
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
