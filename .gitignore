@@ -49,5 +49,6 @@ coverage/
 .opencode-runtime/
 .vercel/
 sdd/
+.atl/
 
 docs/about/helps
