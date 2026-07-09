@@ -1,0 +1,237 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+
+import {
+  buildStaffAuthCreatePayload,
+  changeCurrentStaffPassword,
+  createStaffAccount,
+  getAdvisorCapableStaffFromRows,
+  updateStaffAccount,
+  type StaffActor,
+} from "@/lib/admin/staff";
+
+const actor: StaffActor = { id: "actor-1", email: "admin@example.com", roles: ["admin"] };
+
+test("createStaffAccount provisions auth/profile/role/audit without leaking password", async () => {
+  const calls: string[] = [];
+  const result = await createStaffAccount({
+    email: "ada@example.com",
+    full_name: "Ada Lovelace",
+    role: "admin",
+    is_active: true,
+    initial_password: "Str0ng!Password",
+  }, actor, {
+    getManagedRoleId: async () => "role-admin",
+    createAuthUser: async (input) => {
+      calls.push(`createAuth:${input.email}`);
+      assert.equal("initial_password" in input, false);
+      return { id: "user-1", email: input.email };
+    },
+    upsertProfile: async (profile) => {
+      calls.push(`profile:${profile.id}`);
+    },
+    replaceProfileRole: async ({ profileId, roleId }) => {
+      calls.push(`role:${profileId}:${roleId}`);
+    },
+    insertAuditEvent: async (event) => {
+      calls.push(`audit:${event.action}`);
+      assert.equal(JSON.stringify(event.metadata).includes("Str0ng!Password"), false);
+    },
+    deleteAuthUser: async () => {
+      throw new Error("cleanup should not run");
+    },
+  });
+
+  assert.deepEqual(calls, [
+    "createAuth:ada@example.com",
+    "profile:user-1",
+    "role:user-1:role-admin",
+    "audit:staff_created",
+  ]);
+  assert.equal(result.userId, "user-1");
+});
+
+test("createStaffAccount compensates auth user when downstream write fails", async () => {
+  const cleanup: string[] = [];
+
+  await assert.rejects(() => createStaffAccount({
+    email: "ada@example.com",
+    full_name: "Ada Lovelace",
+    role: "asesor",
+    is_active: true,
+    initial_password: "Str0ng!Password",
+  }, actor, {
+    getManagedRoleId: async () => "role-asesor",
+    createAuthUser: async () => ({ id: "user-2", email: "ada@example.com" }),
+    upsertProfile: async () => {
+      throw new Error("profile write failed");
+    },
+    replaceProfileRole: async () => undefined,
+    insertAuditEvent: async () => undefined,
+    deleteAuthUser: async (userId) => {
+      cleanup.push(userId);
+    },
+  }), /cleanup attempted/i);
+
+  assert.deepEqual(cleanup, ["user-2"]);
+});
+
+test("updateStaffAccount blocks self-demotion and last-admin removal", async () => {
+  await assert.rejects(() => updateStaffAccount({
+    profile_id: "actor-1",
+    full_name: "Admin",
+    role: "asesor",
+    is_active: true,
+  }, actor, {
+    getManagedRoleId: async () => "role-asesor",
+    getStaffSnapshot: async () => ({
+      profile_id: "actor-1",
+      full_name: "Admin",
+      is_active: true,
+      roles: ["admin"],
+      email: "admin@example.com",
+    }),
+    countActiveAdminsExcluding: async () => 1,
+    updateProfile: async () => undefined,
+    replaceProfileRole: async () => undefined,
+    insertAuditEvent: async () => undefined,
+  }), /own admin role/i);
+
+  await assert.rejects(() => updateStaffAccount({
+    profile_id: "user-2",
+    full_name: "Only Admin",
+    role: "asesor",
+    is_active: true,
+  }, actor, {
+    getManagedRoleId: async () => "role-asesor",
+    getStaffSnapshot: async () => ({
+      profile_id: "user-2",
+      full_name: "Only Admin",
+      is_active: true,
+      roles: ["admin"],
+      email: "only@example.com",
+    }),
+    countActiveAdminsExcluding: async () => 0,
+    updateProfile: async () => undefined,
+    replaceProfileRole: async () => undefined,
+    insertAuditEvent: async () => undefined,
+  }), /last active admin/i);
+});
+
+test("updateStaffAccount refuses staff records outside the MVP single-role management scope", async () => {
+  await assert.rejects(() => updateStaffAccount({
+    profile_id: "user-mixed",
+    full_name: "Mixed Roles",
+    role: "admin",
+    is_active: true,
+  }, actor, {
+    getManagedRoleId: async () => "role-admin",
+    getStaffSnapshot: async () => ({
+      profile_id: "user-mixed",
+      full_name: "Mixed Roles",
+      is_active: true,
+      roles: ["admin", "marketing"],
+      email: "mixed@example.com",
+    }),
+    countActiveAdminsExcluding: async () => 1,
+    updateProfile: async () => undefined,
+    replaceProfileRole: async () => undefined,
+    insertAuditEvent: async () => undefined,
+  }), /outside the MVP/i);
+
+  await assert.rejects(() => updateStaffAccount({
+    profile_id: "user-multi",
+    full_name: "Dual Role",
+    role: "admin",
+    is_active: true,
+  }, actor, {
+    getManagedRoleId: async () => "role-admin",
+    getStaffSnapshot: async () => ({
+      profile_id: "user-multi",
+      full_name: "Dual Role",
+      is_active: true,
+      roles: ["admin", "asesor"],
+      email: "dual@example.com",
+    }),
+    countActiveAdminsExcluding: async () => 1,
+    updateProfile: async () => undefined,
+    replaceProfileRole: async () => undefined,
+    insertAuditEvent: async () => undefined,
+  }), /single-role management scope/i);
+});
+
+test("buildStaffAuthCreatePayload keeps auth creation independent from app-level active status", () => {
+  const activePayload = buildStaffAuthCreatePayload({
+    email: "ada@example.com",
+    password: "Str0ng!Password",
+    full_name: "Ada Lovelace",
+    is_active: true,
+  });
+  const inactivePayload = buildStaffAuthCreatePayload({
+    email: "ada@example.com",
+    password: "Str0ng!Password",
+    full_name: "Ada Lovelace",
+    is_active: false,
+  });
+
+  assert.equal(activePayload.email_confirm, true);
+  assert.deepEqual(activePayload.user_metadata, { full_name: "Ada Lovelace" });
+  assert.equal("ban_duration" in activePayload, false);
+  assert.equal("ban_duration" in inactivePayload, false);
+  assert.deepEqual(inactivePayload, activePayload);
+});
+
+test("changeCurrentStaffPassword audits self-service password changes without storing the password", async () => {
+  const auditPayloads: string[] = [];
+  await changeCurrentStaffPassword({ password: "An0ther!StrongPwd" }, actor, {
+    updateOwnPassword: async (password) => {
+      assert.equal(password, "An0ther!StrongPwd");
+    },
+    insertAuditEvent: async (event) => {
+      auditPayloads.push(JSON.stringify(event));
+    },
+  });
+
+  assert.equal(auditPayloads.length, 1);
+  assert.equal(auditPayloads[0].includes("An0ther!StrongPwd"), false);
+  assert.match(auditPayloads[0], /staff_password_changed/);
+});
+
+test("advisor helper keeps only active admin and asesor rows without duplicates", () => {
+  const advisors = getAdvisorCapableStaffFromRows([
+    { id: "1", full_name: "Ada", is_active: true, roles: ["admin"] },
+    { id: "1", full_name: "Ada", is_active: true, roles: ["asesor"] },
+    { id: "2", full_name: "Grace", is_active: true, roles: ["marketing"] },
+    { id: "3", full_name: "Linus", is_active: false, roles: ["asesor"] },
+    { id: "4", full_name: "Margaret", is_active: true, roles: ["asesor"] },
+  ]);
+
+  assert.deepEqual(advisors, [
+    { id: "1", full_name: "Ada" },
+    { id: "4", full_name: "Margaret" },
+  ]);
+});
+
+test("staff routes and client boundaries enforce admin-only management", () => {
+  const staffPage = readFileSync("app/admin/(protected)/staff/page.tsx", "utf8");
+  const staffActions = readFileSync("app/admin/(protected)/staff/actions.ts", "utf8");
+  const createForm = readFileSync("components/admin/staff/staff-create-form.tsx", "utf8");
+  const list = readFileSync("components/admin/staff/staff-list.tsx", "utf8");
+  const accountPage = readFileSync("app/admin/(protected)/account/page.tsx", "utf8");
+  const accountActions = readFileSync("app/admin/(protected)/account/actions.ts", "utf8");
+  const adminShell = readFileSync("components/admin/admin-shell.tsx", "utf8");
+  const leads = readFileSync("lib/admin/leads.ts", "utf8");
+  const operations = readFileSync("lib/admin/operations.ts", "utf8");
+
+  assert.match(staffPage, /requireAdminRole\(\["admin"\]\)/);
+  assert.match(staffActions, /requireAdminRole\(\["admin"\]\)/);
+  assert.match(accountPage, /requireAdminRole\(\)/);
+  assert.match(accountActions, /requireAdminRole\(\)/);
+  assert.doesNotMatch(createForm, /createSupabaseAdminClient/);
+  assert.doesNotMatch(list, /createSupabaseAdminClient/);
+  assert.match(adminShell, /\/admin\/staff/);
+  assert.match(adminShell, /\/admin\/account/);
+  assert.match(leads, /getAdvisorCapableStaff/);
+  assert.match(operations, /getAdvisorCapableStaff/);
+});

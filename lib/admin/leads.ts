@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { getAdvisorCapableStaff } from "@/lib/admin/staff";
 
 export type LeadFilters = {
   q?: string;
@@ -113,9 +114,7 @@ export async function getLeadStatuses() {
 }
 
 export async function getAdvisors() {
-  const supabase = await createClient();
-  const { data } = await supabase.from("profiles").select("id, full_name").eq("is_active", true).order("full_name");
-  return data ?? [];
+  return getAdvisorCapableStaff();
 }
 
 export async function getDestinations() {

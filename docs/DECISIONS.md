@@ -1,5 +1,29 @@
 # Decisiones técnicas y de producto
 
+## 2026-07-09
+
+### Decisión
+
+Implementar provisioning interno de cuentas `admin`/`asesor` dentro de `/admin/staff`, pero mantener la gestión de mailboxs Hostinger fuera de la app en este batch.
+
+### Contexto
+
+AC Travel ya dependía de Supabase Auth + `profiles` + `profile_roles` para autorización, pero el alta/cambio de cuentas internas seguía manual por scripts o dashboard. También se evaluó si el panel debía automatizar mailboxs Hostinger.
+
+### Alternativas consideradas
+
+- Integrar CRUD de mailboxs Hostinger dentro del panel admin.
+- Mantener completamente manual tanto Auth como perfiles/roles.
+- Crear solo usuarios Auth sin auditoría ni protecciones de último admin.
+
+### Motivo
+
+El valor MVP inmediato está en permitir altas/bajas y cambios de rol app-side con trazabilidad y guardrails (`last admin`, self-demotion, self-deactivation). Automatizar Hostinger agrega coupling y manejo de secretos/proveedor con bajo valor inmediato y soporte API insuficiente para este batch.
+
+### Impacto
+
+El onboarding operativo queda: crear mailbox en Hostinger/hPanel primero, luego crear acceso AC Travel en `/admin/staff`. La app registra `admin_account_events`, no persiste contraseñas iniciales y ofrece solo cambio de contraseña self-service en `/admin/account`. El estado activo/inactivo de staff es deliberadamente app-level: controla `profiles.is_active` para permitir o bloquear autorización en AC Travel, pero no intenta suspender mailboxs ni sincronizar baneos/unbaneos en Supabase Auth para este MVP.
+
 ## 2026-05-27
 
 ### Decisión

@@ -51,6 +51,7 @@ Bloques 1–10 completados en alcance MVP actual. Bloque 9 está implementado y 
 - ✅ Corregido el home público para consumir catálogo vivo publicado en destinos/promociones/servicios, de modo que las publicaciones admin ya se reflejan en la portada.
 - ✅ Cerrado P1.8 con una mejora MVP coherente: admin de catálogo ya permite subir hero/thumbnail a `catalog-media` o guardar URLs administradas con validación/normalización server-side, limpiar/reemplazar media previa con cleanup best-effort, conservar publicación al editar, y usar thumbnail en cards + hero en detalle cuando existe.
 - ✅ Implementada la segunda etapa profunda de P2.3 sin merges destructivos: nueva vista admin `/admin/data-quality` con auditoría exacta de duplicados por email/teléfono, conteo de eventos `contact_identity_ambiguous`, dependencias por contacto para planear merges, recomendación canónica determinista y explicación explícita de por qué la unicidad dura sigue diferida hasta contar con playbook transaccional y backlog limpio.
+- ✅ Implementado provisioning interno de usuarios `admin` y `asesor`: nueva vista `/admin/staff`, alta server-side con Supabase Auth Admin API, sincronización a `profiles` + `profile_roles`, auditoría `admin_account_events`, guardrails contra self-demotion/self-deactivation/last-admin lockout, filtro compartido de asesores activos para selectores y ruta `/admin/account` para cambio self-service de contraseña.
 
 ## En proceso
 
@@ -59,6 +60,7 @@ Bloques 1–10 completados en alcance MVP actual. Bloque 9 está implementado y 
 ## Pendiente
 
 - Completar QA manual de negocio en el entorno de hosting final: mobile real, copy bilingüe, sesión/roles con usuarios reales, flujo de cotización con credenciales productivas y revisión visual final.
+- Ejecutar la nueva migración `0027_admin_account_events.sql` y regenerar tipos desde un proyecto Supabase enlazado antes del despliegue final, luego verificar advisors sobre el esquema ya aplicado.
 - Activar o confirmar en Supabase Auth la protección de contraseñas filtradas (leaked password protection). No se habilitó desde código porque depende de configuración externa del proyecto; validar después login normal, recuperación de contraseña y bloqueo de credenciales filtradas.
 - Revisar y archivar un snapshot actualizado de Supabase Security Advisors. Estado conocido de P0.3: advertencia de leaked password protection deshabilitada; warnings sobre helpers `SECURITY DEFINER` (`has_role`, `is_admin`, `is_assigned_lead`) se aceptan temporalmente porque los grants a `authenticated` son necesarios para el modelo RLS actual y fueron corregidos tras regresión. Reabrir solo con pruebas sobre datos/roles reales.
 - Tratar como trabajo futuro, fuera de P0.3: MFA/SSO, rediseño completo de políticas RLS/helpers, mapas finos de rol en middleware, expansión de auditoría y limpieza de advisors puramente de performance.

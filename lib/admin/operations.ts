@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { getAdvisorCapableStaff } from "@/lib/admin/staff";
 import type { Tables } from "@/lib/supabase/database.types";
 
 type ContactSummary = { id: string; first_name: string; last_name: string | null; email: string | null; phone: string | null } | null;
@@ -49,7 +50,7 @@ export async function getOperationOptions() {
     supabase.from("bookings").select("id, booking_code, status, contact_id").order("updated_at", { ascending: false }).limit(100),
     supabase.from("destinations").select("id, name_es").order("name_es").limit(200),
     supabase.from("services").select("id, name_es").order("sort_order").limit(200),
-    supabase.from("profiles").select("id, full_name").eq("is_active", true).order("full_name").limit(100),
+    getAdvisorCapableStaff(),
     supabase.from("payment_methods").select("id, label_es").eq("is_active", true).order("sort_order").limit(100),
   ]);
 
@@ -59,7 +60,7 @@ export async function getOperationOptions() {
     bookings: bookings.data ?? [],
     destinations: destinations.data ?? [],
     services: services.data ?? [],
-    advisors: advisors.data ?? [],
+    advisors: advisors,
     paymentMethods: paymentMethods.data ?? [],
   };
 }

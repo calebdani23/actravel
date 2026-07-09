@@ -18,12 +18,14 @@
 
 - `NEXT_PUBLIC_SUPABASE_URL`: URL pública del proyecto Supabase.
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: publishable key pública para cliente browser y SSR.
-- `SUPABASE_SECRET_KEY`: secret key server-only para tareas administrativas/bootstrap. Nunca usar en cliente.
+- `SUPABASE_SECRET_KEY`: secret key server-only para tareas administrativas/bootstrap y provisioning interno de staff desde `/admin/staff`. Nunca usar en cliente ni exponerlo al browser.
 - `SUPABASE_DB_URL`: cadena Postgres para ejecutar `npm run db:seed` desde un entorno seguro.
 - `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`, `BOOTSTRAP_ADMIN_NAME`: credenciales locales/hosting para crear el primer administrador con `npm run db:bootstrap-admin`.
 - `BOOTSTRAP_ASESOR_EMAIL`, `BOOTSTRAP_ASESOR_PASSWORD`, `BOOTSTRAP_ASESOR_NAME`: credenciales locales/hosting para crear el asesor principal.
 
 Para crear el primer usuario administrador, configura `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD` en un entorno local/hosting seguro y ejecuta `npm run db:bootstrap-admin`. El asesor principal se crea si también existen `BOOTSTRAP_ASESOR_EMAIL` y `BOOTSTRAP_ASESOR_PASSWORD`. El script carga `.env.local` y luego `.env` automáticamente si las variables no vienen ya del entorno. No inventar ni commitear estas credenciales.
+
+`/admin/staff` también depende de `SUPABASE_SECRET_KEY` porque usa Supabase Auth Admin APIs server-side para crear usuarios, sincronizar `profiles/profile_roles` y registrar auditoría. Si falta esta variable, el provisioning interno debe fallar claramente en servidor.
 
 > Desviación deliberada del prompt maestro: aunque el prompt histórico menciona los nombres legacy de Supabase, este proyecto usa exclusivamente el modelo moderno configurado por el usuario: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` y `SUPABASE_SECRET_KEY`.
 
@@ -62,3 +64,5 @@ Bloque 9 escribe filas reales desde el flujo server-side de cotización cuando l
 
 - No exponer `SUPABASE_SECRET_KEY`, `SUPABASE_DB_URL`, credenciales bootstrap, claves de email o claves de Google en componentes cliente.
 - Supabase Auth usa perfiles/roles en `profiles`, `roles` y `profile_roles`; RLS solo permite lectura anónima de catálogo publicado.
+- El alta/baja de usuarios en la app no crea, suspende ni elimina mailboxs de Hostinger; esa operación sigue manual en hPanel.
+- El toggle activo/inactivo de `/admin/staff` solo controla autorización interna vía `profiles.is_active`. En este MVP no se sincroniza con baneos/unbaneos de Supabase Auth.
