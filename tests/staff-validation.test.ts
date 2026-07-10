@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   parseCreateStaffFormData,
   parseDeleteStaffFormData,
+  parseEmailChangeFormData,
   parsePasswordChangeFormData,
   parseUpdateStaffFormData,
 } from "@/lib/validations/staff";
@@ -93,6 +94,40 @@ test("password change parser requires strong confirmed password", () => {
   assert.equal(valid.success, true);
   if (!valid.success) return;
   assert.equal(valid.data.password, "An0ther!StrongPwd");
+});
+
+test("email change parser normalizes email and confirmation", () => {
+  const valid = parseEmailChangeFormData(formData({
+    email: " NEW.Admin@Example.COM ",
+    confirm_email: " new.admin@example.com ",
+  }));
+
+  assert.equal(valid.success, true);
+  if (!valid.success) return;
+  assert.deepEqual(valid.data, {
+    email: "new.admin@example.com",
+  });
+});
+
+test("email change parser rejects invalid email and mismatched confirmation", () => {
+  const invalidEmail = parseEmailChangeFormData(formData({
+    email: "not-an-email",
+    confirm_email: "not-an-email",
+  }));
+
+  assert.equal(invalidEmail.success, false);
+  if (invalidEmail.success) return;
+  assert.equal(invalidEmail.values.email, "not-an-email");
+  assert.equal(invalidEmail.values.confirm_email, "not-an-email");
+
+  const mismatch = parseEmailChangeFormData(formData({
+    email: "new.admin@example.com",
+    confirm_email: "other.admin@example.com",
+  }));
+
+  assert.equal(mismatch.success, false);
+  if (mismatch.success) return;
+  assert.deepEqual(mismatch.fieldErrors.confirm_email, ["Emails must match"]);
 });
 
 test("staff delete parser only accepts a UUID profile id", () => {

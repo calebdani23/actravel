@@ -27,6 +27,14 @@ Para crear el primer usuario administrador, configura `NEXT_PUBLIC_SUPABASE_URL`
 
 `/admin/staff` también depende de `SUPABASE_SECRET_KEY` porque usa Supabase Auth Admin APIs server-side para crear usuarios, sincronizar `profiles/profile_roles` y registrar auditoría. Si falta esta variable, el provisioning interno debe fallar claramente en servidor.
 
+`/admin/account` no usa `SUPABASE_SECRET_KEY` para cambio self-service de correo: el usuario autenticado solicita el cambio con su propia sesión Supabase vía `auth.updateUser({ email })`, por lo que la verificación del buzón sigue del lado de Supabase Auth.
+
+Para que el cambio self-service de correo funcione correctamente en hosting/producción:
+
+- Supabase Auth debe tener configurado su proveedor de emails transaccionales.
+- Conviene mantener habilitado **Secure Email Change** para cuentas internas; así Supabase puede requerir confirmación desde el correo actual y el nuevo.
+- Si después se agrega `emailRedirectTo`, la URL de retorno deberá estar permitida en el allow-list de redirects de Supabase Auth.
+
 > Desviación deliberada del prompt maestro: aunque el prompt histórico menciona los nombres legacy de Supabase, este proyecto usa exclusivamente el modelo moderno configurado por el usuario: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` y `SUPABASE_SECRET_KEY`.
 
 ### WhatsApp
@@ -65,4 +73,5 @@ Bloque 9 escribe filas reales desde el flujo server-side de cotización cuando l
 - No exponer `SUPABASE_SECRET_KEY`, `SUPABASE_DB_URL`, credenciales bootstrap, claves de email o claves de Google en componentes cliente.
 - Supabase Auth usa perfiles/roles en `profiles`, `roles` y `profile_roles`; RLS solo permite lectura anónima de catálogo publicado.
 - El alta/baja de usuarios en la app no crea, suspende ni elimina mailboxs de Hostinger; esa operación sigue manual en hPanel.
+- El cambio self-service de correo en `/admin/account` tampoco crea, renombra ni elimina mailboxs de Hostinger; solo inicia el flujo verificado de Supabase Auth para el login de la app.
 - El toggle activo/inactivo de `/admin/staff` solo controla autorización interna vía `profiles.is_active`. En este MVP no se sincroniza con baneos/unbaneos de Supabase Auth.

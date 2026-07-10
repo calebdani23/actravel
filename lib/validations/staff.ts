@@ -46,11 +46,21 @@ const passwordChangeSchema = z.object({
   }
 });
 
+const emailChangeSchema = z.object({
+  email: normalizedEmailSchema,
+  confirm_email: normalizedEmailSchema,
+}).superRefine((value, ctx) => {
+  if (value.email !== value.confirm_email) {
+    ctx.addIssue({ code: "custom", path: ["confirm_email"], message: "Emails must match" });
+  }
+});
+
 export type ManagedStaffRole = (typeof managedStaffRoleValues)[number];
 export type CreateStaffInput = z.infer<typeof createStaffSchema> extends infer T ? Omit<T & object, "confirm_initial_password"> : never;
 export type UpdateStaffInput = z.infer<typeof updateStaffSchema>;
 export type DeleteStaffInput = z.infer<typeof deleteStaffSchema>;
 export type PasswordChangeInput = { password: string };
+export type EmailChangeInput = { email: string };
 
 type ValidationFailure<TValues> = {
   success: false;
@@ -134,4 +144,20 @@ export function parsePasswordChangeFormData(formData: FormData): ValidationSucce
   const parsed = passwordChangeSchema.safeParse(raw);
   if (!parsed.success) return flatten(parsed, {});
   return { success: true, data: { password: parsed.data.new_password } };
+}
+
+export function parseEmailChangeFormData(formData: FormData): ValidationSuccess<EmailChangeInput> | ValidationFailure<EmailChangeInput & { confirm_email: string }> {
+  const raw = {
+    email: typeof formData.get("email") === "string" ? String(formData.get("email")) : "",
+    confirm_email: typeof formData.get("confirm_email") === "string" ? String(formData.get("confirm_email")) : "",
+  };
+  const parsed = emailChangeSchema.safeParse(raw);
+  if (!parsed.success) {
+    return flatten(parsed, {
+      email: raw.email.trim().toLowerCase(),
+      confirm_email: raw.confirm_email.trim().toLowerCase(),
+    });
+  }
+
+  return { success: true, data: { email: parsed.data.email } };
 }

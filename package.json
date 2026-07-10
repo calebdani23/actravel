@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test:lead-template-actions": "node --import tsx --test tests/lead-template-actions.test.tsx",
+    "test:staff-validation": "node --import tsx --test tests/staff-validation.test.ts",
     "test:staff-admin": "node --conditions react-server --import tsx --test tests/staff-validation.test.ts tests/staff-admin.test.ts",
     "test:quote-request-identity": "node --conditions react-server --import tsx --test tests/quote-request-identity.test.ts",
     "test:quote-notifications": "node --conditions react-server --import tsx --test tests/quote-notifications.test.ts",

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Json, TablesInsert } from "@/lib/supabase/database.types";
 import type { RoleName } from "@/lib/supabase/roles";
-import type { CreateStaffInput, DeleteStaffInput, ManagedStaffRole, PasswordChangeInput, UpdateStaffInput } from "@/lib/validations/staff";
+import type { CreateStaffInput, DeleteStaffInput, EmailChangeInput, ManagedStaffRole, PasswordChangeInput, UpdateStaffInput } from "@/lib/validations/staff";
 
 export type StaffActor = { id: string; email?: string; roles: readonly RoleName[] };
 
@@ -16,7 +16,8 @@ type StaffAuditAction =
   | "staff_reactivated"
   | "staff_role_changed"
   | "staff_deleted"
-  | "staff_password_changed";
+  | "staff_password_changed"
+  | "staff_email_change_requested";
 
 type StaffAccountRole = ManagedStaffRole | null;
 
@@ -88,6 +89,11 @@ type UpdateDeps = {
 
 type PasswordDeps = {
   updateOwnPassword: (password: string) => Promise<void>;
+  insertAuditEvent: (event: StaffEventInsert) => Promise<void>;
+};
+
+type EmailChangeDeps = {
+  updateOwnEmail: (email: string) => Promise<void>;
   insertAuditEvent: (event: StaffEventInsert) => Promise<void>;
 };
 
@@ -307,6 +313,22 @@ async function updateOwnPassword(password: string) {
   if (error) throw new Error(error.message);
 }
 
+async function updateOwnEmail(email: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ email });
+  if (error) throw new Error(error.message);
+}
+
+function mapEmailChangeError(error: unknown) {
+  const message = error instanceof Error ? error.message : "Could not request the email change.";
+
+  if (/already|registered|exists|email.*used|duplicate|taken/i.test(message)) {
+    return new Error("This email cannot be used. Try another email or contact an administrator.");
+  }
+
+  return error instanceof Error ? error : new Error(message);
+}
+
 function defaultCreateDeps(): CreateDeps {
   return { getManagedRoleId: resolveManagedRoleId, createAuthUser, upsertProfile, replaceProfileRole, insertAuditEvent, deleteAuthUser };
 }
@@ -326,6 +348,10 @@ function defaultUpdateDeps(): UpdateDeps {
 
 function defaultPasswordDeps(): PasswordDeps {
   return { updateOwnPassword, insertAuditEvent };
+}
+
+function defaultEmailChangeDeps(): EmailChangeDeps {
+  return { updateOwnEmail, insertAuditEvent };
 }
 
 function defaultDeleteDeps(): DeleteDeps {
@@ -548,5 +574,26 @@ export async function changeCurrentStaffPassword(input: PasswordChangeInput, act
     target_email: actor.email ?? null,
     action: "staff_password_changed",
     metadata: { selfService: true },
+  });
+}
+
+export async function requestCurrentStaffEmailChange(input: EmailChangeInput, actor: StaffActor, deps: EmailChangeDeps = defaultEmailChangeDeps()) {
+  try {
+    await deps.updateOwnEmail(input.email);
+  } catch (error) {
+    throw mapEmailChangeError(error);
+  }
+
+  await deps.insertAuditEvent({
+    actor_id: actor.id,
+    target_profile_id: actor.id,
+    target_email: actor.email ?? null,
+    action: "staff_email_change_requested",
+    metadata: {
+      selfService: true,
+      previousEmail: actor.email ?? null,
+      requestedEmail: input.email,
+      status: "verification_pending",
+    },
   });
 }

@@ -8,6 +8,7 @@ import {
   createStaffAccount,
   deleteStaffAccount,
   getAdvisorCapableStaffFromRows,
+  requestCurrentStaffEmailChange,
   updateStaffAccount,
   type StaffActor,
 } from "@/lib/admin/staff";
@@ -284,6 +285,42 @@ test("changeCurrentStaffPassword audits self-service password changes without st
   assert.match(auditPayloads[0], /staff_password_changed/);
 });
 
+test("requestCurrentStaffEmailChange updates auth email first and audits a pending request", async () => {
+  const calls: string[] = [];
+
+  await requestCurrentStaffEmailChange({ email: "new.admin@example.com" }, actor, {
+    updateOwnEmail: async (email) => {
+      calls.push(`email:${email}`);
+    },
+    insertAuditEvent: async (event) => {
+      calls.push(`audit:${event.action}`);
+      assert.equal(event.actor_id, actor.id);
+      assert.equal(event.target_profile_id, actor.id);
+      assert.equal(event.target_email, actor.email);
+      assert.deepEqual(event.metadata, {
+        selfService: true,
+        previousEmail: actor.email,
+        requestedEmail: "new.admin@example.com",
+        status: "verification_pending",
+      });
+      assert.equal(JSON.stringify(event).includes("token"), false);
+    },
+  });
+
+  assert.deepEqual(calls, ["email:new.admin@example.com", "audit:staff_email_change_requested"]);
+});
+
+test("requestCurrentStaffEmailChange returns a generic unavailable-email message for duplicate auth errors", async () => {
+  await assert.rejects(() => requestCurrentStaffEmailChange({ email: "taken@example.com" }, actor, {
+    updateOwnEmail: async () => {
+      throw new Error("User already registered");
+    },
+    insertAuditEvent: async () => {
+      throw new Error("audit should not run");
+    },
+  }), /This email cannot be used/i);
+});
+
 test("advisor helper keeps only active admin and asesor rows without duplicates", () => {
   const advisors = getAdvisorCapableStaffFromRows([
     { id: "1", full_name: "Ada", is_active: true, roles: ["admin"] },
@@ -308,6 +345,8 @@ test("staff routes and client boundaries enforce admin-only management", () => {
   const list = readFileSync("components/admin/staff/staff-list.tsx", "utf8");
   const accountPage = readFileSync("app/admin/(protected)/account/page.tsx", "utf8");
   const accountActions = readFileSync("app/admin/(protected)/account/actions.ts", "utf8");
+  const accountActionState = readFileSync("app/admin/(protected)/account/action-state.ts", "utf8");
+  const emailForm = readFileSync("components/admin/account/email-change-form.tsx", "utf8");
   const adminShell = readFileSync("components/admin/admin-shell.tsx", "utf8");
   const leads = readFileSync("lib/admin/leads.ts", "utf8");
   const operations = readFileSync("lib/admin/operations.ts", "utf8");
@@ -318,8 +357,15 @@ test("staff routes and client boundaries enforce admin-only management", () => {
   assert.match(staffActionState, /StaffDeleteActionState/);
   assert.match(accountPage, /requireAdminRole\(\)/);
   assert.match(accountActions, /requireAdminRole\(\)/);
+  assert.match(accountActions, /requestEmailChangeAction/);
+  assert.match(accountActionState, /initialEmailChangeActionState/);
+  assert.match(emailForm, /useActionState\(requestEmailChangeAction, initialEmailChangeActionState\)/);
+  assert.match(accountPage, /Signed in as/);
+  assert.match(accountPage, /Current sign-in email/);
+  assert.match(accountPage, /<EmailChangeForm\s*\/?>/);
   assert.doesNotMatch(createForm, /createSupabaseAdminClient/);
   assert.doesNotMatch(list, /createSupabaseAdminClient/);
+  assert.doesNotMatch(emailForm, /createSupabaseAdminClient/);
   assert.match(list, /Permanent delete/);
   assert.match(adminShell, /\/admin\/staff/);
   assert.match(adminShell, /\/admin\/account/);
@@ -329,4 +375,6 @@ test("staff routes and client boundaries enforce admin-only management", () => {
   assert.match(staffModule, /notification_logs[\s\S]*incident_updated_by/);
   assert.match(staffModule, /sheet_sync_logs[\s\S]*last_retried_by/);
   assert.match(staffModule, /sheet_sync_logs[\s\S]*incident_updated_by/);
+  assert.match(staffModule, /staff_email_change_requested/);
+  assert.doesNotMatch(staffModule, /auth\.admin\.updateUserById/);
 });
