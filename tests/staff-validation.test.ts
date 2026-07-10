@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   parseCreateStaffFormData,
+  parseDeleteStaffFormData,
   parsePasswordChangeFormData,
   parseUpdateStaffFormData,
 } from "@/lib/validations/staff";
@@ -92,4 +93,22 @@ test("password change parser requires strong confirmed password", () => {
   assert.equal(valid.success, true);
   if (!valid.success) return;
   assert.equal(valid.data.password, "An0ther!StrongPwd");
+});
+
+test("staff delete parser only accepts a UUID profile id", () => {
+  const invalid = parseDeleteStaffFormData(formData({
+    profile_id: "not-a-uuid",
+  }));
+
+  assert.equal(invalid.success, false);
+
+  const valid = parseDeleteStaffFormData(formData({
+    profile_id: "550e8400-e29b-41d4-a716-446655440000",
+  }));
+
+  assert.equal(valid.success, true);
+  if (!valid.success) return;
+  assert.deepEqual(valid.data, {
+    profile_id: "550e8400-e29b-41d4-a716-446655440000",
+  });
 });

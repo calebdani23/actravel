@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Json, TablesInsert } from "@/lib/supabase/database.types";
 import type { RoleName } from "@/lib/supabase/roles";
-import type { CreateStaffInput, ManagedStaffRole, PasswordChangeInput, UpdateStaffInput } from "@/lib/validations/staff";
+import type { CreateStaffInput, DeleteStaffInput, ManagedStaffRole, PasswordChangeInput, UpdateStaffInput } from "@/lib/validations/staff";
 
 export type StaffActor = { id: string; email?: string; roles: readonly RoleName[] };
 
@@ -15,6 +15,7 @@ type StaffAuditAction =
   | "staff_deactivated"
   | "staff_reactivated"
   | "staff_role_changed"
+  | "staff_deleted"
   | "staff_password_changed";
 
 type StaffAccountRole = ManagedStaffRole | null;
@@ -54,6 +55,17 @@ type StaffSnapshot = {
   email: string | null;
 };
 
+export type StaffDeletionReference = {
+  table: string;
+  label: string;
+  count: number;
+};
+
+export type StaffDeletionReferenceSummary = {
+  totalReferences: number;
+  references: StaffDeletionReference[];
+};
+
 type StaffEventInsert = TablesInsert<"admin_account_events">;
 
 type CreateDeps = {
@@ -79,11 +91,28 @@ type PasswordDeps = {
   insertAuditEvent: (event: StaffEventInsert) => Promise<void>;
 };
 
-const managedRoleNames = new Set<ManagedStaffRole>(["admin", "asesor"]);
+type DeleteDeps = {
+  getStaffSnapshot: (profileId: string) => Promise<StaffSnapshot | null>;
+  countActiveAdminsExcluding: (profileId: string) => Promise<number>;
+  getDeletionReferenceSummary: (profileId: string) => Promise<StaffDeletionReferenceSummary>;
+  deleteAuthUser: (userId: string) => Promise<void>;
+  insertAuditEvent: (event: StaffEventInsert) => Promise<void>;
+};
 
-function hasUnsupportedRole(roles: string[]) {
-  return roles.some((role) => !managedRoleNames.has(role as ManagedStaffRole));
-}
+const deletionReferenceChecks = [
+  { table: "leads", column: "assigned_to", label: "Leads" },
+  { table: "lead_notes", column: "author_id", label: "Lead notes" },
+  { table: "lead_events", column: "actor_id", label: "Lead events" },
+  { table: "bookings", column: "assigned_to", label: "Bookings" },
+  { table: "payments", column: "verified_by", label: "Payments" },
+  { table: "documents", column: "uploaded_by", label: "Documents" },
+  { table: "notification_logs", column: "last_retried_by", label: "Notification retry history" },
+  { table: "notification_logs", column: "incident_updated_by", label: "Notification incident history" },
+  { table: "sheet_sync_logs", column: "last_retried_by", label: "Sheet sync retry history" },
+  { table: "sheet_sync_logs", column: "incident_updated_by", label: "Sheet sync incident history" },
+] as const;
+
+const managedRoleNames = new Set<ManagedStaffRole>(["admin", "asesor"]);
 
 function getManagedRoleNames(roles: string[]) {
   return Array.from(new Set(roles.filter((role): role is ManagedStaffRole => managedRoleNames.has(role as ManagedStaffRole))));
@@ -131,6 +160,11 @@ function buildCreateFailureMessage(error: unknown, cleanupAttempted: boolean, cl
 
 function buildAuditEvent(event: StaffEventInsert): StaffEventInsert {
   return { metadata: {}, target_email: null, actor_id: null, target_profile_id: null, ...event };
+}
+
+function buildDeleteBlockedMessage(summary: StaffDeletionReferenceSummary) {
+  const details = summary.references.map((reference) => `${reference.label} (${reference.count})`).join(", ");
+  return `Permanent delete is blocked because this account is still referenced by ${details}. Deactivate the account instead to preserve history.`;
 }
 
 async function loadRoleRows() {
@@ -241,6 +275,26 @@ async function deleteAuthUser(userId: string) {
   if (error) throw new Error(error.message);
 }
 
+async function countRowsByProfileReference(table: string, column: string, profileId: string) {
+  const admin = createSupabaseAdminClient();
+  const { count, error } = await admin.from(table).select("id", { count: "exact", head: true }).eq(column, profileId);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+async function getDeletionReferenceSummary(profileId: string): Promise<StaffDeletionReferenceSummary> {
+  const references = (await Promise.all(deletionReferenceChecks.map(async (reference) => ({
+    table: reference.table,
+    label: reference.label,
+    count: await countRowsByProfileReference(reference.table, reference.column, profileId),
+  })))).filter((reference) => reference.count > 0);
+
+  return {
+    totalReferences: references.reduce((total, reference) => total + reference.count, 0),
+    references,
+  };
+}
+
 async function updateProfile(input: { profileId: string; full_name: string; is_active: boolean }) {
   const admin = createSupabaseAdminClient();
   const { error } = await admin.from("profiles").update({ full_name: input.full_name, is_active: input.is_active }).eq("id", input.profileId);
@@ -272,6 +326,10 @@ function defaultUpdateDeps(): UpdateDeps {
 
 function defaultPasswordDeps(): PasswordDeps {
   return { updateOwnPassword, insertAuditEvent };
+}
+
+function defaultDeleteDeps(): DeleteDeps {
+  return { getStaffSnapshot, countActiveAdminsExcluding, getDeletionReferenceSummary, deleteAuthUser, insertAuditEvent };
 }
 
 export async function getStaffAccounts(): Promise<StaffAccount[]> {
@@ -452,6 +510,34 @@ export async function updateStaffAccount(input: UpdateStaffInput, actor: StaffAc
       metadata: { previousIsActive: snapshot.is_active, nextIsActive: input.is_active },
     });
   }
+}
+
+export async function deleteStaffAccount(input: DeleteStaffInput, actor: StaffActor, deps: DeleteDeps = defaultDeleteDeps()) {
+  const snapshot = await deps.getStaffSnapshot(input.profile_id);
+  if (!snapshot) throw new Error("Staff profile was not found.");
+  if (snapshot.profile_id === actor.id) throw new Error("You cannot delete your own account.");
+
+  if (snapshot.is_active && snapshot.roles.includes("admin")) {
+    const otherActiveAdmins = await deps.countActiveAdminsExcluding(snapshot.profile_id);
+    if (otherActiveAdmins === 0) throw new Error("You cannot delete the last active admin.");
+  }
+
+  const referenceSummary = await deps.getDeletionReferenceSummary(snapshot.profile_id);
+  if (referenceSummary.totalReferences > 0) throw new Error(buildDeleteBlockedMessage(referenceSummary));
+
+  await deps.deleteAuthUser(snapshot.profile_id);
+  await deps.insertAuditEvent({
+    actor_id: actor.id,
+    target_profile_id: null,
+    target_email: snapshot.email,
+    action: "staff_deleted",
+    metadata: {
+      deletedProfileId: snapshot.profile_id,
+      deletedFullName: snapshot.full_name,
+      deletedRoles: snapshot.roles,
+      deletedWasActive: snapshot.is_active,
+    },
+  });
 }
 
 export async function changeCurrentStaffPassword(input: PasswordChangeInput, actor: StaffActor, deps: PasswordDeps = defaultPasswordDeps()) {

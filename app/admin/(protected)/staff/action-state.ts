@@ -13,6 +13,12 @@ export type StaffUpdateActionState = {
   fieldErrors: Record<string, string[]>;
 };
 
+export type StaffDeleteActionState = {
+  ok: boolean;
+  message: string | null;
+  fieldErrors: Record<string, string[]>;
+};
+
 export const initialStaffCreateActionState: StaffCreateActionState = {
   ok: false,
   message: null,
@@ -21,3 +27,4 @@ export const initialStaffCreateActionState: StaffCreateActionState = {
 };
 
 export const initialStaffUpdateActionState: StaffUpdateActionState = { ok: false, message: null, fieldErrors: {} };
+export const initialStaffDeleteActionState: StaffDeleteActionState = { ok: false, message: null, fieldErrors: {} };

@@ -12,6 +12,7 @@ function actionLabel(action: string) {
     staff_deactivated: "Deactivated",
     staff_reactivated: "Reactivated",
     staff_role_changed: "Role changed",
+    staff_deleted: "Deleted permanently",
     staff_password_changed: "Password changed",
   }[action] ?? action;
 }

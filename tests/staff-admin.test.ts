@@ -6,6 +6,7 @@ import {
   buildStaffAuthCreatePayload,
   changeCurrentStaffPassword,
   createStaffAccount,
+  deleteStaffAccount,
   getAdvisorCapableStaffFromRows,
   updateStaffAccount,
   type StaffActor,
@@ -119,6 +120,91 @@ test("updateStaffAccount blocks self-demotion and last-admin removal", async () 
   }), /last active admin/i);
 });
 
+test("deleteStaffAccount hard deletes a reference-free account and audits the action", async () => {
+  const calls: string[] = [];
+
+  await deleteStaffAccount({
+    profile_id: "user-3",
+  }, actor, {
+    getStaffSnapshot: async () => ({
+      profile_id: "user-3",
+      full_name: "Grace Hopper",
+      is_active: true,
+      roles: ["asesor"],
+      email: "grace@example.com",
+    }),
+    countActiveAdminsExcluding: async () => 1,
+    getDeletionReferenceSummary: async () => ({ totalReferences: 0, references: [] }),
+    insertAuditEvent: async (event) => {
+      calls.push(`audit:${event.action}`);
+      assert.equal(event.target_profile_id, null);
+      assert.equal(event.target_email, "grace@example.com");
+      assert.match(JSON.stringify(event.metadata), /Grace Hopper/);
+    },
+    deleteAuthUser: async (userId) => {
+      calls.push(`delete:${userId}`);
+    },
+  });
+
+  assert.deepEqual(calls, ["delete:user-3", "audit:staff_deleted"]);
+});
+
+test("deleteStaffAccount blocks self-delete, last-admin delete, and referenced accounts", async () => {
+  await assert.rejects(() => deleteStaffAccount({
+    profile_id: "actor-1",
+  }, actor, {
+    getStaffSnapshot: async () => ({
+      profile_id: "actor-1",
+      full_name: "Admin",
+      is_active: true,
+      roles: ["admin"],
+      email: "admin@example.com",
+    }),
+    countActiveAdminsExcluding: async () => 1,
+    getDeletionReferenceSummary: async () => ({ totalReferences: 0, references: [] }),
+    insertAuditEvent: async () => undefined,
+    deleteAuthUser: async () => undefined,
+  }), /cannot delete your own account/i);
+
+  await assert.rejects(() => deleteStaffAccount({
+    profile_id: "user-last-admin",
+  }, actor, {
+    getStaffSnapshot: async () => ({
+      profile_id: "user-last-admin",
+      full_name: "Only Admin",
+      is_active: true,
+      roles: ["admin"],
+      email: "only@example.com",
+    }),
+    countActiveAdminsExcluding: async () => 0,
+    getDeletionReferenceSummary: async () => ({ totalReferences: 0, references: [] }),
+    insertAuditEvent: async () => undefined,
+    deleteAuthUser: async () => undefined,
+  }), /last active admin/i);
+
+  await assert.rejects(() => deleteStaffAccount({
+    profile_id: "user-referenced",
+  }, actor, {
+    getStaffSnapshot: async () => ({
+      profile_id: "user-referenced",
+      full_name: "Referenced User",
+      is_active: false,
+      roles: ["asesor"],
+      email: "referenced@example.com",
+    }),
+    countActiveAdminsExcluding: async () => 1,
+    getDeletionReferenceSummary: async () => ({
+      totalReferences: 2,
+      references: [
+        { table: "leads", label: "Leads", count: 1 },
+        { table: "payments", label: "Payments", count: 1 },
+      ],
+    }),
+    insertAuditEvent: async () => undefined,
+    deleteAuthUser: async () => undefined,
+  }), /deactivate the account instead/i);
+});
+
 test("updateStaffAccount refuses staff records outside the MVP single-role management scope", async () => {
   await assert.rejects(() => updateStaffAccount({
     profile_id: "user-mixed",
@@ -214,8 +300,10 @@ test("advisor helper keeps only active admin and asesor rows without duplicates"
 });
 
 test("staff routes and client boundaries enforce admin-only management", () => {
+  const staffModule = readFileSync("lib/admin/staff.ts", "utf8");
   const staffPage = readFileSync("app/admin/(protected)/staff/page.tsx", "utf8");
   const staffActions = readFileSync("app/admin/(protected)/staff/actions.ts", "utf8");
+  const staffActionState = readFileSync("app/admin/(protected)/staff/action-state.ts", "utf8");
   const createForm = readFileSync("components/admin/staff/staff-create-form.tsx", "utf8");
   const list = readFileSync("components/admin/staff/staff-list.tsx", "utf8");
   const accountPage = readFileSync("app/admin/(protected)/account/page.tsx", "utf8");
@@ -226,12 +314,19 @@ test("staff routes and client boundaries enforce admin-only management", () => {
 
   assert.match(staffPage, /requireAdminRole\(\["admin"\]\)/);
   assert.match(staffActions, /requireAdminRole\(\["admin"\]\)/);
+  assert.match(staffActions, /deleteStaffAction/);
+  assert.match(staffActionState, /StaffDeleteActionState/);
   assert.match(accountPage, /requireAdminRole\(\)/);
   assert.match(accountActions, /requireAdminRole\(\)/);
   assert.doesNotMatch(createForm, /createSupabaseAdminClient/);
   assert.doesNotMatch(list, /createSupabaseAdminClient/);
+  assert.match(list, /Permanent delete/);
   assert.match(adminShell, /\/admin\/staff/);
   assert.match(adminShell, /\/admin\/account/);
   assert.match(leads, /getAdvisorCapableStaff/);
   assert.match(operations, /getAdvisorCapableStaff/);
+  assert.match(staffModule, /notification_logs[\s\S]*last_retried_by/);
+  assert.match(staffModule, /notification_logs[\s\S]*incident_updated_by/);
+  assert.match(staffModule, /sheet_sync_logs[\s\S]*last_retried_by/);
+  assert.match(staffModule, /sheet_sync_logs[\s\S]*incident_updated_by/);
 });

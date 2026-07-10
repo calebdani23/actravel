@@ -33,6 +33,10 @@ const updateStaffSchema = z.object({
   is_active: z.boolean(),
 });
 
+const deleteStaffSchema = z.object({
+  profile_id: z.string().uuid(),
+});
+
 const passwordChangeSchema = z.object({
   new_password: passwordSchema,
   confirm_new_password: z.string(),
@@ -45,6 +49,7 @@ const passwordChangeSchema = z.object({
 export type ManagedStaffRole = (typeof managedStaffRoleValues)[number];
 export type CreateStaffInput = z.infer<typeof createStaffSchema> extends infer T ? Omit<T & object, "confirm_initial_password"> : never;
 export type UpdateStaffInput = z.infer<typeof updateStaffSchema>;
+export type DeleteStaffInput = z.infer<typeof deleteStaffSchema>;
 export type PasswordChangeInput = { password: string };
 
 type ValidationFailure<TValues> = {
@@ -109,6 +114,15 @@ export function parseUpdateStaffFormData(formData: FormData): ValidationSuccess<
   };
   const parsed = updateStaffSchema.safeParse(raw);
   if (!parsed.success) return flatten(parsed, { ...raw, full_name: raw.full_name.trim() });
+  return { success: true, data: parsed.data };
+}
+
+export function parseDeleteStaffFormData(formData: FormData): ValidationSuccess<DeleteStaffInput> | ValidationFailure<DeleteStaffInput> {
+  const raw: DeleteStaffInput = {
+    profile_id: typeof formData.get("profile_id") === "string" ? String(formData.get("profile_id")) : "",
+  };
+  const parsed = deleteStaffSchema.safeParse(raw);
+  if (!parsed.success) return flatten(parsed, raw);
   return { success: true, data: parsed.data };
 }
 

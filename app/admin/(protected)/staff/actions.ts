@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { initialStaffCreateActionState, type StaffCreateActionState, type StaffUpdateActionState } from "@/app/admin/(protected)/staff/action-state";
+import { initialStaffCreateActionState, type StaffCreateActionState, type StaffDeleteActionState, type StaffUpdateActionState } from "@/app/admin/(protected)/staff/action-state";
 import { requireAdminRole } from "@/lib/admin/auth";
-import { createStaffAccount, updateStaffAccount } from "@/lib/admin/staff";
-import { parseCreateStaffFormData, parseUpdateStaffFormData } from "@/lib/validations/staff";
+import { createStaffAccount, deleteStaffAccount, updateStaffAccount } from "@/lib/admin/staff";
+import { parseCreateStaffFormData, parseDeleteStaffFormData, parseUpdateStaffFormData } from "@/lib/validations/staff";
 
 function revalidateStaffPages() {
   revalidatePath("/admin/staff");
@@ -64,5 +64,21 @@ export async function updateStaffAction(_previous: StaffUpdateActionState, formD
     return { ok: true, message: "Staff account updated.", fieldErrors: {} };
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "Could not update the staff account.", fieldErrors: {} };
+  }
+}
+
+export async function deleteStaffAction(_previous: StaffDeleteActionState, formData: FormData): Promise<StaffDeleteActionState> {
+  const session = await requireAdminRole(["admin"]);
+  const parsed = parseDeleteStaffFormData(formData);
+  if (!parsed.success) {
+    return { ok: false, message: "Invalid staff account selection.", fieldErrors: parsed.fieldErrors };
+  }
+
+  try {
+    await deleteStaffAccount(parsed.data, { id: session.user.id, email: session.user.email, roles: session.roles });
+    revalidateStaffPages();
+    return { ok: true, message: "Staff account permanently deleted.", fieldErrors: {} };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "Could not permanently delete the staff account.", fieldErrors: {} };
   }
 }
