@@ -58,11 +58,12 @@ Acción esperada:
 
 ### 4. Correo operativo
 
-Revisar el inbox operativo (por ejemplo `admin@actravelmex.com`):
+Revisar el inbox operativo configurado en `EMAIL_ADMIN`:
 
 - llegaron correos de cotización
 - no hay rebotes
 - no hay errores extraños del remitente
+- si el correo no llegó pero el lead sí existe, revisar `notification_logs` antes de asumir pérdida de la cotización
 
 ## Revisión semanal (20–30 minutos)
 
@@ -128,6 +129,7 @@ Revisar:
 
 - dominio/subdominio en estado `Verified`
 - `EMAIL_FROM` correcto
+- `EMAIL_ADMIN` apunta al inbox interno vigente
 - sin rebotes ni rechazos extraños
 
 ### WhatsApp / Meta
@@ -149,7 +151,8 @@ Revisar:
 
 1. Revisar `notification_logs`
 2. Confirmar `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_ADMIN`
-3. Reintentar desde `/admin/logs` si aplica
+3. Si el estado es `skipped`, `failed` o `ambiguous`, continuar el seguimiento del lead manualmente porque la persistencia ya ocurrió
+4. Reintentar desde `/admin/logs` si aplica
 
 ### No cargan publicaciones del catálogo
 

@@ -52,10 +52,17 @@ El webhook inbound falla en modo cerrado si falta `META_APP_SECRET` o `META_WHAT
 ### Email
 
 - `RESEND_API_KEY`: API key server-only de Resend para notificaciones reales del MVP.
-- `EMAIL_FROM`: remitente verificado en Resend.
-- `EMAIL_ADMIN`: correo receptor para avisos internos.
+- `EMAIL_FROM`: remitente verificado en Resend. Debe usar un dominio/remitente validado en Resend antes de habilitar envíos reales.
+- `EMAIL_ADMIN`: inbox interno que recibe la notificación administrativa de cada cotización. Este valor es la única frontera de configuración para el destinatario interno; cambiarlo implica actualizar el entorno de hosting y aplicar el redeploy/restart que corresponda.
 
-Bloque 8 usa Resend exclusivamente para emails de cotización. Si falta `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_ADMIN` o el email del cliente, la solicitud de cotización se guarda de todos modos y `notification_logs` registra `skipped` o `failed` sin exponer respuestas del proveedor al cliente.
+Bloque 8 usa Resend exclusivamente para emails de cotización. Si falta `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_ADMIN` o el email del cliente, la solicitud de cotización se guarda de todos modos y `notification_logs` registra `skipped`, `failed` o `ambiguous` sin exponer respuestas del proveedor al cliente.
+
+Los correos de cotización usan dos variantes dentro de un shell compartido de AC Travel:
+
+- aviso interno para `EMAIL_ADMIN`, optimizado para triage operativo del lead;
+- confirmación al cliente, optimizada para confianza, siguientes pasos y CTA de WhatsApp.
+
+Ningún fallo de email debe bloquear la persistencia del lead/cotización; la revisión operativa se hace desde `notification_logs` y el inbox configurado en `EMAIL_ADMIN`.
 
 ### Google Sheets
 
