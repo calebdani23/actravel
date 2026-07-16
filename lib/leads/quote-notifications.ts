@@ -16,7 +16,8 @@ type ProcessQuoteNotificationsInput = {
   quoteRequestId: string;
   input: QuoteRequestInput;
   normalizedEmail: string | null;
-  whatsappHref: string;
+  adminWhatsAppHref: string;
+  clientWhatsAppHref: string;
 };
 
 function incidentStatusForNotification(status: "queued" | "skipped" | "sent" | "failed" | "ambiguous") {
@@ -71,7 +72,7 @@ export async function processQuoteNotifications(values: ProcessQuoteNotification
     const summary = await deliverQuoteNotification({
       plan,
       context: { quoteRequestId: values.quoteRequestId, leadId: values.leadId, contactId: values.contactId, locale: values.input.locale, destination: values.input.mainDestination },
-      render: () => renderQuoteEmail({ templateName: plan.templateName, input: values.input, leadId: values.leadId, quoteRequestId: values.quoteRequestId, normalizedEmail: values.normalizedEmail, whatsappHref: values.whatsappHref }) as { subject: string; text: string; html: string; metadata: Json },
+      render: () => renderQuoteEmail({ templateName: plan.templateName, input: values.input, leadId: values.leadId, quoteRequestId: values.quoteRequestId, normalizedEmail: values.normalizedEmail, adminWhatsAppHref: values.adminWhatsAppHref, clientWhatsAppHref: values.clientWhatsAppHref }) as { subject: string; text: string; html: string; metadata: Json },
       insertLog: ({ status, reason, payload }) => insertLog(values.supabase, { leadId: values.leadId, contactId: values.contactId, recipient: plan.recipient, templateName: plan.templateName, status, reason, payload }),
       updateLog: (id, input) => updateLog(values.supabase, id, input),
       send: sendEmail,

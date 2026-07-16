@@ -1,7 +1,7 @@
 import "server-only";
 
-import { buildAbsoluteTrackedWhatsAppUrl, buildTrackedWhatsAppUrl } from "@/lib/whatsapp/link";
-import { quoteConfirmationMessage, quoteWhatsAppMessage } from "@/lib/content/public-site";
+import { buildAbsoluteTrackedWhatsAppUrl, buildTrackedWhatsAppUrl, buildWhatsAppUrl } from "@/lib/whatsapp/link";
+import { adminQuoteFollowUpWhatsAppMessage, quoteConfirmationMessage, quoteWhatsAppMessage } from "@/lib/content/public-site";
 import { processQuoteSheetSync } from "@/lib/google-sheets/quote-sheet-sync";
 import {
   buildPhoneIdentityVariants,
@@ -126,11 +126,12 @@ export async function createQuoteRequest(input: QuoteRequestInput): Promise<Quot
   }
 
   const whatsappText = quoteWhatsAppMessage(input.locale, input.holderName, input.mainDestination);
-  const whatsappHref = buildAbsoluteTrackedWhatsAppUrl({ message: whatsappText, phone: WHATSAPP_PHONE, locale: input.locale, pagePath: "quote-confirmation", leadId: lead.id, contactId });
+  const clientWhatsAppHref = buildAbsoluteTrackedWhatsAppUrl({ message: whatsappText, phone: WHATSAPP_PHONE, locale: input.locale, pagePath: "quote-confirmation", leadId: lead.id, contactId });
+  const adminWhatsAppHref = buildWhatsAppUrl(adminQuoteFollowUpWhatsAppMessage(input.locale, input.holderName, input.mainDestination), normalizedWhatsapp);
   const onsiteWhatsappHref = buildTrackedWhatsAppUrl({ message: whatsappText, phone: WHATSAPP_PHONE, locale: input.locale, pagePath: "quote-confirmation", leadId: lead.id, contactId });
   let notifications: BoundaryLogSummary[] = [];
   try {
-    notifications = await processQuoteNotifications({ supabase, leadId: lead.id, contactId, quoteRequestId: quoteRequest.id, input, normalizedEmail, whatsappHref });
+    notifications = await processQuoteNotifications({ supabase, leadId: lead.id, contactId, quoteRequestId: quoteRequest.id, input, normalizedEmail, adminWhatsAppHref, clientWhatsAppHref });
   } catch (error) {
     notifications = [{ kind: "quote_email_notifications", status: "failed", reason: error instanceof Error ? error.message : "Email notification boundary failed" }];
   }

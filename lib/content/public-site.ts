@@ -613,6 +613,12 @@ export function quoteWhatsAppMessage(locale: Locale, name: string, destination: 
     : `Hi AC Travel Mx, this is ${name}. I submitted my quote request for ${destination} and would like to continue on WhatsApp.`;
 }
 
+export function adminQuoteFollowUpWhatsAppMessage(locale: Locale, name: string, destination: string) {
+  return locale === "es"
+    ? `Hola ${name}, soy parte del equipo de AC Travel. Recibimos tu solicitud de cotización para ${destination} y te escribo para dar seguimiento y ayudarte con los siguientes pasos.`
+    : `Hi ${name}, this is AC Travel. We received your quote request for ${destination} and I'm reaching out to help with the next steps.`;
+}
+
 export const legalKeys = ["privacy", "terms", "payments"] as const;
 export type LegalKey = (typeof legalKeys)[number];
 
