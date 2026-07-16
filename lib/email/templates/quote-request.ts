@@ -54,6 +54,10 @@ type ShellInput = {
 
 const placeholder = "—";
 const brandName = "AC Travel";
+const defaultSiteUrl = "http://localhost:3000";
+const brandLogoPath = "/brand/ac-travel-logo-original-500x135.png";
+const brandLogoWidth = 180;
+const brandLogoHeight = 49;
 
 function clean(value?: string | number | null) {
   if (value === undefined || value === null || value === "") return placeholder;
@@ -62,6 +66,24 @@ function clean(value?: string | number | null) {
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char] ?? char);
+}
+
+function parseSiteUrl(value?: string | null) {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+function buildAbsoluteAssetUrl(path: string) {
+  const siteUrl = parseSiteUrl(process.env.NEXT_PUBLIC_SITE_URL) ?? new URL(defaultSiteUrl);
+  return new URL(path, siteUrl).toString();
 }
 
 function localeLabels(locale: "es" | "en") {
@@ -173,6 +195,7 @@ function renderSectionText(section: EmailSection) {
 }
 
 function renderShell(input: ShellInput) {
+  const brandLogoSrc = buildAbsoluteAssetUrl(brandLogoPath);
   const textBlocks = [
     brandName,
     input.eyebrow,
@@ -186,7 +209,7 @@ function renderShell(input: ShellInput) {
     ...input.references,
   ].filter(Boolean);
 
-  const html = `<div style="background:#f6f3ee;margin:0;padding:24px 12px;"><div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${escapeHtml(input.previewText)}</div><div style="margin:0 auto;max-width:640px;"><div style="background:#1f4d4f;padding:24px 28px;border-radius:20px 20px 0 0;"><p style="margin:0 0 8px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#f9d9b1;">${escapeHtml(brandName)}</p><h1 style="margin:0;font-size:28px;line-height:34px;color:#ffffff;">${escapeHtml(input.eyebrow)}</h1><p style="margin:10px 0 0;font-size:14px;line-height:22px;color:#d7ebe7;">${escapeHtml(input.previewText)}</p></div><div style="background:#ffffff;padding:28px;border:1px solid #e7ddd2;border-top:0;border-radius:0 0 20px 20px;"><p style="margin:0 0 8px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#8a5a2b;">${escapeHtml(input.eyebrow)}</p><h2 style="margin:0 0 12px;font-size:24px;line-height:30px;color:#1f2937;">${escapeHtml(input.title)}</h2><p style="margin:0 0 24px;font-size:15px;line-height:24px;color:#4b5563;">${escapeHtml(input.intro)}</p>${input.sections.map(renderSectionHtml).join("")}${input.primaryCta ? `<div style="margin:0 0 20px;"><a href="${escapeHtml(input.primaryCta.href)}" style="display:inline-block;background:#1f4d4f;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:999px;font-size:14px;font-weight:700;">${escapeHtml(input.primaryCta.label)}</a></div>` : ""}${input.secondaryNote ? `<p style="margin:0 0 24px;font-size:13px;line-height:21px;color:#6b7280;">${escapeHtml(input.secondaryNote)}</p>` : ""}<div style="margin:24px 0 0;padding-top:20px;border-top:1px solid #e5e7eb;"><p style="margin:0;font-size:14px;line-height:22px;color:#1f2937;">${input.signatureLines.map((line) => escapeHtml(line)).join("<br />")}</p></div><div style="margin:24px 0 0;padding-top:18px;border-top:1px solid #f1f5f9;"><p style="margin:0 0 10px;font-size:12px;line-height:19px;color:#6b7280;">${escapeHtml(input.footerNote)}</p><p style="margin:0;font-size:12px;line-height:19px;color:#9ca3af;">${input.references.map((line) => escapeHtml(line)).join("<br />")}</p></div></div></div></div>`;
+  const html = `<div style="background:#f6f3ee;margin:0;padding:24px 12px;"><div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${escapeHtml(input.previewText)}</div><div style="margin:0 auto;max-width:640px;"><div style="background:#1f4d4f;padding:24px 28px;border-radius:20px 20px 0 0;"><img src="${escapeHtml(brandLogoSrc)}" alt="${escapeHtml(brandName)}" width="${brandLogoWidth}" height="${brandLogoHeight}" style="display:block;width:${brandLogoWidth}px;max-width:100%;height:auto;margin:0 0 12px;border:0;outline:none;text-decoration:none;" /><h1 style="margin:0;font-size:28px;line-height:34px;color:#ffffff;">${escapeHtml(input.eyebrow)}</h1><p style="margin:10px 0 0;font-size:14px;line-height:22px;color:#d7ebe7;">${escapeHtml(input.previewText)}</p></div><div style="background:#ffffff;padding:28px;border:1px solid #e7ddd2;border-top:0;border-radius:0 0 20px 20px;"><p style="margin:0 0 8px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#8a5a2b;">${escapeHtml(input.eyebrow)}</p><h2 style="margin:0 0 12px;font-size:24px;line-height:30px;color:#1f2937;">${escapeHtml(input.title)}</h2><p style="margin:0 0 24px;font-size:15px;line-height:24px;color:#4b5563;">${escapeHtml(input.intro)}</p>${input.sections.map(renderSectionHtml).join("")}${input.primaryCta ? `<div style="margin:0 0 20px;"><a href="${escapeHtml(input.primaryCta.href)}" style="display:inline-block;background:#1f4d4f;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:999px;font-size:14px;font-weight:700;">${escapeHtml(input.primaryCta.label)}</a></div>` : ""}${input.secondaryNote ? `<p style="margin:0 0 24px;font-size:13px;line-height:21px;color:#6b7280;">${escapeHtml(input.secondaryNote)}</p>` : ""}<div style="margin:24px 0 0;padding-top:20px;border-top:1px solid #e5e7eb;"><p style="margin:0;font-size:14px;line-height:22px;color:#1f2937;">${input.signatureLines.map((line) => escapeHtml(line)).join("<br />")}</p></div><div style="margin:24px 0 0;padding-top:18px;border-top:1px solid #f1f5f9;"><p style="margin:0 0 10px;font-size:12px;line-height:19px;color:#6b7280;">${escapeHtml(input.footerNote)}</p><p style="margin:0;font-size:12px;line-height:19px;color:#9ca3af;">${input.references.map((line) => escapeHtml(line)).join("<br />")}</p></div></div></div></div>`;
 
   return { html, text: textBlocks.join("\n\n") };
 }
