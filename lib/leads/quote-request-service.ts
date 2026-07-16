@@ -1,6 +1,6 @@
 import "server-only";
 
-import { buildTrackedWhatsAppUrl } from "@/lib/whatsapp/link";
+import { buildAbsoluteTrackedWhatsAppUrl, buildTrackedWhatsAppUrl } from "@/lib/whatsapp/link";
 import { quoteConfirmationMessage, quoteWhatsAppMessage } from "@/lib/content/public-site";
 import { processQuoteSheetSync } from "@/lib/google-sheets/quote-sheet-sync";
 import {
@@ -126,7 +126,8 @@ export async function createQuoteRequest(input: QuoteRequestInput): Promise<Quot
   }
 
   const whatsappText = quoteWhatsAppMessage(input.locale, input.holderName, input.mainDestination);
-  const whatsappHref = buildTrackedWhatsAppUrl({ message: whatsappText, phone: WHATSAPP_PHONE, locale: input.locale, pagePath: "quote-confirmation", leadId: lead.id, contactId });
+  const whatsappHref = buildAbsoluteTrackedWhatsAppUrl({ message: whatsappText, phone: WHATSAPP_PHONE, locale: input.locale, pagePath: "quote-confirmation", leadId: lead.id, contactId });
+  const onsiteWhatsappHref = buildTrackedWhatsAppUrl({ message: whatsappText, phone: WHATSAPP_PHONE, locale: input.locale, pagePath: "quote-confirmation", leadId: lead.id, contactId });
   let notifications: BoundaryLogSummary[] = [];
   try {
     notifications = await processQuoteNotifications({ supabase, leadId: lead.id, contactId, quoteRequestId: quoteRequest.id, input, normalizedEmail, whatsappHref });
@@ -153,7 +154,7 @@ export async function createQuoteRequest(input: QuoteRequestInput): Promise<Quot
     whatsapp: {
       phone: WHATSAPP_PHONE,
       text: whatsappText,
-      href: whatsappHref,
+      href: onsiteWhatsappHref,
     },
   };
 }

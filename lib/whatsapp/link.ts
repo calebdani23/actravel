@@ -1,5 +1,6 @@
 const DEFAULT_PHONE = "529988453455";
 const TRACKED_ENDPOINT = "/api/whatsapp-click";
+const DEFAULT_SITE_URL = "http://localhost:3000";
 const MAX_MESSAGE_LENGTH = 900;
 const MAX_PAGE_PATH_LENGTH = 160;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -48,7 +49,7 @@ export function sanitizeWhatsAppUuid(value?: string | null) {
   return UUID_PATTERN.test(cleaned) ? cleaned : null;
 }
 
-export function buildTrackedWhatsAppUrl(input: TrackedWhatsAppLinkInput) {
+function buildTrackedWhatsAppParams(input: TrackedWhatsAppLinkInput) {
   const message = sanitizeWhatsAppMessage(input.message) ?? "Hola AC Travel Mx, quisiera cotizar mi próximo viaje.";
   const params = new URLSearchParams({
     message,
@@ -63,5 +64,27 @@ export function buildTrackedWhatsAppUrl(input: TrackedWhatsAppLinkInput) {
   if (leadId) params.set("leadId", leadId);
   if (contactId) params.set("contactId", contactId);
 
-  return `${TRACKED_ENDPOINT}?${params.toString()}`;
+  return params;
+}
+
+function parsePublicSiteUrl(value?: string | null) {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+export function buildTrackedWhatsAppUrl(input: TrackedWhatsAppLinkInput) {
+  return `${TRACKED_ENDPOINT}?${buildTrackedWhatsAppParams(input).toString()}`;
+}
+
+export function buildAbsoluteTrackedWhatsAppUrl(input: TrackedWhatsAppLinkInput) {
+  const siteUrl = parsePublicSiteUrl(process.env.NEXT_PUBLIC_SITE_URL) ?? new URL(DEFAULT_SITE_URL);
+  return new URL(`${TRACKED_ENDPOINT}?${buildTrackedWhatsAppParams(input).toString()}`, siteUrl).toString();
 }

@@ -10,7 +10,7 @@
 
 ### Sitio
 
-- `NEXT_PUBLIC_SITE_URL`: URL pública del sitio. En local puede ser `http://localhost:3000`.
+- `NEXT_PUBLIC_SITE_URL`: URL pública del sitio. En local puede ser `http://localhost:3000`. También se usa para convertir CTAs trackeados de WhatsApp a URLs absolutas dentro de correos, porque los clientes de email no resuelven de forma confiable rutas relativas.
 - `NEXT_PUBLIC_DEFAULT_LOCALE`: idioma inicial, `es`.
 - `NEXT_PUBLIC_DEFAULT_CURRENCY`: moneda inicial, `MXN`.
 

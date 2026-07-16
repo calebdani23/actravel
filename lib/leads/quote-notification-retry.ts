@@ -7,7 +7,7 @@ import { baseNotificationPayload, sanitizeError, type NotificationStatus } from 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Json, Tables } from "@/lib/supabase/database.types";
 import { normalizeEmail, type QuoteRequestInput } from "@/lib/validations/quote-request";
-import { buildTrackedWhatsAppUrl } from "@/lib/whatsapp/link";
+import { buildAbsoluteTrackedWhatsAppUrl } from "@/lib/whatsapp/link";
 
 type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>;
 type NotificationLog = Tables<"notification_logs">;
@@ -103,7 +103,7 @@ export async function retryNotificationLog(logId: string, actorId: string, depen
   try {
     const quote = await loadQuoteRequest(supabase, claimed);
     const normalizedEmail = normalizeEmail(quote.input.email);
-    const whatsappHref = buildTrackedWhatsAppUrl({ message: quoteWhatsAppMessage(quote.input.locale, quote.input.holderName, quote.input.mainDestination), phone: WHATSAPP_PHONE, locale: quote.input.locale, pagePath: "admin-log-retry", leadId: claimed.lead_id ?? undefined, contactId: claimed.contact_id ?? undefined });
+    const whatsappHref = buildAbsoluteTrackedWhatsAppUrl({ message: quoteWhatsAppMessage(quote.input.locale, quote.input.holderName, quote.input.mainDestination), phone: WHATSAPP_PHONE, locale: quote.input.locale, pagePath: "admin-log-retry", leadId: claimed.lead_id ?? undefined, contactId: claimed.contact_id ?? undefined });
     if (!claimed.recipient || (claimed.template_name !== "admin_quote_request_received" && claimed.template_name !== "client_quote_request_confirmation")) throw new Error("Notification log is missing a retryable recipient or template");
     const rendered = renderQuoteEmail({ templateName: claimed.template_name, input: quote.input, leadId: claimed.lead_id ?? "unknown", quoteRequestId: quote.id, normalizedEmail, whatsappHref }) as { subject: string; text: string; html: string; metadata: Json };
     const result = await (dependencies.send ?? sendEmail)({ to: claimed.recipient, subject: rendered.subject, text: rendered.text, html: rendered.html });
