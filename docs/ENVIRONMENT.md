@@ -11,6 +11,7 @@
 ### Sitio
 
 - `NEXT_PUBLIC_SITE_URL`: URL pública del sitio. En local puede ser `http://localhost:3000`. También se usa para convertir CTAs trackeados de WhatsApp a URLs absolutas dentro de correos, porque los clientes de email no resuelven de forma confiable rutas relativas.
+- `NEXT_PUBLIC_META_PIXEL_ID`: pixel público de Meta/Facebook para el sitio. Si existe, el layout público localizado carga el base pixel fuera de `/admin`, dispara `PageView` en carga inicial y cambios de ruta App Router, `Lead` al enviar exitosamente la cotización y `Contact` al hacer click en el CTA centralizado de WhatsApp. Mantener payloads ligeros y sin PII. Valor/documentación de referencia para este MVP: `1929420407723543`.
 - `NEXT_PUBLIC_DEFAULT_LOCALE`: idioma inicial, `es`.
 - `NEXT_PUBLIC_DEFAULT_CURRENCY`: moneda inicial, `MXN`.
 

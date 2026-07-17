@@ -1,4 +1,5 @@
 import { Footer } from "@/components/public/footer";
+import { MetaPixelTracker } from "@/components/public/meta-pixel-tracker";
 import { Navbar } from "@/components/public/navbar";
 import { PublicRouteProvider } from "@/components/public/public-route-provider";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
@@ -10,6 +11,7 @@ export async function PublicShell({ children, locale }: Readonly<{ children: Rea
   return (
     <PublicRouteProvider>
       <div className="min-h-screen bg-background text-foreground">
+        <MetaPixelTracker />
         <Navbar locale={locale} />
         {children}
         <Footer locale={locale} />

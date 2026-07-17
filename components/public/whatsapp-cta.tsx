@@ -1,6 +1,9 @@
+"use client";
+
 import type { HTMLAttributeAnchorTarget } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { trackMetaPixelEvent } from "@/lib/analytics/meta-pixel";
 import { buildTrackedWhatsAppUrl } from "@/lib/whatsapp/link";
 import { cn } from "@/lib/utils/cn";
 
@@ -21,11 +24,15 @@ const whatsappCtaClasses = "bg-[#25d366] text-white shadow-sm shadow-emerald-900
 
 export function WhatsAppCta({ message, label, shortLabel = label, className, floating = false, href, locale, pagePath, rel, target }: WhatsAppCtaProps) {
   const whatsappHref = href ?? buildTrackedWhatsAppUrl({ message, locale, pagePath });
+  const handleClick = () => {
+    trackMetaPixelEvent("Contact");
+  };
 
   if (floating) {
     return (
       <a
         href={whatsappHref}
+        onClick={handleClick}
         rel={rel}
         target={target}
         className={cn(
@@ -43,7 +50,7 @@ export function WhatsAppCta({ message, label, shortLabel = label, className, flo
 
   return (
     <Button asChild className={cn(whatsappCtaClasses, className)}>
-      <a href={whatsappHref} rel={rel} target={target}>
+      <a href={whatsappHref} onClick={handleClick} rel={rel} target={target}>
         <MessageCircle className="size-4" aria-hidden="true" />
         {label}
       </a>

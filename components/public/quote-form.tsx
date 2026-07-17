@@ -6,6 +6,7 @@ import type React from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import { Button } from "@/components/ui/button";
+import { trackMetaPixelEvent } from "@/lib/analytics/meta-pixel";
 import { type Currency } from "@/lib/currency/config";
 import { getPublicSiteContent } from "@/lib/content/public-site";
 import { getClientCurrencyPreference, setClientCurrencyPreference, subscribeToCurrencyPreference, syncClientCurrencyPreference } from "@/lib/currency/preference-client";
@@ -156,13 +157,14 @@ export function QuoteForm({ locale, initialContext }: Props) {
     };
   }, [abandonmentStorageKey, draftStorageKey, form, form.formState.dirtyFields, form.formState.errors, form.formState.isDirty, result?.ok]);
 
-  const preferredCurrencyField = form.register("preferredCurrency", {
-    onChange: (event) => {
-      const nextCurrency = event.target.value === "USD" ? "USD" : "MXN";
-      lastSyncedCurrencyRef.current = nextCurrency;
-      setClientCurrencyPreference(nextCurrency);
-    },
-  });
+  const preferredCurrencyField = form.register("preferredCurrency");
+
+  function handlePreferredCurrencyChange(event: React.ChangeEvent<HTMLSelectElement>) {
+    preferredCurrencyField.onChange(event);
+    const nextCurrency = event.target.value === "USD" ? "USD" : "MXN";
+    lastSyncedCurrencyRef.current = nextCurrency;
+    setClientCurrencyPreference(nextCurrency);
+  }
 
   async function onSubmit(values: QuoteRequestInput) {
     setResult(null);
@@ -179,6 +181,7 @@ export function QuoteForm({ locale, initialContext }: Props) {
     }
     setResult(data);
     if (data.ok && typeof window !== "undefined") {
+      trackMetaPixelEvent("Lead");
       safeStorageRemoveItem(window.localStorage, draftStorageKey);
       safeStorageRemoveItem(window.localStorage, abandonmentStorageKey);
       setRecoveryNotice(null);
@@ -244,7 +247,7 @@ export function QuoteForm({ locale, initialContext }: Props) {
             {serviceOptions.map((option) => <option key={option} value={option}>{option}</option>)}
           </SelectField>
           <TextField label={`${copy.fields.approximateBudget} (${preferredCurrency})`} marker={copy.requiredMarker} hint={copy.hints.approximateBudget} type="number" min={0} placeholder={copy.placeholders.budget} error={form.formState.errors.approximateBudget?.message} {...form.register("approximateBudget", { valueAsNumber: true })} />
-          <SelectField label={copy.fields.preferredCurrency} marker={copy.requiredMarker} error={form.formState.errors.preferredCurrency?.message} {...preferredCurrencyField}>
+          <SelectField label={copy.fields.preferredCurrency} marker={copy.requiredMarker} error={form.formState.errors.preferredCurrency?.message} {...preferredCurrencyField} onChange={handlePreferredCurrencyChange}>
             <option value="MXN">MXN</option>
             <option value="USD">USD</option>
           </SelectField>
