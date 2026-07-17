@@ -32,7 +32,6 @@ Abrir `/admin/dashboard` y revisar:
 Abrir `/admin/logs` y revisar:
 
 - `notification_logs`
-- `whatsapp_inbound_messages` si Meta inbound ya está activo
 - estados `failed`, `queued`, `ambiguous`
 
 Acción esperada:
@@ -47,7 +46,7 @@ Abrir `/admin/leads` y revisar:
 - leads nuevos
 - leads sin asignar
 - leads sin seguimiento
-- leads manuales o inbound de WhatsApp
+- leads manuales o provenientes del sitio
 
 Acción esperada:
 
@@ -102,7 +101,6 @@ Revisar:
 - último deploy en Vercel
 - estado de Supabase
 - estado del dominio de envío en Resend
-- webhook Meta/WhatsApp si ya está activo
 
 ## Qué monitorear por proveedor
 
@@ -113,7 +111,6 @@ Revisar:
 - rutas API críticas:
   - `/api/quote-request`
   - `/api/whatsapp-click`
-  - `/api/meta/whatsapp`
 
 ### Supabase
 
@@ -132,11 +129,9 @@ Revisar:
 - `EMAIL_ADMIN` apunta al inbox interno vigente
 - sin rebotes ni rechazos extraños
 
-### WhatsApp / Meta
+### WhatsApp
 
 - CTA públicos abren número correcto
-- webhook inbound, si está activo, procesa mensajes sin fallos
-- mensajes duplicados no crean leads duplicados
 
 ## Incidentes comunes y primera respuesta
 
@@ -160,13 +155,6 @@ Revisar:
 2. Confirmar migraciones aplicadas en Supabase
 3. Revisar si hubo cambio reciente en relaciones o columnas
 
-### No entra el inbound de WhatsApp
-
-1. Revisar logs de `/api/meta/whatsapp`
-2. Confirmar firma/secret/token
-3. Revisar `whatsapp_inbound_messages`
-4. Verificar `phone_number_id` y trigger esperado
-
 ## Secretos y accesos sensibles
 
 Nunca exponer ni compartir fuera del entorno seguro:
@@ -174,7 +162,6 @@ Nunca exponer ni compartir fuera del entorno seguro:
 - `SUPABASE_SECRET_KEY`
 - `SUPABASE_DB_URL`
 - `RESEND_API_KEY`
-- `META_APP_SECRET`
 - `WHATSAPP_CLICK_HASH_SALT`
 - `PUBLIC_RATE_LIMIT_SALT`
 - credenciales bootstrap

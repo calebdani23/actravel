@@ -6,7 +6,7 @@ import {
 } from "@/app/admin/(protected)/logs/actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAdminRole } from "@/lib/admin/auth";
-import { getAdminLogs, type IncidentStatus, type NotificationLogRow, type OperationalIncidentRow, type SheetSyncLogRow, type WhatsappInboundMessageRow } from "@/lib/admin/logs";
+import { getAdminLogs, type IncidentStatus, type NotificationLogRow, type OperationalIncidentRow, type SheetSyncLogRow } from "@/lib/admin/logs";
 import { hasAnyRole } from "@/lib/supabase/roles";
 
 function retryBadge(status: string, incidentStatus?: IncidentStatus, rowId?: string | null) {
@@ -104,28 +104,10 @@ function RecentIncidentItem({ row }: { row: OperationalIncidentRow }) {
   );
 }
 
-function InboundMessageItem({ row }: { row: WhatsappInboundMessageRow }) {
-  return (
-    <li className="rounded-md border p-3">
-      <div className="flex items-start justify-between gap-3">
-        <p className="font-medium">{row.from_phone}</p>
-        {retryBadge(row.processing_status, undefined, row.lead_id)}
-      </div>
-      <p className="text-muted-foreground">{row.profile_name ?? row.wa_id} · {new Date(row.received_at).toLocaleString("es-MX")}</p>
-      {row.message_text ? <p className="mt-2 whitespace-pre-wrap text-sm">{row.message_text}</p> : null}
-      <p className="mt-2 text-xs text-muted-foreground">
-        {row.phone_number_id} · {row.lead_id ? `Lead: ${row.lead_id.slice(0, 8)}` : "Sin lead"}
-        {typeof row.referral === "object" && row.referral && "headline" in row.referral && typeof row.referral.headline === "string" ? ` · ${row.referral.headline}` : ""}
-      </p>
-      {row.error_message ? <p className="mt-2 text-xs text-red-700">{row.error_message}</p> : null}
-    </li>
-  );
-}
-
 export default async function LogsPage() {
   const session = await requireAdminRole(["admin", "marketing", "asesor"]);
   const canOperate = hasAnyRole(session.roles, ["admin", "marketing"]);
-  const { whatsapp, inboundMessages, notifications, sheets, recentIncidents, incidentSummary, errors } = await getAdminLogs();
+  const { whatsapp, notifications, sheets, recentIncidents, incidentSummary, errors } = await getAdminLogs();
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
@@ -195,13 +177,6 @@ export default async function LogsPage() {
             <CardTitle>Notificaciones ({notifications.length})</CardTitle>
           </CardHeader>
           <CardContent>{notifications.length ? <ul className="space-y-3 text-sm">{notifications.map((row) => <NotificationItem canOperate={canOperate} key={row.id} row={row} />)}</ul> : <p className="text-sm text-muted-foreground">Sin notificaciones visibles.</p>}</CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>WhatsApp inbound ({inboundMessages.length})</CardTitle>
-          </CardHeader>
-          <CardContent>{inboundMessages.length ? <ul className="space-y-3 text-sm">{inboundMessages.map((row) => <InboundMessageItem key={row.id} row={row} />)}</ul> : <p className="text-sm text-muted-foreground">Sin mensajes inbound visibles.</p>}</CardContent>
         </Card>
 
         <Card>
