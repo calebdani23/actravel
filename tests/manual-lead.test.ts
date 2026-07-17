@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { normalizeManualLeadInput, parseManualLeadFormData } from "@/lib/validations/manual-lead";
@@ -20,4 +21,20 @@ test("admin manual leads may remain unassigned or choose a source", () => {
   assert.equal(normalized.assignedTo, null);
   assert.equal(normalized.source, "referral");
   assert.equal(normalized.email, "ada@example.com");
+});
+
+test("manual lead action keeps redirect outside the catch block", () => {
+  const actionSource = readFileSync("app/admin/(protected)/leads/new/actions.ts", "utf8");
+  const createdIndex = actionSource.indexOf("leadId = created.leadId;");
+  const catchIndex = actionSource.indexOf("} catch (error) {");
+  const fallbackIndex = actionSource.indexOf('return { ok: false, message: error instanceof Error ? error.message : "No se pudo crear el lead manual.", fieldErrors: {} };');
+  const redirectIndex = actionSource.indexOf("redirect(`/admin/leads/${leadId}`);");
+
+  assert.notEqual(createdIndex, -1);
+  assert.notEqual(catchIndex, -1);
+  assert.notEqual(fallbackIndex, -1);
+  assert.notEqual(redirectIndex, -1);
+  assert.ok(createdIndex < catchIndex);
+  assert.ok(catchIndex < fallbackIndex);
+  assert.ok(fallbackIndex < redirectIndex);
 });

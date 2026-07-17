@@ -25,6 +25,7 @@ export async function createManualLeadAction(_previous: ManualLeadActionState, f
 
   const supabase = await createClient();
   const input = parsed.data;
+  let leadId: string;
   if (hasRole(session.roles, "asesor") && !hasRole(session.roles, "admin") && input.assignedTo !== session.user.id) {
     return { ok: false, message: "Los asesores solo pueden crear leads asignados a sí mismos.", fieldErrors: { assignedTo: ["Assignment is restricted to the current advisor"] } };
   }
@@ -75,8 +76,10 @@ export async function createManualLeadAction(_previous: ManualLeadActionState, f
 
     revalidatePath("/admin/leads");
     revalidatePath(`/admin/leads/${created.leadId}`);
-    redirect(`/admin/leads/${created.leadId}`);
+    leadId = created.leadId;
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "No se pudo crear el lead manual.", fieldErrors: {} };
   }
+
+  redirect(`/admin/leads/${leadId}`);
 }
