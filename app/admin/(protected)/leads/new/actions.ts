@@ -14,8 +14,6 @@ export type ManualLeadActionState = {
   fieldErrors: Record<string, string[]>;
 };
 
-export const manualLeadActionInternals = { parseManualLeadFormData };
-
 export async function createManualLeadAction(_previous: ManualLeadActionState, formData: FormData): Promise<ManualLeadActionState> {
   const session = await requireAdminRole(["admin", "asesor"]);
   const parsed = parseManualLeadFormData(formData, session);
