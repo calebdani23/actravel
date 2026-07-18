@@ -42,6 +42,11 @@ export const quoteValidationCopy = {
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 const suspiciousControlCharacters = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/;
 const requiredString = (message: string) => z.string().trim().min(1, message).max(180);
+const optionalTrimmedString = () => z.preprocess((value) => {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  return trimmed === "" ? undefined : trimmed;
+}, z.string().trim().optional());
 
 function hasSuspiciousControlCharacters(value?: string | null) {
   return Boolean(value && suspiciousControlCharacters.test(value));
@@ -107,7 +112,7 @@ export function createQuoteRequestSchema(locale: Locale = "es") {
     notes: z.string().trim().max(2000).optional(),
     campaignContext: z.string().trim().max(180).optional(),
     attributionSnapshot: z.string().trim().max(4000).optional(),
-    metaLeadEventId: z.string().trim().regex(metaEventIdPattern, copy.invalid).optional(),
+    metaLeadEventId: optionalTrimmedString().refine((value) => value === undefined || metaEventIdPattern.test(value), copy.invalid),
     website: z.string().trim().max(0, copy.invalid).optional(),
   }).superRefine((value, ctx) => {
     if (isValidDateString(value.departureDate) && isValidDateString(value.returnDate) && value.returnDate < value.departureDate) {

@@ -89,6 +89,16 @@ test("quote schema requires email while keeping notes optional", () => {
   assert.equal(schema.safeParse({ ...validQuotePayload, email: "ada@example.com", notes: undefined }).success, true);
 });
 
+test("quote schema normalizes blank meta lead event ids before validation", () => {
+  const schema = createQuoteRequestSchema("en");
+  const parsed = schema.safeParse({ ...validQuotePayload, metaLeadEventId: "   " });
+
+  assert.equal(parsed.success, true);
+  if (!parsed.success) return;
+  assert.equal(parsed.data.metaLeadEventId, undefined);
+  assert.equal(schema.safeParse({ ...validQuotePayload, metaLeadEventId: "bad id with spaces" }).success, false);
+});
+
 test("admin log retry actions are role gated and forms submit a single logId", () => {
   const actions = readFileSync("app/admin/(protected)/logs/actions.ts", "utf8");
   const page = readFileSync("app/admin/(protected)/logs/page.tsx", "utf8");
