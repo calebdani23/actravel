@@ -4,6 +4,11 @@ import { checkPublicRateLimit } from "@/lib/security/public-rate-limit";
 import { createQuoteRequestSchema, quoteValidationCopy, type QuoteRequestErrorResponse, type QuoteRequestResponse } from "@/lib/validations/quote-request";
 import { type Locale } from "@/lib/i18n/config";
 
+function requestIp(request: Request) {
+  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return forwardedFor || request.headers.get("x-real-ip");
+}
+
 function requestLocale(payload: unknown): Locale {
   if (payload && typeof payload === "object" && "locale" in payload && payload.locale === "en") return "en";
   return "es";
@@ -39,7 +44,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const body = await createQuoteRequest(parsed.data);
+    const body = await createQuoteRequest(parsed.data, { userAgent: request.headers.get("user-agent"), requestIp: requestIp(request), requestReferrer: request.headers.get("referer") });
     return NextResponse.json<QuoteRequestResponse>(body, { status: 201 });
   } catch (error) {
     console.error("quote-request persistence failed", error);

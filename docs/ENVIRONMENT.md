@@ -11,9 +11,26 @@
 ### Sitio
 
 - `NEXT_PUBLIC_SITE_URL`: URL pública del sitio. En local puede ser `http://localhost:3000`. También se usa para convertir CTAs trackeados de WhatsApp a URLs absolutas dentro de correos, porque los clientes de email no resuelven de forma confiable rutas relativas.
-- `NEXT_PUBLIC_META_PIXEL_ID`: pixel público de Meta/Facebook para el sitio. Si existe, el layout público localizado carga el base pixel fuera de `/admin`, dispara `PageView` en carga inicial y cambios de ruta App Router, `Lead` al enviar exitosamente la cotización y `Contact` al hacer click en el CTA centralizado de WhatsApp. Mantener payloads ligeros y sin PII. Valor/documentación de referencia para este MVP: `1929420407723543`.
+- `NEXT_PUBLIC_META_PIXEL_ID`: pixel público de Meta/Facebook para el sitio. Si existe, el layout público localizado carga el base pixel fuera de `/admin`, dispara `PageView` en carga inicial y cambios de ruta App Router, `ViewContent` en detalles públicos, `InitiateCheckout` al abrir cotización, `Lead` al enviar exitosamente la cotización y `Contact` al hacer click en el CTA centralizado de WhatsApp. El browser también conserva first-touch marketing context (`utm_*`, `fbclid`, `landingPath`, `referrer`, `_fbc`, `_fbp`) para enviarlo como contexto cliente/advisory y persistirlo en Supabase sin tratarlo como verdad canónica del sistema. Valor/documentación de referencia para este MVP: `1929420407723543`.
+- `META_CONVERSIONS_API_ACCESS_TOKEN`: token server-only opcional para enviar el evento crítico `Lead` por Meta Conversions API después de guardar exitosamente la cotización. Si falta este token o el pixel público, la app omite CAPI sin romper la persistencia principal.
+- `META_CONVERSIONS_TEST_EVENT_CODE`: código opcional de Meta para validar eventos controlados en staging/producción sin cambiar la lógica de negocio.
 - `NEXT_PUBLIC_DEFAULT_LOCALE`: idioma inicial, `es`.
 - `NEXT_PUBLIC_DEFAULT_CURRENCY`: moneda inicial, `MXN`.
+
+### Modelo operativo Meta / WhatsApp
+
+- **Sí** usamos Meta para atribución y medición comercial real: visitas, detalles, inicio de cotización, envío exitoso y click a WhatsApp.
+- **Sí** persistimos atribución útil en Supabase dentro del payload de cada `quote_request`; esto permite revisar campañas aunque la conversación posterior siga fuera del sitio.
+- **No** conectamos WhatsApp Cloud API en este MVP. El número operativo actual se mantiene manual y los CTAs públicos siguen abriendo `wa.me`.
+- **No** dependemos del contenido de mensajes inbound de WhatsApp para medir campañas. La lectura operativa se hace desde Ads Manager/Event Manager más la persistencia del lead en Supabase.
+- Para deduplicación de `Lead`, el browser y el server comparten `metaLeadEventId`; así Pixel y CAPI pueden coexistir sin inflar conversiones. En CAPI el server usa URL/event context propios de la request y ya no promueve `_fbp`, `_fbc`, landing URL o referrer enviados por hidden fields como señales confiables.
+
+### Lectura operativa mínima en Meta
+
+1. Confirmar en **Events Manager** que `ViewContent`, `InitiateCheckout`, `Lead` y `Contact` llegan con volumen razonable.
+2. Confirmar en **Ads Manager** que las campañas pueden atribuir `Lead` sin depender de chats inbound.
+3. Si se habilita `META_CONVERSIONS_TEST_EVENT_CODE`, enviar una cotización controlada y validar recepción del evento server-side antes de retirar el código de prueba.
+4. Si CAPI falla o no está configurado, la cotización sigue entrando a Supabase; revisar el payload persistido y los logs de servidor antes de tocar operación comercial.
 
 ### Supabase
 
@@ -42,6 +59,8 @@ Para que el cambio self-service de correo funcione correctamente en hosting/prod
 
 - `NEXT_PUBLIC_WHATSAPP_PHONE`: número internacional sin símbolos para links `wa.me`. Valor base: `529988453455`.
 - `WHATSAPP_CLICK_HASH_SALT`: secreto server-only opcional para hashear IPs en el tracking de clicks. Si no está configurado, no se guarda IP ni hash.
+
+El modelo vigente mantiene WhatsApp como canal manual: el sitio mide clicks y continuidad del funnel, pero no intenta leer ni automatizar el contenido de conversaciones inbound.
 
 ### Email
 
@@ -72,6 +91,7 @@ Bloque 9 escribe filas reales desde el flujo server-side de cotización cuando l
 ## Notas de seguridad
 
 - No exponer `SUPABASE_SECRET_KEY`, `SUPABASE_DB_URL`, credenciales bootstrap, claves de email o claves de Google en componentes cliente.
+- No exponer `META_CONVERSIONS_API_ACCESS_TOKEN` ni `META_CONVERSIONS_TEST_EVENT_CODE` en componentes cliente.
 - Supabase Auth usa perfiles/roles en `profiles`, `roles` y `profile_roles`; RLS solo permite lectura anónima de catálogo publicado.
 - El alta/baja de usuarios en la app no crea, suspende ni elimina mailboxs de Hostinger; esa operación sigue manual en hPanel.
 - El cambio self-service de correo en `/admin/account` tampoco crea, renombra ni elimina mailboxs de Hostinger; solo inicia el flujo verificado de Supabase Auth para el login de la app.

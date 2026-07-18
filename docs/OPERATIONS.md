@@ -13,6 +13,8 @@ Este documento define la rutina mínima para operar el MVP en producción y resp
 - **Canal principal comercial**: WhatsApp
 - **Fuente de verdad**: Supabase
 
+> Meta se usa en producción para atribución y medición del funnel web. WhatsApp sigue siendo un número manual; este MVP no depende de WhatsApp Cloud API ni de leer el contenido de mensajes inbound para operar campañas.
+
 > En producción, los leads se gestionan en Supabase y en el panel admin. Google Sheets puede quedar desactivado si no se configuraron sus variables en Vercel.
 
 ## Revisión diaria (10 minutos)
@@ -132,6 +134,13 @@ Revisar:
 ### WhatsApp
 
 - CTA públicos abren número correcto
+- la operación comercial sigue manual en el número vigente
+
+### Meta
+
+- Events Manager recibe `ViewContent`, `InitiateCheckout`, `Lead` y `Contact`
+- Ads Manager puede atribuir `Lead` sin depender de mensajes inbound
+- si CAPI está habilitado, la prueba semanal muestra deduplicación sana entre browser Pixel y server Lead
 
 ## Incidentes comunes y primera respuesta
 

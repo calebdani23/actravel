@@ -14,7 +14,12 @@ type MetaPixelFunction = {
   version?: string;
 };
 
-export type MetaPixelEventName = "PageView" | "Lead" | "Contact";
+export type MetaPixelEventName = "PageView" | "Lead" | "Contact" | "ViewContent" | "InitiateCheckout";
+
+export type MetaPixelEventOptions = {
+  eventId?: string;
+  payload?: Record<string, unknown>;
+};
 
 export function getMetaPixelId() {
   return process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim() ?? "";
@@ -24,7 +29,9 @@ export function isMetaPixelEnabled() {
   return getMetaPixelId().length > 0;
 }
 
-export function trackMetaPixelEvent(eventName: MetaPixelEventName) {
+export function trackMetaPixelEvent(eventName: MetaPixelEventName, options: MetaPixelEventOptions = {}) {
   if (typeof window === "undefined") return;
-  window.fbq?.("track", eventName);
+  const payload = options.payload ?? {};
+  const meta = options.eventId ? { eventID: options.eventId } : undefined;
+  window.fbq?.("track", eventName, payload, meta);
 }

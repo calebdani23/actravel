@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type React from "react";
 import { useForm, useWatch } from "react-hook-form";
+import { readStoredMetaAttribution } from "@/lib/analytics/meta-attribution-client";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import { Button } from "@/components/ui/button";
 import { trackMetaPixelEvent } from "@/lib/analytics/meta-pixel";
@@ -43,8 +44,18 @@ function defaultValues(locale: Locale, initialContext: QuoteFormInitialContext =
     contactConsent: false,
     notes: "",
     campaignContext: initialContext.campaignContext ?? undefined,
+    attributionSnapshot: undefined,
+    metaLeadEventId: undefined,
     website: "",
   };
+}
+
+function createMetaLeadEventId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `quote_${crypto.randomUUID().replace(/-/g, "")}`;
+  }
+
+  return `quote_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
 export function QuoteForm({ locale, initialContext }: Props) {
@@ -125,6 +136,11 @@ export function QuoteForm({ locale, initialContext }: Props) {
 
     abandonment = readStoredRecovery<QuoteFormAbandonmentSnapshot>(window.localStorage, abandonmentStorageKey, QUOTE_FORM_RECOVERY_TTL_MS.abandonment);
 
+    const attribution = readStoredMetaAttribution();
+    if (attribution) {
+      form.setValue("attributionSnapshot", JSON.stringify(attribution), { shouldDirty: false, shouldTouch: false, shouldValidate: false });
+    }
+
     if (restoredDraft || abandonment) setRecoveryNotice({ restoredDraft, abandonment });
   }, [abandonmentStorageKey, draftStorageKey, form, formDefaults, recoveryPriorityFields]);
 
@@ -168,10 +184,12 @@ export function QuoteForm({ locale, initialContext }: Props) {
 
   async function onSubmit(values: QuoteRequestInput) {
     setResult(null);
+    const metaLeadEventId = values.metaLeadEventId?.trim() || createMetaLeadEventId();
+    form.setValue("metaLeadEventId", metaLeadEventId, { shouldDirty: false, shouldTouch: false, shouldValidate: false });
     const response = await fetch("/api/quote-request", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
+      body: JSON.stringify({ ...values, metaLeadEventId }),
     });
     const data = (await response.json()) as QuoteRequestResponse;
     if (!data.ok && data.fieldErrors) {
@@ -181,7 +199,7 @@ export function QuoteForm({ locale, initialContext }: Props) {
     }
     setResult(data);
     if (data.ok && typeof window !== "undefined") {
-      trackMetaPixelEvent("Lead");
+      trackMetaPixelEvent("Lead", { eventId: metaLeadEventId, payload: { content_name: values.mainDestination, content_category: values.serviceInterest } });
       safeStorageRemoveItem(window.localStorage, draftStorageKey);
       safeStorageRemoveItem(window.localStorage, abandonmentStorageKey);
       setRecoveryNotice(null);
@@ -203,7 +221,7 @@ export function QuoteForm({ locale, initialContext }: Props) {
           <p className="mt-4 text-sm leading-6 text-zinc-700">{copy.successWhatsAppHelp}</p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <WhatsAppCta message="" label={copy.whatsappCta} href={result.whatsapp.href} target="_blank" rel="noreferrer" className="rounded-full" />
-            <Button type="button" variant="outline" className="rounded-full" onClick={() => { form.reset({ ...formDefaults, preferredCurrency: selectedCurrency }); lastSyncedCurrencyRef.current = selectedCurrency; setResult(null); setRecoveryNotice(null); }}>
+            <Button type="button" variant="outline" className="rounded-full" onClick={() => { const attribution = readStoredMetaAttribution(); form.reset({ ...formDefaults, preferredCurrency: selectedCurrency, attributionSnapshot: attribution ? JSON.stringify(attribution) : undefined, metaLeadEventId: undefined }); lastSyncedCurrencyRef.current = selectedCurrency; setResult(null); setRecoveryNotice(null); }}>
               {copy.reset}
             </Button>
           </div>
@@ -228,6 +246,8 @@ export function QuoteForm({ locale, initialContext }: Props) {
           <input tabIndex={-1} autoComplete="off" {...form.register("website")} />
         </label>
         <input type="hidden" {...form.register("campaignContext")} />
+        <input type="hidden" {...form.register("attributionSnapshot")} />
+        <input type="hidden" {...form.register("metaLeadEventId")} />
         <FormSection title={copy.sections.contact.title} description={copy.sections.contact.description}>
           <TextField label={copy.fields.holderName} marker={copy.requiredMarker} hint={copy.hints.holderName} placeholder={copy.placeholders.holderName} error={form.formState.errors.holderName?.message} {...form.register("holderName")} />
           <TextField label={copy.fields.email} marker={copy.requiredMarker} hint={copy.hints.email} type="email" placeholder={copy.placeholders.email} error={form.formState.errors.email?.message} {...form.register("email")} />

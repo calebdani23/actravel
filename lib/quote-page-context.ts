@@ -19,7 +19,7 @@ export function buildQuotePageInitialContext(searchParams: QuotePageSearchParams
   return {
     mainDestination: safeParam(firstParam(searchParams, "destination")),
     serviceInterest: safeParam(firstParam(searchParams, "service")),
-    sourceChannel: safeParam(firstParam(searchParams, "source") ?? firstParam(searchParams, "utm_source") ?? firstParam(searchParams, "campaign") ?? firstParam(searchParams, "utm_campaign")),
+    sourceChannel: undefined,
     campaignContext: safeParam(firstParam(searchParams, "campaign") ?? firstParam(searchParams, "utm_campaign")),
     preferredCurrency: quoteCurrencies.includes(currency as (typeof quoteCurrencies)[number]) ? currency as (typeof quoteCurrencies)[number] : fallbackCurrency,
   };

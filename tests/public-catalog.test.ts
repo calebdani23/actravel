@@ -183,6 +183,14 @@ test("quote page context lets query currency override cookie fallback", () => {
     campaignContext: undefined,
     preferredCurrency: "MXN",
   });
+
+  assert.deepEqual(buildQuotePageInitialContext({ source: "instagram", utm_source: "paid-social", campaign: "summer-sale" }, "USD"), {
+    mainDestination: undefined,
+    serviceInterest: undefined,
+    sourceChannel: undefined,
+    campaignContext: "summer-sale",
+    preferredCurrency: "USD",
+  });
 });
 
 test("public catalog content returns only published rows and keeps live filtering", () => {
@@ -396,6 +404,8 @@ test("public catalog detail pages render structured description blocks", () => {
   const helperSource = readFileSync("lib/catalog-description-blocks.ts", "utf8");
 
   assert.match(detailSource, /parseCatalogDescriptionBlocks/);
+  assert.match(detailSource, /MetaPixelEventTracker eventName="ViewContent"/);
+  assert.match(detailSource, /MetaPixelEventTracker eventName="InitiateCheckout"/);
   assert.match(detailSource, /function CatalogDescriptionContent/);
   assert.match(detailSource, /<CatalogDescriptionContent className="mt-5 grid gap-4 text-lg leading-8 text-muted-foreground" text=\{item\.description\[locale\]\} \/>/);
   assert.match(detailSource, /<CatalogDescriptionContent[\s\S]+text=\{kind === "package" \|\| kind === "service" \? item\.summary\[locale\] : item\.description\[locale\]\}/);
@@ -441,8 +451,12 @@ test("successful live empty sections stay empty without demo backfill", () => {
 
 test("public pages use the same resolved catalog helpers as SEO and static params", () => {
   const pageSource = readFileSync("components/public/public-pages.tsx", "utf8");
+  const quoteFormSource = readFileSync("components/public/quote-form.tsx", "utf8");
 
   assert.match(pageSource, /import \{ getPublicCatalogContent, getPublicCatalogItem \} from "@\/lib\/content\/public-catalog"/);
+  assert.match(quoteFormSource, /form\.register\("attributionSnapshot"\)/);
+  assert.match(quoteFormSource, /form\.register\("metaLeadEventId"\)/);
+  assert.match(quoteFormSource, /trackMetaPixelEvent\("Lead", \{ eventId: metaLeadEventId/);
   assert.match(pageSource, /const \[catalog, currency\] = await Promise\.all\(\[getPublicCatalogContent\(locale\), getServerCurrencyPreference\(\)\]\);/);
   assert.match(pageSource, /const catalogKind = kind === "deal" \? "promotions" : kind === "package" \? "packages" : kind === "service" \? "services" : "destinations";/);
   assert.match(pageSource, /const \[catalog, item, currency\] = await Promise\.all\(\[getPublicCatalogContent\(locale\), getPublicCatalogItem\(locale, catalogKind, slug\), getServerCurrencyPreference\(\)\]\);/);

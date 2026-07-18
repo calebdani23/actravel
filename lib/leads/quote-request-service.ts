@@ -1,5 +1,7 @@
 import "server-only";
 
+import { sendMetaLeadEvent } from "@/lib/analytics/meta-conversions";
+import { parseMetaAttributionSnapshot } from "@/lib/analytics/meta-attribution";
 import { buildAbsoluteTrackedWhatsAppUrl, buildTrackedWhatsAppUrl, buildWhatsAppUrl } from "@/lib/whatsapp/link";
 import { adminQuoteFollowUpWhatsAppMessage, quoteConfirmationMessage, quoteWhatsAppMessage } from "@/lib/content/public-site";
 import { processQuoteSheetSync } from "@/lib/google-sheets/quote-sheet-sync";
@@ -21,14 +23,41 @@ import { type Json } from "@/lib/supabase/database.types";
 import { normalizeEmail, normalizeWhatsApp, type QuoteRequestInput, type QuoteRequestSuccessResponse } from "@/lib/validations/quote-request";
 
 const WHATSAPP_PHONE = "529988453455" as const;
+export const PUBLIC_QUOTE_CANONICAL_SOURCE = "website_quote" as const;
 
 type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>;
 type BoundaryLogSummary = { kind: string; status: "queued" | "processing" | "sent" | "success" | "skipped" | "failed" | "ambiguous"; reason?: string; recipient?: string | null; rowId?: string | null };
+type QuoteRequestRuntimeContext = { userAgent?: string | null; requestIp?: string | null; requestReferrer?: string | null };
+
+function clampRequestOwnedValue(value?: string | null, maxLength = 512) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed.slice(0, maxLength) : undefined;
+}
+
+export function buildTrustedQuoteAttribution(input: QuoteRequestInput, runtimeContext: QuoteRequestRuntimeContext = {}) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "");
+  const quotePath = input.locale === "es" ? "/es/cotizar" : "/en/quote";
+
+  return {
+    canonicalSource: PUBLIC_QUOTE_CANONICAL_SOURCE,
+    quotePagePath: quotePath,
+    quotePageUrl: siteUrl ? `${siteUrl}${quotePath}` : undefined,
+    requestReferrer: clampRequestOwnedValue(runtimeContext.requestReferrer) ?? null,
+  };
+}
+
+export function buildAdvisoryMarketingContext(input: QuoteRequestInput) {
+  return {
+    sourceChannel: input.sourceChannel,
+    campaignContext: input.campaignContext ?? null,
+    clientAttribution: parseMetaAttributionSnapshot(input.attributionSnapshot) ?? null,
+  };
+}
 
 export function buildSafeContactUpdate(existing: import("@/lib/leads/lead-intake-core").ContactRow, input: QuoteRequestInput, normalizedEmail: string | null, normalizedWhatsapp: string) {
   return buildSafeCoreContactUpdate(existing, {
     preferredLocale: input.locale,
-    source: input.sourceChannel || "website_quote",
+    source: PUBLIC_QUOTE_CANONICAL_SOURCE,
     notes: input.notes ? `Quote request notes: ${input.notes}` : null,
     consentMarketing: true,
   }, normalizedEmail, normalizedWhatsapp);
@@ -40,10 +69,15 @@ function quotePayload(
   normalizedWhatsapp: string,
   consentAt: string,
   identityResolution: ContactIdentityResolution,
-  boundaryLogs?: { notifications: BoundaryLogSummary[]; sheetSync: BoundaryLogSummary | null },
+  runtimeContext: QuoteRequestRuntimeContext,
+  boundaryLogs?: { notifications: BoundaryLogSummary[]; sheetSync: BoundaryLogSummary | null; metaConversions: BoundaryLogSummary | null },
 ): Json {
+  const trustedAttribution = buildTrustedQuoteAttribution(input, runtimeContext);
+  const advisoryMarketingContext = buildAdvisoryMarketingContext(input);
+
   return {
     locale: input.locale,
+    canonicalSource: PUBLIC_QUOTE_CANONICAL_SOURCE,
     preferredCurrency: input.preferredCurrency,
     holderName: input.holderName,
     email: normalizedEmail,
@@ -59,6 +93,9 @@ function quotePayload(
     approximateBudget: input.approximateBudget,
     sourceChannel: input.sourceChannel,
     campaignContext: input.campaignContext ?? null,
+    trustedAttribution,
+    advisoryMarketingContext,
+    metaLeadEventId: input.metaLeadEventId ?? null,
     contactConsent: input.contactConsent,
     consentAt,
     notes: input.notes ?? null,
@@ -68,20 +105,19 @@ function quotePayload(
 }
 
 async function upsertContact(supabase: SupabaseAdminClient, input: QuoteRequestInput, normalizedEmail: string | null, normalizedWhatsapp: string): Promise<ContactIdentityResolution> {
-  const source = input.sourceChannel || "website_quote";
   const notes = input.notes ? `Quote request notes: ${input.notes}` : null;
   return resolveOrCreateContact(supabase, {
     name: input.holderName,
     email: normalizedEmail,
     phone: normalizedWhatsapp,
     preferredLocale: input.locale,
-    source,
+    source: PUBLIC_QUOTE_CANONICAL_SOURCE,
     notes,
     consentMarketing: true,
   });
 }
 
-export async function createQuoteRequest(input: QuoteRequestInput): Promise<QuoteRequestSuccessResponse> {
+export async function createQuoteRequest(input: QuoteRequestInput, runtimeContext: QuoteRequestRuntimeContext = {}): Promise<QuoteRequestSuccessResponse> {
   const supabase = createSupabaseAdminClient();
   const normalizedEmail = normalizeEmail(input.email);
   const normalizedWhatsapp = normalizeWhatsApp(input.whatsapp);
@@ -106,19 +142,19 @@ export async function createQuoteRequest(input: QuoteRequestInput): Promise<Quot
     travelersCount,
     budgetMxn: input.preferredCurrency === "MXN" ? input.approximateBudget : null,
     budgetUsd: input.preferredCurrency === "USD" ? input.approximateBudget : null,
-    source: input.sourceChannel || "website",
+    source: PUBLIC_QUOTE_CANONICAL_SOURCE,
     priority: "normal",
     summary,
   });
 
   const { data: quoteRequest, error: quoteError } = await supabase
     .from("quote_requests")
-    .insert({ lead_id: lead.id, contact_id: contactId, locale: input.locale, destination_slug: destinationSlug, service_slug: serviceSlug, payload: quotePayload(input, normalizedEmail, normalizedWhatsapp, consentAt, identityResolution), status: "received" })
+    .insert({ lead_id: lead.id, contact_id: contactId, locale: input.locale, destination_slug: destinationSlug, service_slug: serviceSlug, payload: quotePayload(input, normalizedEmail, normalizedWhatsapp, consentAt, identityResolution, runtimeContext), status: "received" })
     .select("id")
     .single();
   if (quoteError) throw quoteError;
 
-  const eventPayload: Json = { source: "website_quote_form", sourceChannel: input.sourceChannel, campaignContext: input.campaignContext ?? null, locale: input.locale, destination: input.mainDestination, service: input.serviceInterest, travelers: { adults: input.adults, children: input.children, total: travelersCount }, quoteRequestId: quoteRequest.id, identityResolution };
+  const eventPayload: Json = { source: PUBLIC_QUOTE_CANONICAL_SOURCE, sourceChannel: input.sourceChannel, campaignContext: input.campaignContext ?? null, trustedAttribution: buildTrustedQuoteAttribution(input, runtimeContext), advisoryMarketingContext: buildAdvisoryMarketingContext(input), metaLeadEventId: input.metaLeadEventId ?? null, locale: input.locale, destination: input.mainDestination, service: input.serviceInterest, travelers: { adults: input.adults, children: input.children, total: travelersCount }, quoteRequestId: quoteRequest.id, identityResolution };
   await recordLeadEvent(supabase, { leadId: lead.id, actorId: null, eventType: "quote_submitted", payload: eventPayload });
 
   if (identityResolution.ambiguous) {
@@ -143,9 +179,23 @@ export async function createQuoteRequest(input: QuoteRequestInput): Promise<Quot
     sheetSync = { kind: "quote_request_sheet_sync", status: "failed", reason: error instanceof Error ? error.message : "Google Sheets boundary failed" };
   }
 
+  let metaConversions: BoundaryLogSummary | null = null;
+  try {
+    metaConversions = await sendMetaLeadEvent(input, {
+      createdAt: consentAt,
+      eventId: input.metaLeadEventId,
+      eventSourceUrl: process.env.NEXT_PUBLIC_SITE_URL ? `${process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "")}/${input.locale === "es" ? "es/cotizar" : "en/quote"}` : undefined,
+      leadId: lead.id,
+      requestIp: runtimeContext.requestIp,
+      userAgent: runtimeContext.userAgent,
+    });
+  } catch (error) {
+    metaConversions = { kind: "meta_conversions_api", status: "failed", reason: error instanceof Error ? error.message : "Meta CAPI boundary failed" };
+  }
+
   await supabase
     .from("quote_requests")
-    .update({ payload: quotePayload(input, normalizedEmail, normalizedWhatsapp, consentAt, identityResolution, { notifications, sheetSync }) })
+    .update({ payload: quotePayload(input, normalizedEmail, normalizedWhatsapp, consentAt, identityResolution, runtimeContext, { notifications, sheetSync, metaConversions }) })
     .eq("id", quoteRequest.id);
 
   return {

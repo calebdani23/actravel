@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { CatalogCardSlider } from "@/components/public/catalog-card-slider";
 import { FormattedPrice } from "@/components/public/formatted-price";
+import { MetaPixelEventTracker } from "@/components/public/meta-pixel-event-tracker";
 import { PublicRouteAlternates } from "@/components/public/public-route-alternates";
 import { WhatsAppCta } from "@/components/public/whatsapp-cta";
 import { ItemCard } from "@/components/public/item-card";
@@ -128,6 +129,7 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
   const detailSections = item.detailSections?.[locale] ?? null;
   return (
     <PageShell>
+      <MetaPixelEventTracker eventName="ViewContent" payload={{ content_name: item.title[locale], content_category: kind, content_ids: [item.id] }} />
       <PublicRouteAlternates alternatePaths={alternatePaths} />
       <section className="grid gap-8 rounded-[2rem] border bg-white p-6 shadow-sm lg:grid-cols-[1.1fr_0.9fr] lg:p-10">
         <div>
@@ -280,7 +282,7 @@ export function HomePromotionsSection({ locale, items, initialCurrency }: Readon
 }
 
 export function QuotePage({ locale, initialContext }: Readonly<{ locale: Locale; initialContext?: QuoteFormInitialContext }>) {
-  return <PageShell><QuoteForm locale={locale} initialContext={initialContext} /></PageShell>;
+  return <PageShell><MetaPixelEventTracker eventName="InitiateCheckout" payload={{ content_name: initialContext?.mainDestination ?? "quote_request", content_category: initialContext?.serviceInterest ?? "quote" }} /><QuoteForm locale={locale} initialContext={initialContext} /></PageShell>;
 }
 
 export function InfoPage({ locale, kind }: Readonly<{ locale: Locale; kind: "about" | "contact" }>) {
