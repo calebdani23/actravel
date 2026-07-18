@@ -42,11 +42,7 @@ export const quoteValidationCopy = {
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 const suspiciousControlCharacters = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/;
 const requiredString = (message: string) => z.string().trim().min(1, message).max(180);
-const optionalTrimmedString = () => z.preprocess((value) => {
-  if (typeof value !== "string") return value;
-  const trimmed = value.trim();
-  return trimmed === "" ? undefined : trimmed;
-}, z.string().trim().optional());
+const optionalTrimmedString = () => z.string().trim().optional().transform((value) => (value === "" ? undefined : value));
 
 function hasSuspiciousControlCharacters(value?: string | null) {
   return Boolean(value && suspiciousControlCharacters.test(value));
@@ -131,7 +127,8 @@ export function createQuoteRequestSchema(locale: Locale = "es") {
 
 export const quoteRequestSchema = createQuoteRequestSchema("es");
 
-export type QuoteRequestInput = z.infer<ReturnType<typeof createQuoteRequestSchema>>;
+export type QuoteRequestFormInput = z.input<ReturnType<typeof createQuoteRequestSchema>>;
+export type QuoteRequestInput = z.output<ReturnType<typeof createQuoteRequestSchema>>;
 
 export type QuoteRequestSuccessResponse = {
   ok: true;

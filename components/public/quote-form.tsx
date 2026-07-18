@@ -14,9 +14,9 @@ import { getClientCurrencyPreference, setClientCurrencyPreference, subscribeToCu
 import { type Locale } from "@/lib/i18n/config";
 import { shouldSyncQuoteFormCurrency } from "@/lib/quote-form-currency-sync";
 import { buildAbandonmentSnapshot, buildDraftSnapshot, mergeRecoveredDraft, QUOTE_FORM_RECOVERY_TTL_MS, quoteFormStorageKey, readStoredRecovery, safeStorageRemoveItem, safeStorageSetItem, type QuoteFormAbandonmentSnapshot, type QuoteFormRecoveryDraft } from "@/lib/quote-form-recovery";
-import { createQuoteRequestSchema, type QuoteRequestInput, type QuoteRequestResponse } from "@/lib/validations/quote-request";
+import { createQuoteRequestSchema, type QuoteRequestFormInput, type QuoteRequestInput, type QuoteRequestResponse } from "@/lib/validations/quote-request";
 
-export type QuoteFormInitialContext = Partial<Pick<QuoteRequestInput, "mainDestination" | "serviceInterest" | "sourceChannel" | "preferredCurrency" | "campaignContext">>;
+export type QuoteFormInitialContext = Partial<Pick<QuoteRequestFormInput, "mainDestination" | "serviceInterest" | "sourceChannel" | "preferredCurrency" | "campaignContext">>;
 
 type Props = Readonly<{ locale: Locale; initialContext?: QuoteFormInitialContext }>;
 
@@ -25,7 +25,7 @@ type RecoveryNotice = {
   abandonment?: QuoteFormAbandonmentSnapshot | null;
 };
 
-function defaultValues(locale: Locale, initialContext: QuoteFormInitialContext = {}): QuoteRequestInput {
+function defaultValues(locale: Locale, initialContext: QuoteFormInitialContext = {}): QuoteRequestFormInput {
   return {
     locale,
     preferredCurrency: initialContext.preferredCurrency ?? "MXN",
@@ -77,7 +77,7 @@ export function QuoteForm({ locale, initialContext }: Props) {
   const draftStorageKey = useMemo(() => quoteFormStorageKey(locale, "draft"), [locale]);
   const abandonmentStorageKey = useMemo(() => quoteFormStorageKey(locale, "abandonment"), [locale]);
 
-  const form = useForm<QuoteRequestInput>({
+  const form = useForm<QuoteRequestFormInput, undefined, QuoteRequestInput>({
     resolver: zodResolver(schema),
     defaultValues: formDefaults,
     mode: "onBlur",
@@ -146,7 +146,7 @@ export function QuoteForm({ locale, initialContext }: Props) {
 
   useEffect(() => {
     if (typeof window === "undefined" || !form.formState.isDirty) return;
-    safeStorageSetItem(window.localStorage, draftStorageKey, JSON.stringify(buildDraftSnapshot(watchedValues as QuoteRequestInput)));
+    safeStorageSetItem(window.localStorage, draftStorageKey, JSON.stringify(buildDraftSnapshot(watchedValues as QuoteRequestFormInput)));
   }, [draftStorageKey, form.formState.isDirty, watchedValues]);
 
   useEffect(() => {
@@ -184,7 +184,7 @@ export function QuoteForm({ locale, initialContext }: Props) {
 
   async function onSubmit(values: QuoteRequestInput) {
     setResult(null);
-    const metaLeadEventId = values.metaLeadEventId?.trim() || createMetaLeadEventId();
+    const metaLeadEventId = values.metaLeadEventId || createMetaLeadEventId();
     form.setValue("metaLeadEventId", metaLeadEventId, { shouldDirty: false, shouldTouch: false, shouldValidate: false });
     const response = await fetch("/api/quote-request", {
       method: "POST",
@@ -194,7 +194,7 @@ export function QuoteForm({ locale, initialContext }: Props) {
     const data = (await response.json()) as QuoteRequestResponse;
     if (!data.ok && data.fieldErrors) {
       for (const [field, messages] of Object.entries(data.fieldErrors)) {
-        if (messages?.[0]) form.setError(field as keyof QuoteRequestInput, { message: messages[0] });
+        if (messages?.[0]) form.setError(field as keyof QuoteRequestFormInput, { message: messages[0] });
       }
     }
     setResult(data);

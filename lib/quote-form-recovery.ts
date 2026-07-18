@@ -1,6 +1,6 @@
 import type { FieldErrors, FieldNamesMarkedBoolean } from "react-hook-form";
 import type { Locale } from "@/lib/i18n/config";
-import type { QuoteRequestInput } from "@/lib/validations/quote-request";
+import type { QuoteRequestFormInput } from "@/lib/validations/quote-request";
 
 type RecoveryKind = "draft" | "abandonment";
 
@@ -13,7 +13,7 @@ export const QUOTE_FORM_RECOVERY_TTL_MS = {
 
 type ContextDrivenField = "mainDestination" | "serviceInterest" | "sourceChannel" | "preferredCurrency" | "campaignContext";
 
-export type QuoteFormRecoveryDraft = Partial<QuoteRequestInput> & {
+export type QuoteFormRecoveryDraft = Partial<QuoteRequestFormInput> & {
   savedAt?: string;
 };
 
@@ -82,29 +82,29 @@ export function readStoredRecovery<T extends { savedAt?: string }>(storage: Stor
   }
 }
 
-function flattenDirtyFields(value: FieldNamesMarkedBoolean<QuoteRequestInput> | boolean | undefined, prefix = ""): string[] {
+function flattenDirtyFields(value: FieldNamesMarkedBoolean<QuoteRequestFormInput> | boolean | undefined, prefix = ""): string[] {
   if (!value) return [];
   if (value === true) return prefix ? [prefix] : [];
   if (typeof value !== "object") return [];
 
   return Object.entries(value).flatMap(([key, nested]) => {
     const nextPrefix = prefix ? `${prefix}.${key}` : key;
-    return flattenDirtyFields(nested as FieldNamesMarkedBoolean<QuoteRequestInput> | boolean | undefined, nextPrefix);
+    return flattenDirtyFields(nested as FieldNamesMarkedBoolean<QuoteRequestFormInput> | boolean | undefined, nextPrefix);
   });
 }
 
-export function frictionFieldNames(errors: FieldErrors<QuoteRequestInput>) {
+export function frictionFieldNames(errors: FieldErrors<QuoteRequestFormInput>) {
   return Object.keys(errors).sort();
 }
 
-export function buildDraftSnapshot(values: QuoteRequestInput): QuoteFormRecoveryDraft {
+export function buildDraftSnapshot(values: QuoteRequestFormInput): QuoteFormRecoveryDraft {
   return { ...values, savedAt: new Date().toISOString() };
 }
 
 export function buildAbandonmentSnapshot(
-  values: QuoteRequestInput,
-  errors: FieldErrors<QuoteRequestInput>,
-  dirtyFields: FieldNamesMarkedBoolean<QuoteRequestInput>,
+  values: QuoteRequestFormInput,
+  errors: FieldErrors<QuoteRequestFormInput>,
+  dirtyFields: FieldNamesMarkedBoolean<QuoteRequestFormInput>,
 ): QuoteFormAbandonmentSnapshot {
   return {
     savedAt: new Date().toISOString(),
@@ -117,10 +117,10 @@ export function buildAbandonmentSnapshot(
 }
 
 export function mergeRecoveredDraft(
-  defaults: QuoteRequestInput,
+  defaults: QuoteRequestFormInput,
   draft?: QuoteFormRecoveryDraft | null,
   options?: { preferDefaultFields?: readonly ContextDrivenField[] },
-): QuoteRequestInput {
+): QuoteRequestFormInput {
   if (!draft) return defaults;
 
   const merged = {

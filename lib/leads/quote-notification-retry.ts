@@ -56,7 +56,11 @@ function inputFromPayload(payload: Json): QuoteRequestInput {
     approximateBudget: Math.max(0, numberValue(data.approximateBudget)),
     sourceChannel: stringValue(data.sourceChannel) ?? "admin_retry",
     contactConsent: data.contactConsent === false ? false : true,
+    campaignContext: stringValue(data.campaignContext) ?? undefined,
+    attributionSnapshot: stringValue(data.attributionSnapshot) ?? undefined,
+    metaLeadEventId: stringValue(data.metaLeadEventId) ?? undefined,
     notes: stringValue(data.notes) ?? undefined,
+    website: "",
   };
 }
 
