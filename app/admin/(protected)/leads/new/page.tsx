@@ -16,7 +16,7 @@ export default async function NewLeadPage() {
       <div>
         <Link className="text-sm font-semibold text-[var(--ac-blue)] hover:underline" href="/admin/leads">← Volver a leads</Link>
         <h1 className="mt-2 text-3xl font-bold">Nuevo lead</h1>
-        <p className="mt-2 text-muted-foreground">Crea un lead manual sin disparar flujos de cotización, email o Google Sheets.</p>
+        <p className="mt-2 text-muted-foreground">Crea un lead manual sin disparar flujos automáticos de cotización o email.</p>
       </div>
 
       <Card>

@@ -22,7 +22,7 @@
 - Panel interno MVP.
 - Tracking de WhatsApp.
 - Emails admin con Resend.
-- Google Sheets sync real.
+- Historial legacy de `sheet_sync_logs` preservado, sin sync activo.
 
 ### Restricción aceptada por ahora
 
@@ -76,11 +76,9 @@ Objetivo: reducir riesgo productivo, spam, duplicados y fallos silenciosos.
 
 - Idempotencia más fuerte para:
   - emails
-  - Google Sheets
   - WhatsApp tracking si aplica
 - Reintentos manuales o seguros desde admin para:
   - `notification_logs.failed`
-  - `sheet_sync_logs.failed`
 - Estado intermedio opcional tipo `processing` cuando haga falta.
 
 #### Resultado esperado
@@ -292,14 +290,13 @@ Objetivo: tener visibilidad real del estado operativo del MVP.
 
 #### Estado
 
-- ✅ Implementado para operación MVP: dashboard con leads hoy (UTC), incidents abiertos de email/Sheets en ventana de 7 días, clicks WhatsApp de 7 días, alertas mínimas y vista de incidentes recientes.
+- ✅ Implementado para operación MVP: dashboard con leads hoy (UTC), incidentes abiertos de email en ventana de 7 días, clicks WhatsApp de 7 días, alertas mínimas y vista de incidentes recientes.
 
 #### Implementar
 
 - Dashboard de salud operativa:
   - leads hoy
   - emails fallidos
-  - syncs fallidos
   - clicks WhatsApp
 - Vista de errores recientes.
 - Señales mínimas de alerta.
@@ -308,12 +305,11 @@ Objetivo: tener visibilidad real del estado operativo del MVP.
 
 #### Estado
 
-- ✅ Implementado para operación MVP: retry manual de emails/Sheets desde admin logs y estado persistente abierto/resuelto con opción de marcar resuelto o reabrir.
+- ✅ Implementado para operación MVP: retry manual de emails desde admin logs y estado persistente abierto/resuelto con opción de marcar resuelto o reabrir. Google Sheets quedó retirado de operación activa.
 
 #### Implementar
 
 - Reintento manual de emails fallidos.
-- Reintento manual de sync a Sheets.
 - Marcado claro de incidentes resueltos/no resueltos.
 
 ### Bloque P2.3 — Calidad de datos
@@ -382,7 +378,7 @@ Objetivo: expandir el producto cuando el MVP ya esté estable.
 Si hubiera que elegir solo lo más importante inmediatamente después del MVP, el orden recomendado sería:
 
 1. **Anti-spam + rate limiting**
-2. **Retry/idempotencia de email y Sheets**
+2. **Retry/idempotencia de email**
 3. **Middleware de sesión + endurecimiento RLS/Auth**
 4. **Mejora fuerte del flujo de leads en panel interno**
 5. **Catálogo dinámico desde Supabase**

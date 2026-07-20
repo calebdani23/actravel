@@ -6,11 +6,10 @@ import type { Tables } from "@/lib/supabase/database.types";
 export type IncidentStatus = "open" | "resolved";
 export type WhatsappClickRow = Tables<"whatsapp_clicks"> & { contacts: { first_name: string; last_name: string | null; phone: string | null } | null };
 export type NotificationLogRow = Tables<"notification_logs"> & { contacts: { first_name: string; last_name: string | null; email: string | null; phone: string | null } | null };
-export type SheetSyncLogRow = Tables<"sheet_sync_logs">;
 
 export type OperationalIncidentRow = {
   id: string;
-  source: "email" | "sheets";
+  source: "email";
   status: string;
   incidentStatus: IncidentStatus;
   createdAt: string;
@@ -44,21 +43,6 @@ function buildNotificationIncident(row: NotificationLogRow): OperationalIncident
   };
 }
 
-function buildSheetIncident(row: SheetSyncLogRow): OperationalIncidentRow {
-  return {
-    id: row.id,
-    source: "sheets",
-    status: row.status,
-    incidentStatus: asIncidentStatus(row.incident_status),
-    createdAt: row.created_at,
-    updatedAt: row.incident_updated_at ?? row.updated_at,
-    errorMessage: row.error_message,
-    title: row.sheet_name ?? "Google Sheets",
-    detail: row.row_id ?? row.idempotency_key ?? row.quote_request_id ?? "Sin referencia",
-    retryEligible: retryEligible(row.status),
-  };
-}
-
 function compareByDateDesc(a: { createdAt: string }, b: { createdAt: string }) {
   return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 }
@@ -87,38 +71,21 @@ export async function setNotificationIncidentStatus(logId: string, incidentStatu
   if (error) throw new Error(error.message);
 }
 
-export async function setSheetIncidentStatus(logId: string, incidentStatus: IncidentStatus, actorId: string) {
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("sheet_sync_logs")
-    .update({ incident_status: incidentStatus, incident_updated_at: new Date().toISOString(), incident_updated_by: actorId })
-    .eq("id", logId);
-
-  if (error) throw new Error(error.message);
-}
-
 export async function getAdminLogs() {
   const supabase = await createClient();
   const errors: string[] = [];
-  const [whatsapp, notifications, sheets, openNotifications, openSheets] = await Promise.all([
+  const [whatsapp, notifications, openNotifications] = await Promise.all([
     supabase.from("whatsapp_clicks").select("*, contacts(first_name, last_name, phone)").order("created_at", { ascending: false }).limit(25),
     supabase.from("notification_logs").select("*, contacts(first_name, last_name, email, phone)").order("created_at", { ascending: false }).limit(50),
-    supabase.from("sheet_sync_logs").select("*").order("created_at", { ascending: false }).limit(50),
     safeCount(
       "incidentes abiertos email",
       supabase.from("notification_logs").select("id", { count: "exact", head: true }).eq("incident_status", "open").in("status", ["failed", "ambiguous"]),
       errors,
     ),
-    safeCount(
-      "incidentes abiertos sheets",
-      supabase.from("sheet_sync_logs").select("id", { count: "exact", head: true }).eq("incident_status", "open").in("status", ["failed", "ambiguous"]),
-      errors,
-    ),
   ]);
 
   const notificationRows = (notifications.data ?? []) as unknown as NotificationLogRow[];
-  const sheetRows = (sheets.data ?? []) as SheetSyncLogRow[];
-  const recentIncidents = [...notificationRows.map(buildNotificationIncident), ...sheetRows.map(buildSheetIncident)]
+  const recentIncidents = notificationRows.map(buildNotificationIncident)
     .filter(shouldShowIncident)
     .sort(compareByDateDesc)
     .slice(0, 12);
@@ -126,19 +93,16 @@ export async function getAdminLogs() {
   return {
     whatsapp: (whatsapp.data ?? []) as unknown as WhatsappClickRow[],
     notifications: notificationRows,
-    sheets: sheetRows,
     recentIncidents,
     incidentSummary: {
       openNotifications,
-      openSheets,
       resolvedIncidents: recentIncidents.filter((row) => row.incidentStatus === "resolved").length,
     },
-    errors: [...errors, whatsapp.error?.message, notifications.error?.message, sheets.error?.message].filter(Boolean),
+    errors: [...errors, whatsapp.error?.message, notifications.error?.message].filter(Boolean),
   };
 }
 
 export const adminLogsInternals = {
   buildNotificationIncident,
-  buildSheetIncident,
   shouldShowIncident,
 };

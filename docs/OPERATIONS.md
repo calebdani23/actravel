@@ -15,7 +15,7 @@ Este documento define la rutina mínima para operar el MVP en producción y resp
 
 > Meta se usa en producción para atribución y medición del funnel web. WhatsApp sigue siendo un número manual; este MVP no depende de WhatsApp Cloud API ni de leer el contenido de mensajes inbound para operar campañas.
 
-> En producción, los leads se gestionan en Supabase y en el panel admin. Google Sheets puede quedar desactivado si no se configuraron sus variables en Vercel.
+> En producción, los leads se gestionan en Supabase y en el panel admin. Google Sheets está retirado de la operación activa y Supabase es la única fuente de verdad operativa.
 
 ## Revisión diaria (10 minutos)
 
@@ -40,6 +40,8 @@ Acción esperada:
 
 - reintentar si aplica
 - dejar responsable si algo no se resuelve en el momento
+
+`sheet_sync_logs` se conserva solo como historial legacy y no requiere monitoreo diario ni retry operativo.
 
 ### 3. Leads
 

@@ -15,7 +15,6 @@
     "test:staff-admin": "node --conditions react-server --import tsx --test tests/staff-validation.test.ts tests/staff-admin.test.ts",
     "test:quote-request-identity": "node --conditions react-server --import tsx --test tests/quote-request-identity.test.ts",
     "test:quote-notifications": "node --conditions react-server --import tsx --test tests/quote-notifications.test.ts",
-    "test:google-sheets": "node --conditions react-server --import tsx --test tests/google-sheets.test.ts",
     "db:types": "supabase gen types typescript --linked > lib/supabase/database.types.ts",
     "db:seed": "psql \"$SUPABASE_DB_URL\" -v ON_ERROR_STOP=1 -f db/seed/seed.sql",
     "db:bootstrap-admin": "tsx db/seed/bootstrap-admin.ts"
@@ -29,7 +28,6 @@
     "class-variance-authority": "latest",
     "clsx": "latest",
     "framer-motion": "latest",
-    "googleapis": "^172.0.0",
     "lucide-react": "latest",
     "next": "latest",
     "react": "latest",

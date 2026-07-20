@@ -1,12 +1,11 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import { adminLogsInternals, type NotificationLogRow, type SheetSyncLogRow } from "@/lib/admin/logs";
+import { adminLogsInternals, type NotificationLogRow } from "@/lib/admin/logs";
 
 type DashboardCounts = {
   leadsToday: number;
   failedEmails: number;
-  failedSheetSyncs: number;
   openAmbiguousIncidents: number;
   whatsappClicks: number;
 };
@@ -94,12 +93,12 @@ function buildDashboardAlerts(values: { counts: DashboardCounts }): DashboardAle
     });
   }
 
-  const failedOps = values.counts.failedEmails + values.counts.failedSheetSyncs;
+  const failedOps = values.counts.failedEmails;
   if (failedOps >= 3) {
     alerts.push({
       level: "warning",
       title: "Backlog operativo activo",
-      detail: `${failedOps} incidente(s) abiertos en email/Sheets dentro de la ventana de 7 días.`,
+      detail: `${failedOps} incidente(s) abiertos de email dentro de la ventana de 7 días.`,
     });
   }
 
@@ -120,33 +119,26 @@ export async function getDashboardMetrics() {
   const utcDayStart = startOfUtcDayIso();
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [leadsToday, failedEmails, failedSheetSyncs, openAmbiguousEmailIncidents, openAmbiguousSheetIncidents, whatsappClicks, leadsByChannel, notificationIncidents, sheetIncidents] = await Promise.all([
+  const [leadsToday, failedEmails, openAmbiguousEmailIncidents, whatsappClicks, leadsByChannel, notificationIncidents] = await Promise.all([
     safeCount("leads hoy", supabase.from("leads").select("id", { count: "exact", head: true }).gte("created_at", utcDayStart), errors),
     safeCount("emails fallidos", supabase.from("notification_logs").select("id", { count: "exact", head: true }).eq("incident_status", "open").in("status", ["failed", "ambiguous"]).gte("created_at", sevenDaysAgo), errors),
-    safeCount("syncs fallidos", supabase.from("sheet_sync_logs").select("id", { count: "exact", head: true }).eq("incident_status", "open").in("status", ["failed", "ambiguous"]).gte("created_at", sevenDaysAgo), errors),
     safeCount("emails ambiguos abiertos", supabase.from("notification_logs").select("id", { count: "exact", head: true }).eq("incident_status", "open").eq("status", "ambiguous"), errors),
-    safeCount("syncs ambiguos abiertos", supabase.from("sheet_sync_logs").select("id", { count: "exact", head: true }).eq("incident_status", "open").eq("status", "ambiguous"), errors),
     safeCount("whatsapp", supabase.from("whatsapp_clicks").select("id", { count: "exact", head: true }).gte("created_at", sevenDaysAgo), errors),
     getLeadChannelBreakdownExact(supabase, sevenDaysAgo, errors),
     supabase.from("notification_logs").select("*, contacts(first_name, last_name, email, phone)").or("status.eq.failed,status.eq.ambiguous").order("created_at", { ascending: false }).limit(8),
-    supabase.from("sheet_sync_logs").select("*").or("status.eq.failed,status.eq.ambiguous").order("created_at", { ascending: false }).limit(8),
   ]);
 
   if (notificationIncidents.error) errors.push(`incidentes email: ${notificationIncidents.error.message}`);
-  if (sheetIncidents.error) errors.push(`incidentes sheets: ${sheetIncidents.error.message}`);
 
-  const recentIncidents = [
-    ...((notificationIncidents.data ?? []) as unknown as NotificationLogRow[]).map((row) => adminLogsInternals.buildNotificationIncident(row)),
-    ...((sheetIncidents.data ?? []) as SheetSyncLogRow[]).map((row) => adminLogsInternals.buildSheetIncident(row)),
-  ]
+  const recentIncidents = ((notificationIncidents.data ?? []) as unknown as NotificationLogRow[])
+    .map((row) => adminLogsInternals.buildNotificationIncident(row))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 8);
 
   const counts = {
     leadsToday,
     failedEmails,
-    failedSheetSyncs,
-    openAmbiguousIncidents: openAmbiguousEmailIncidents + openAmbiguousSheetIncidents,
+    openAmbiguousIncidents: openAmbiguousEmailIncidents,
     whatsappClicks,
   } satisfies DashboardCounts;
 
@@ -155,7 +147,6 @@ export async function getDashboardMetrics() {
     windows: {
       leadsToday: `Desde ${utcDayStart.slice(0, 16).replace("T", " ")} UTC`,
       failedEmails: "Incidentes abiertos · últimos 7 días",
-      failedSheetSyncs: "Incidentes abiertos · últimos 7 días",
       whatsappClicks: "Últimos 7 días",
     },
     leadsByChannel,

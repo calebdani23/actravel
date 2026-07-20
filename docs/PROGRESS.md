@@ -2,7 +2,7 @@
 
 ## Estado general
 
-Bloques 1–10 completados en alcance MVP actual. Bloque 9 está implementado y verificado con una cotización real: Supabase persistió la solicitud y `sheet_sync_logs` registró sincronización live exitosa a Google Sheets. El proyecto queda en estado **ready for MVP launch** con validación local final pasada.
+Bloques 1–10 completados en alcance MVP actual. La operación activa queda consolidada sobre Supabase y efectos no-Sheets; Google Sheets fue retirado de la ruta productiva sin borrar historial previo. El proyecto permanece en estado **ready for MVP launch** con validación local final pasada.
 
 ## Completado
 
@@ -37,14 +37,14 @@ Bloques 1–10 completados en alcance MVP actual. Bloque 9 está implementado y 
 - ✅ Alineados app, bootstrap y documentación al modelo moderno de llaves Supabase: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` y `SUPABASE_SECRET_KEY`, como desviación deliberada del prompt maestro legacy.
 - ✅ Ejecutado bootstrap seguro con variables locales: existen usuarios Auth, perfiles activos y asignaciones de rol para `admin` y `asesor`.
 - ✅ Implementado Bloque 5: QuoteForm bilingüe en `/es/cotizar` y `/en/quote`, validación Zod, API server-only `/api/quote-request`, normalización/dedupe de contacto por WhatsApp/email, creación de `contacts`, `leads`, `quote_requests` y `lead_events`.
-- ✅ Agregados logs de frontera seguros para intención de email y Google Sheets en `notification_logs` y `sheet_sync_logs`, usando los nombres documentados `EMAIL_ADMIN`, `GOOGLE_SHEETS_CLIENT_EMAIL`, `GOOGLE_SHEETS_SPREADSHEET_ID` y `GOOGLE_SHEETS_LEADS_TAB`.
+- ✅ Agregados logs de frontera seguros para email en `notification_logs`; `sheet_sync_logs` se conserva únicamente como historial legacy de la integración retirada.
 - ✅ Implementado Bloque 6: panel interno protegido por Supabase Auth/RLS con shell y navegación por rol, dashboard, listado/detalle de leads, acciones básicas de estado/asignación/notas, CRUD MVP de catálogo, plantillas, pagos, reservas, documentos y logs ligeros de lectura.
 - ✅ Corregida la política de lectura de objetos privados para que el acceso autenticado de staff no aplique a cualquier bucket: catálogo sigue legible para staff, y `documents`/`payment-proofs` quedan limitados a `admin`, `operaciones` y/o `finanzas` según el bucket privado.
 - ✅ Alineado `/admin/leads` con la visibilidad prevista de navegación: acceso de página para `admin` y `asesor`; otros roles dependen de sus módulos dedicados y de RLS.
 - ✅ Implementado Bloque 7: `/api/whatsapp-click` registra clicks de WhatsApp de forma fail-open y redirige a `wa.me`; CTAs públicos usan links trackeados y el hash de IP solo se guarda si existe `WHATSAPP_CLICK_HASH_SALT`.
 - ✅ Implementado Bloque 8: emails de cotización reales con Resend desde frontera server-only, templates bilingües, logs de notificación y manejo no bloqueante de errores/ausencia de configuración.
-- ✅ Implementado y verificado Bloque 9: mapeo documentado de columnas, cliente server-only de Google Sheets, ciclo de logs `queued` → `success`/`failed`/`skipped`, integración al intake de cotizaciones y endpoint público `/api/google-sheets` intencionalmente deshabilitado.
-- ✅ Ejecutada verificación final de Bloque 10: `npm run lint`, `npm run build`, `npm run test:quote-notifications`, `npm run test:google-sheets` y smoke checks básicos de `/es`, `/en`, `/admin/login` y ruta cruzada inválida `/es/services`.
+- ✅ Retirado Google Sheets de la ruta server-side de cotización y de las superficies admin/ops activas; las cotizaciones siguen persistiendo en Supabase con notificaciones/email, tracking de WhatsApp y Meta intactos.
+- ✅ Actualizada la documentación operativa y de entorno para declarar a Supabase como fuente única de verdad y a `sheet_sync_logs` como historial legacy sin retry operativo.
 - ✅ Implementado P0.3 de seguridad/sesión: middleware coarse para `/admin/:path*` que refresca cookies Supabase con `auth.getUser()`, redirige visitantes sin sesión a `/admin/login`, deja la decisión de redirigir desde `/admin/login` al chequeo completo de `getAdminSession()` para evitar loops con usuarios sin rol/perfil válido, conserva los guards de roles en páginas/actions y agrega headers base (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`).
 - ✅ Cerrado P1.6: las acciones de plantillas en lead detail ahora tienen cobertura runtime para WhatsApp trackeado, cuerpo codificado, copiado de contenido y estado deshabilitado de email cuando falta correo; se agregó `npm run test:lead-template-actions`.
 - ✅ Corregidos los remanentes previos a P1.8 más críticos: `npm run build` volvió a verde; pagos/documentos ya soportan reemplazo real de archivo con limpieza best-effort del objeto anterior/al borrar; el catálogo público ahora sí cae a fallback estático utilizable cuando Supabase no devuelve contenido; la búsqueda de leads amplió cobertura por términos/quote payload; y el formulario guarda borrador local con señal mínima de abandono/fricción para recuperación posterior.

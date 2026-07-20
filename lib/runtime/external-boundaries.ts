@@ -5,10 +5,9 @@ export function areExternalBoundariesDisabled() {
   return value ? TRUE_VALUES.has(value) : false;
 }
 
-export function externalBoundarySkipReason(boundary: "email" | "google_sheets" | "meta_conversions") {
+export function externalBoundarySkipReason(boundary: "email" | "meta_conversions") {
   const label = {
     email: "Email delivery",
-    google_sheets: "Google Sheets sync",
     meta_conversions: "Meta Conversions API",
   }[boundary];
 

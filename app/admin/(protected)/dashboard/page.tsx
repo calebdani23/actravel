@@ -6,7 +6,6 @@ import { getDashboardMetrics } from "@/lib/admin/dashboard";
 const metricCards = [
   { key: "leadsToday", label: "Leads hoy" },
   { key: "failedEmails", label: "Emails fallidos" },
-  { key: "failedSheetSyncs", label: "Syncs Sheets fallidos" },
   { key: "whatsappClicks", label: "Clicks WhatsApp" },
 ] as const;
 
@@ -99,7 +98,7 @@ export default async function AdminDashboardPage() {
                   <li className="rounded-md border p-3" key={`${incident.source}-${incident.id}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-medium">{incident.source === "email" ? "Email" : "Sheets"} · {incident.title}</p>
+                        <p className="font-medium">Email · {incident.title}</p>
                         <p className="text-muted-foreground">{incident.detail}</p>
                       </div>
                       <span className={`rounded-full px-2 py-1 text-xs font-semibold ${incident.incidentStatus === "open" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>

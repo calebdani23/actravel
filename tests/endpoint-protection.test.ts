@@ -105,11 +105,8 @@ test("admin log retry actions are role gated and forms submit a single logId", (
 
   assert.match(actions, /requireAdminRole\(\["admin", "marketing"\]\)/);
   assert.match(actions, /retryNotificationLog\(logId\(formData\), session\.user\.id\)/);
-  assert.match(actions, /retrySheetSyncLog\(logId\(formData\), session\.user\.id\)/);
   assert.match(actions, /setNotificationIncidentStatus\(logId\(formData\), incidentStatus\(formData\), session\.user\.id\)/);
-  assert.match(actions, /setSheetIncidentStatus\(logId\(formData\), incidentStatus\(formData\), session\.user\.id\)/);
   assert.equal(actions.indexOf("await requireAdminRole") < actions.indexOf("retryNotificationLog(logId(formData), session.user.id)"), true);
-  assert.equal(actions.indexOf("await requireAdminRole") < actions.indexOf("retrySheetSyncLog(logId(formData), session.user.id)"), true);
   assert.match(page, /name="logId"/);
   assert.match(page, /name="incidentStatus"/);
   assert.match(page, /const canRetry = status === "failed" \|\| status === "queued"/);

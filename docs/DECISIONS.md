@@ -1,5 +1,29 @@
 # Decisiones técnicas y de producto
 
+## 2026-07-20
+
+### Decisión
+
+Retirar Google Sheets completamente de la operación productiva activa y dejar a Supabase como única fuente de verdad para intake y seguimiento de cotizaciones.
+
+### Contexto
+
+El sprint de consolidación pidió cerrar explícitamente si Google Sheets seguía, quedaba como respaldo o se retiraba. La app ya persistía correctamente en Supabase y los flujos no-Sheets (emails, tracking de WhatsApp y Meta) podían seguir operando sin depender de una copia adicional.
+
+### Alternativas consideradas
+
+- Mantener Sheets como copia operativa y seguir gestionando incidentes/reintentos desde admin.
+- Dejar Sheets configurado pero "dormido" detrás de variables de entorno.
+- Retirar el runtime, quitar los workflows activos y conservar únicamente el historial existente.
+
+### Motivo
+
+La opción más segura para producción es desconectar por completo el boundary retirado: evita intentos accidentales, reduce superficie operativa y elimina una dependencia externa sin tocar datos históricos ya registrados.
+
+### Impacto
+
+Las nuevas cotizaciones ya no intentan sincronizar a Google Sheets ni crean nuevas filas en `sheet_sync_logs`. `/admin/dashboard` y `/admin/logs` dejan de tratar Sheets como incidencia activa/retryable. La documentación y `.env.example` dejan de presentar `GOOGLE_SHEETS_*` como configuración vigente.
+
 ## 2026-07-09
 
 ### Decisión

@@ -1,12 +1,10 @@
 import {
   retryNotificationLogAction,
-  retrySheetSyncLogAction,
   setNotificationIncidentStatusAction,
-  setSheetIncidentStatusAction,
 } from "@/app/admin/(protected)/logs/actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAdminRole } from "@/lib/admin/auth";
-import { getAdminLogs, type IncidentStatus, type NotificationLogRow, type OperationalIncidentRow, type SheetSyncLogRow } from "@/lib/admin/logs";
+import { getAdminLogs, type IncidentStatus, type NotificationLogRow, type OperationalIncidentRow } from "@/lib/admin/logs";
 import { hasAnyRole } from "@/lib/supabase/roles";
 
 function retryBadge(status: string, incidentStatus?: IncidentStatus, rowId?: string | null) {
@@ -71,27 +69,12 @@ function NotificationItem({ canOperate, row }: { canOperate: boolean; row: Notif
   );
 }
 
-function SheetItem({ canOperate, row }: { canOperate: boolean; row: SheetSyncLogRow }) {
-  return (
-    <li className="rounded-md border p-3">
-      <div className="flex items-start justify-between gap-3">
-        <p className="font-medium">{row.sheet_name ?? "Sheet"} · {row.status}</p>
-        {retryBadge(row.status, row.incident_status as IncidentStatus, row.row_id)}
-      </div>
-      <p className="text-muted-foreground">{row.row_id ?? row.idempotency_key ?? "—"} · {new Date(row.created_at).toLocaleString("es-MX")}</p>
-      <p className="text-xs text-muted-foreground">Intentos: {row.attempt_count ?? 0}{row.last_attempt_at ? ` · Último: ${new Date(row.last_attempt_at).toLocaleString("es-MX")}` : ""}{row.incident_updated_at ? ` · Incidente: ${row.incident_status} ${new Date(row.incident_updated_at).toLocaleString("es-MX")}` : ""}</p>
-      {row.error_message ? <p className="text-xs text-red-700">{row.error_message}</p> : null}
-      <IncidentControls canOperate={canOperate} incidentStatus={(row.incident_status as IncidentStatus) ?? "open"} logId={row.id} retryAction={retrySheetSyncLogAction} retryLabel="Reintentar Sheets" setIncidentAction={setSheetIncidentStatusAction} status={row.status} />
-    </li>
-  );
-}
-
 function RecentIncidentItem({ row }: { row: OperationalIncidentRow }) {
   return (
     <li className="rounded-md border p-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-medium">{row.source === "email" ? "Email" : "Sheets"} · {row.title}</p>
+          <p className="font-medium">Email · {row.title}</p>
           <p className="text-muted-foreground">{row.detail}</p>
         </div>
         <span className={`rounded-full px-2 py-1 text-xs font-semibold ${row.incidentStatus === "open" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
@@ -107,14 +90,14 @@ function RecentIncidentItem({ row }: { row: OperationalIncidentRow }) {
 export default async function LogsPage() {
   const session = await requireAdminRole(["admin", "marketing", "asesor"]);
   const canOperate = hasAnyRole(session.roles, ["admin", "marketing"]);
-  const { whatsapp, notifications, sheets, recentIncidents, incidentSummary, errors } = await getAdminLogs();
+  const { whatsapp, notifications, recentIncidents, incidentSummary, errors } = await getAdminLogs();
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--ac-blue)]">Auditoría ligera</p>
         <h1 className="mt-2 text-3xl font-bold">Logs operativos</h1>
-        <p className="mt-2 text-muted-foreground">WhatsApp, notificaciones y Google Sheets con visibilidad de incidentes persistentes. {canOperate ? "Puedes reintentar y cerrar/reabrir incidentes." : "Tu acceso es de solo lectura."}</p>
+        <p className="mt-2 text-muted-foreground">WhatsApp y notificaciones con visibilidad de incidentes persistentes. {canOperate ? "Puedes reintentar y cerrar/reabrir incidentes de email." : "Tu acceso es de solo lectura."}</p>
       </div>
 
       {errors.length ? (
@@ -130,7 +113,6 @@ export default async function LogsPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>Email: <span className="font-semibold">{incidentSummary.openNotifications}</span></p>
-            <p>Sheets: <span className="font-semibold">{incidentSummary.openSheets}</span></p>
             <p className="text-muted-foreground">Los incidentes resueltos permanecen visibles en el historial reciente.</p>
           </CardContent>
         </Card>
@@ -177,13 +159,6 @@ export default async function LogsPage() {
             <CardTitle>Notificaciones ({notifications.length})</CardTitle>
           </CardHeader>
           <CardContent>{notifications.length ? <ul className="space-y-3 text-sm">{notifications.map((row) => <NotificationItem canOperate={canOperate} key={row.id} row={row} />)}</ul> : <p className="text-sm text-muted-foreground">Sin notificaciones visibles.</p>}</CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Sheets ({sheets.length})</CardTitle>
-          </CardHeader>
-          <CardContent>{sheets.length ? <ul className="space-y-3 text-sm">{sheets.map((row) => <SheetItem canOperate={canOperate} key={row.id} row={row} />)}</ul> : <p className="text-sm text-muted-foreground">Sin sincronizaciones visibles.</p>}</CardContent>
         </Card>
       </section>
     </main>

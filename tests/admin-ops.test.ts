@@ -6,14 +6,14 @@ import { dashboardInternals } from "@/lib/admin/dashboard";
 
 test("dashboard alerts escalate ambiguous incidents and otherwise report healthy state", () => {
   const critical = dashboardInternals.buildDashboardAlerts({
-    counts: { leadsToday: 5, failedEmails: 1, failedSheetSyncs: 0, openAmbiguousIncidents: 2, whatsappClicks: 9 },
+    counts: { leadsToday: 5, failedEmails: 1, openAmbiguousIncidents: 2, whatsappClicks: 9 },
   });
 
   assert.equal(critical[0].level, "critical");
   assert.match(critical[0].detail, /2 registro\(s\)/);
 
   const healthy = dashboardInternals.buildDashboardAlerts({
-    counts: { leadsToday: 2, failedEmails: 0, failedSheetSyncs: 0, openAmbiguousIncidents: 0, whatsappClicks: 4 },
+    counts: { leadsToday: 2, failedEmails: 0, openAmbiguousIncidents: 0, whatsappClicks: 4 },
   });
 
   assert.equal(healthy[0].level, "healthy");
@@ -21,7 +21,7 @@ test("dashboard alerts escalate ambiguous incidents and otherwise report healthy
 
 test("dashboard alerts do not depend on recent incident samples for ambiguous backlog", () => {
   const alerts = dashboardInternals.buildDashboardAlerts({
-    counts: { leadsToday: 1, failedEmails: 0, failedSheetSyncs: 0, openAmbiguousIncidents: 1, whatsappClicks: 3 },
+    counts: { leadsToday: 1, failedEmails: 0, openAmbiguousIncidents: 1, whatsappClicks: 3 },
   });
 
   assert.equal(alerts[0].level, "critical");
@@ -41,7 +41,7 @@ test("dashboard channel aggregation stays exact across large result sets", () =>
   ]);
 });
 
-test("admin log incident helpers normalize recent notification and sheet rows", () => {
+test("admin log incident helpers normalize recent notification rows", () => {
   const notificationIncident = adminLogsInternals.buildNotificationIncident({
     id: "notif-1",
     attempt_count: 1,
@@ -67,31 +67,7 @@ test("admin log incident helpers normalize recent notification and sheet rows", 
     contacts: null,
   });
 
-  const sheetIncident = adminLogsInternals.buildSheetIncident({
-    id: "sheet-1",
-    attempt_count: 2,
-    created_at: "2026-06-09T09:00:00.000Z",
-    direction: "push",
-    error_message: "Sheets append failed",
-    idempotency_key: "quote:1:sheet:Leads:push",
-    incident_status: "resolved",
-    incident_updated_at: "2026-06-09T10:00:00.000Z",
-    incident_updated_by: null,
-    last_attempt_at: null,
-    last_retried_by: null,
-    lead_id: null,
-    locked_at: null,
-    payload: {},
-    quote_request_id: "quote-1",
-    row_id: null,
-    sheet_name: "Leads",
-    status: "failed",
-    updated_at: "2026-06-09T10:00:00.000Z",
-  });
-
   assert.equal(notificationIncident.source, "email");
   assert.equal(notificationIncident.retryEligible, true);
-  assert.equal(sheetIncident.source, "sheets");
-  assert.equal(sheetIncident.incidentStatus, "resolved");
-  assert.equal(adminLogsInternals.shouldShowIncident(sheetIncident), true);
+  assert.equal(adminLogsInternals.shouldShowIncident(notificationIncident), true);
 });

@@ -4,7 +4,6 @@ import { sendMetaLeadEvent } from "@/lib/analytics/meta-conversions";
 import { parseMetaAttributionSnapshot } from "@/lib/analytics/meta-attribution";
 import { buildAbsoluteTrackedWhatsAppUrl, buildTrackedWhatsAppUrl, buildWhatsAppUrl } from "@/lib/whatsapp/link";
 import { adminQuoteFollowUpWhatsAppMessage, quoteConfirmationMessage, quoteWhatsAppMessage } from "@/lib/content/public-site";
-import { processQuoteSheetSync } from "@/lib/google-sheets/quote-sheet-sync";
 import {
   buildPhoneIdentityVariants,
   buildSafeContactUpdate as buildSafeCoreContactUpdate,
@@ -70,7 +69,7 @@ function quotePayload(
   consentAt: string,
   identityResolution: ContactIdentityResolution,
   runtimeContext: QuoteRequestRuntimeContext,
-  boundaryLogs?: { notifications: BoundaryLogSummary[]; sheetSync: BoundaryLogSummary | null; metaConversions: BoundaryLogSummary | null },
+  boundaryLogs?: { notifications: BoundaryLogSummary[]; metaConversions: BoundaryLogSummary | null },
 ): Json {
   const trustedAttribution = buildTrustedQuoteAttribution(input, runtimeContext);
   const advisoryMarketingContext = buildAdvisoryMarketingContext(input);
@@ -172,13 +171,6 @@ export async function createQuoteRequest(input: QuoteRequestInput, runtimeContex
     notifications = [{ kind: "quote_email_notifications", status: "failed", reason: error instanceof Error ? error.message : "Email notification boundary failed" }];
   }
 
-  let sheetSync: BoundaryLogSummary | null = null;
-  try {
-    sheetSync = await processQuoteSheetSync({ supabase, leadId: lead.id, quoteRequestId: quoteRequest.id, input, normalizedEmail, normalizedWhatsapp });
-  } catch (error) {
-    sheetSync = { kind: "quote_request_sheet_sync", status: "failed", reason: error instanceof Error ? error.message : "Google Sheets boundary failed" };
-  }
-
   let metaConversions: BoundaryLogSummary | null = null;
   try {
     metaConversions = await sendMetaLeadEvent(input, {
@@ -195,7 +187,7 @@ export async function createQuoteRequest(input: QuoteRequestInput, runtimeContex
 
   await supabase
     .from("quote_requests")
-    .update({ payload: quotePayload(input, normalizedEmail, normalizedWhatsapp, consentAt, identityResolution, runtimeContext, { notifications, sheetSync, metaConversions }) })
+    .update({ payload: quotePayload(input, normalizedEmail, normalizedWhatsapp, consentAt, identityResolution, runtimeContext, { notifications, metaConversions }) })
     .eq("id", quoteRequest.id);
 
   return {

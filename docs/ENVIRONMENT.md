@@ -80,23 +80,18 @@ Ningún fallo de email debe bloquear la persistencia del lead/cotización; la re
 
 ### Local E2E safety switch
 
-- `E2E_DISABLE_EXTERNAL_BOUNDARIES`: cuando vale `1`, `true`, `yes` u `on`, la app omite envíos reales de Resend, Google Sheets y Meta Conversions API, pero mantiene el flujo normal de UI, validación, persistencia en Supabase, tracking redirect de WhatsApp y visibilidad en `/admin`.
+- `E2E_DISABLE_EXTERNAL_BOUNDARIES`: cuando vale `1`, `true`, `yes` u `on`, la app omite envíos reales de Resend y Meta Conversions API, pero mantiene el flujo normal de UI, validación, persistencia en Supabase, tracking redirect de WhatsApp y visibilidad en `/admin`.
 - `npm run test:e2e` activa este switch automáticamente dentro del `webServer` de Playwright para que una máquina local con secretos reales no dispare tráfico externo por accidente.
 
-### Google Sheets
+### Google Sheets retirement
 
-- `GOOGLE_SHEETS_CLIENT_EMAIL`: email del service account.
-- `GOOGLE_SHEETS_PRIVATE_KEY`: private key del service account. Mantener saltos de línea escapados (`\\n`) según el provider de hosting; la app los normaliza solo en servidor.
-- `GOOGLE_SHEETS_SPREADSHEET_ID`: ID de la hoja destino.
-- `GOOGLE_SHEETS_LEADS_TAB`: nombre de la pestaña de leads.
-
-Bloque 9 escribe filas reales desde el flujo server-side de cotización cuando las cuatro variables anteriores existen y el spreadsheet está compartido con el service account. Si falta configuración o Google Sheets falla, la cotización se guarda de todos modos y `sheet_sync_logs` queda en `skipped` o `failed` sin exponer secretos ni errores del proveedor al visitante.
-
-> Estado actual de lanzamiento: con Google Sheets API habilitada, una cotización real confirmó escritura live en la hoja destino y `sheet_sync_logs.status = success`.
+- Google Sheets ya no forma parte del runtime productivo ni del modelo operativo diario.
+- No configurar `GOOGLE_SHEETS_*` en nuevos entornos; pueden eliminarse del hosting cuando ya no sean necesarias para auditoría externa.
+- `sheet_sync_logs` se conserva solo como historial de integraciones retiradas. No se crean nuevas filas desde el intake actual y ya no existe retry operativo desde `/admin`.
 
 ## Notas de seguridad
 
-- No exponer `SUPABASE_SECRET_KEY`, `SUPABASE_DB_URL`, credenciales bootstrap, claves de email o claves de Google en componentes cliente.
+- No exponer `SUPABASE_SECRET_KEY`, `SUPABASE_DB_URL`, credenciales bootstrap, claves de email o secretos retirados de integraciones legacy en componentes cliente.
 - No exponer `META_CONVERSIONS_API_ACCESS_TOKEN` ni `META_CONVERSIONS_TEST_EVENT_CODE` en componentes cliente.
 - Supabase Auth usa perfiles/roles en `profiles`, `roles` y `profile_roles`; RLS solo permite lectura anónima de catálogo publicado.
 - El alta/baja de usuarios en la app no crea, suspende ni elimina mailboxs de Hostinger; esa operación sigue manual en hPanel.
