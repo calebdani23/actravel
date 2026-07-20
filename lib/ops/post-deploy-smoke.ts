@@ -29,6 +29,7 @@ const sampleInput: QuoteRequestInput = {
   children: 1,
   serviceInterest: "Family package",
   approximateBudget: 3500,
+  metaLeadEventId: undefined,
   sourceChannel: "website_quote",
   contactConsent: true,
   notes: "Need vegan options",
@@ -82,7 +83,7 @@ export async function runPostDeploySmokeCheck(): Promise<PostDeploySmokeResult> 
 
   if (errors.length > 0) throw new Error(errors.join("\n"));
 
-  const expectedSiteUrl = siteUrl.url.toString().replace(/\/$/, "");
+  const expectedSiteUrl = siteUrl.url!.toString().replace(/\/$/, "");
   const expectedTrackedHref = buildAbsoluteTrackedWhatsAppUrl({
     message: "Hello AC Travel",
     phone: "529988453455",
@@ -142,8 +143,8 @@ export async function runPostDeploySmokeCheck(): Promise<PostDeploySmokeResult> 
 
   return {
     checkedUrlCount: seoUrlsToCheck.length + 1,
-    emailAdminAddress: emailAdmin.address,
-    emailFromAddress: emailFrom.address,
+    emailAdminAddress: emailAdmin.address!,
+    emailFromAddress: emailFrom.address!,
     expectedSiteUrl,
   };
 }
