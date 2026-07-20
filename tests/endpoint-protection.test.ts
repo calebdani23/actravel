@@ -112,8 +112,8 @@ test("admin log retry actions are role gated and forms submit a single logId", (
   assert.match(page, /const canRetry = status === "failed" \|\| status === "queued"/);
 });
 
-test("admin middleware refreshes Supabase sessions and keeps role checks out of edge redirects", () => {
-  const source = readFileSync("middleware.ts", "utf8");
+test("admin proxy refreshes Supabase sessions and keeps role checks out of redirects", () => {
+  const source = readFileSync("proxy.ts", "utf8");
   const loginPage = readFileSync("app/admin/login/page.tsx", "utf8");
 
   assert.match(source, /createServerClient\(supabaseUrl, supabasePublishableKey/);

@@ -7,6 +7,7 @@ const eslintConfig = defineConfig([
   ...nextTs,
   globalIgnores([
       ".next/**",
+      ".vercel/output/**",
       "node_modules/**",
       ".opencode/**",
       ".opencode-runtime/**",

@@ -27,7 +27,7 @@ function redirectTo(request: NextRequest, pathname: string, cookiesToSet: Cookie
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   if (!isAdminPath(pathname)) return NextResponse.next();

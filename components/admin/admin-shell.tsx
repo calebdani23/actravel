@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -37,9 +38,11 @@ export function AdminShell({ children, email, profile, roles }: Readonly<{ child
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
           <Link href="/admin/dashboard" className="inline-flex items-center" aria-label="AC Travel Admin">
             <span className="overflow-hidden rounded-2xl bg-white/80 px-3 py-2 shadow-sm shadow-orange-900/10 transition-transform hover:scale-[1.02]">
-              <img
+              <Image
                 src="/brand/ac-travel-logo-original-500x135.png"
                 alt="AC Travel"
+                width={500}
+                height={135}
                 className="h-9 w-auto object-contain sm:h-10"
               />
             </span>

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
@@ -133,7 +134,18 @@ export async function DetailPage({ locale, slug, kind }: Readonly<{ locale: Loca
       <PublicRouteAlternates alternatePaths={alternatePaths} />
       <section className="grid gap-8 rounded-[2rem] border bg-white p-6 shadow-sm lg:grid-cols-[1.1fr_0.9fr] lg:p-10">
         <div>
-          {item.media?.heroImageUrl ?? item.media?.thumbnailImageUrl ? <img alt="" className="mb-5 h-72 w-full rounded-[2rem] object-cover" loading="lazy" src={item.media?.heroImageUrl ?? item.media?.thumbnailImageUrl ?? ""} /> : null}
+          {item.media?.heroImageUrl ?? item.media?.thumbnailImageUrl ? (
+            <div className="relative mb-5 h-72 w-full overflow-hidden rounded-[2rem]">
+              <Image
+                alt=""
+                src={item.media?.heroImageUrl ?? item.media?.thumbnailImageUrl ?? ""}
+                fill
+                unoptimized
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                className="object-cover"
+              />
+            </div>
+          ) : null}
           <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-[var(--ac-blue)]">{item.eyebrow?.[locale] ?? "AC Travel"}</p>
           <h1 className="mt-3 text-4xl font-black text-[var(--ac-ink)] md:text-5xl">{item.title[locale]}</h1>
           <CatalogDescriptionContent className="mt-5 grid gap-4 text-lg leading-8 text-muted-foreground" text={item.description[locale]} />

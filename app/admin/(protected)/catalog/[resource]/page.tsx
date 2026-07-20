@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -112,7 +113,16 @@ function MediaPreview({ heroImageUrl, thumbnailImageUrl }: { heroImageUrl?: stri
   return (
     <div className="space-y-2 rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground">
       <div className="flex gap-3">
-        {preview ? <img alt="" className="h-16 w-24 rounded-md object-cover" loading="lazy" src={preview} /> : null}
+        {preview ? (
+          <Image
+            alt=""
+            src={preview}
+            width={96}
+            height={64}
+            unoptimized
+            className="h-16 w-24 rounded-md object-cover"
+          />
+        ) : null}
         <div className="space-y-1 break-all">
           <p><span className="font-medium text-foreground">Hero:</span> {hero ?? "—"}</p>
           <p><span className="font-medium text-foreground">Thumbnail:</span> {thumbnail ?? "—"}</p>

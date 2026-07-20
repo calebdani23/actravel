@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type React from "react";
 import { ChevronRight } from "lucide-react";
@@ -18,7 +19,16 @@ export function ItemCard({
   const card = (
     <article data-supporting-content={hasSupportingContent ? "available" : undefined} className="relative flex h-full min-h-[30rem] flex-col overflow-hidden rounded-[2rem] border border-[var(--ac-blue)]/12 bg-white text-[var(--ac-ink)] shadow-[0_24px_60px_-36px_rgba(33,24,22,0.28)] transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-[0_32px_72px_-36px_rgba(33,24,22,0.34)] group-focus-visible:-translate-y-1.5 group-focus-visible:shadow-[0_32px_72px_-36px_rgba(33,24,22,0.34)]">
       <div className="relative aspect-[4/5] overflow-hidden bg-[linear-gradient(145deg,var(--ac-blue-soft)_0%,#ffffff_52%,#fff1e8_100%)]">
-        {imageUrl ? <img alt="" className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.04] group-focus-visible:scale-[1.04]" loading="lazy" src={imageUrl} /> : null}
+        {imageUrl ? (
+          <Image
+            alt=""
+            src={imageUrl}
+            fill
+            unoptimized
+            sizes="(min-width: 768px) 33vw, 100vw"
+            className="object-cover transition duration-500 group-hover:scale-[1.04] group-focus-visible:scale-[1.04]"
+          />
+        ) : null}
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,23,42,0.08)_0%,rgba(15,23,42,0.02)_30%,rgba(15,23,42,0.38)_100%)]" />
         <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-5">
           {eyebrow ? <span className="rounded-full border border-[var(--ac-blue)]/12 bg-white/92 px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--ac-blue)] shadow-sm">{eyebrow}</span> : null}
