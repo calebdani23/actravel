@@ -56,14 +56,13 @@ Bloques 1–10 completados en alcance MVP actual. La operación activa queda con
 
 ## En proceso
 
-- P0.3 requiere seguimientos manuales en Supabase Dashboard/advisors antes de marcar seguridad externa como cerrada.
+- P0.3 queda documentado para el alcance MVP actual: se revisó un snapshot fresco de Supabase Security Advisors el 2026-07-20; `auth_leaked_password_protection` sigue diferido como limitación externa del plan actual, y los warnings `SECURITY DEFINER` de `has_role`, `is_admin` e `is_assigned_lead` permanecen aceptados para el modelo RLS vigente.
 
 ## Pendiente
 
 - Completar QA manual de negocio en el entorno de hosting final: mobile real, copy bilingüe, sesión/roles con usuarios reales, flujo de cotización con credenciales productivas y revisión visual final.
-- Ejecutar las migraciones pendientes de auditoría admin (`0027`–`0029`) y regenerar tipos desde un proyecto Supabase enlazado antes del despliegue final, luego verificar advisors sobre el esquema ya aplicado.
-- Activar o confirmar en Supabase Auth la protección de contraseñas filtradas (leaked password protection). No se habilitó desde código porque depende de configuración externa del proyecto; validar después login normal, recuperación de contraseña y bloqueo de credenciales filtradas.
-- Revisar y archivar un snapshot actualizado de Supabase Security Advisors. Estado conocido de P0.3: advertencia de leaked password protection deshabilitada; warnings sobre helpers `SECURITY DEFINER` (`has_role`, `is_admin`, `is_assigned_lead`) se aceptan temporalmente porque los grants a `authenticated` son necesarios para el modelo RLS actual y fueron corregidos tras regresión. Reabrir solo con pruebas sobre datos/roles reales.
+- Mantener como deuda externa diferida la protección de contraseñas filtradas (leaked password protection) mientras el proyecto siga en el plan actual de Supabase; reabrir solo cuando el plan permita activarla y entonces validar login normal, recuperación de contraseña y bloqueo de credenciales filtradas.
+- Repetir revisión/archivo de snapshot de Supabase Security Advisors solo ante cambios de Auth/RLS o antes del lanzamiento final; estado base actual ya revisado: warning de leaked password protection diferido por plan y helpers `SECURITY DEFINER` aceptados para el modelo RLS actual.
 - Tratar como trabajo futuro, fuera de P0.3: MFA/SSO, rediseño completo de políticas RLS/helpers, mapas finos de rol en middleware, expansión de auditoría y limpieza de advisors puramente de performance.
 
 ## Bloqueos
@@ -75,4 +74,4 @@ Bloques 1–10 completados en alcance MVP actual. La operación activa queda con
 
 ## Última actualización
 
-2026-06-09 — Añadida la capa admin de auditoría/planificación para P2.3 (duplicados, eventos ambiguos, impacto por dependencias y estrategia de constraints diferida); siguen pendientes follow-ups manuales de Supabase Auth/advisors, la mejora estructural de `lang` SSR y una futura etapa transaccional/manual de merges si el backlog se mantiene controlado.
+2026-07-20 — Documentado el review fresco de Supabase Security Advisors para P0.3: leaked password protection queda deferido por limitación del plan actual y los helpers `SECURITY DEFINER` (`has_role`, `is_admin`, `is_assigned_lead`) permanecen aceptados para el modelo RLS vigente; la siguiente deuda real tras este cierre documental vuelve a ser el QA manual final del entorno de hosting y, después, la etapa transaccional/manual de merges de P2.3 si el backlog de duplicados lo exige.

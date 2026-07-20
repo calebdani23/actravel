@@ -145,7 +145,7 @@ Revisar:
   - `catalog-media`
   - `documents`
   - `payment-proofs`
-- advisors conocidos
+- advisors conocidos: snapshot de seguridad revisado el 2026-07-20; `auth_leaked_password_protection` sigue abierto como limitación externa diferida porque el plan actual no permite habilitarlo, y los warnings `SECURITY DEFINER` de `has_role`, `is_admin` e `is_assigned_lead` se aceptan por ahora porque sostienen el modelo RLS vigente
 
 ### Resend
 
@@ -201,8 +201,7 @@ Nunca exponer ni compartir fuera del entorno seguro:
 
 ## Deudas técnicas no bloqueantes conocidas
 
-- `middleware` → `proxy` pendiente en Next.js
-- leaked password protection pendiente si el plan de Supabase no lo permite
+- leaked password protection diferido mientras el proyecto permanezca en el plan actual de Supabase
 - E2E automáticos aún no cubren todo el flujo productivo
 - optimizaciones de performance/DB pueden hacerse después del lanzamiento
 
