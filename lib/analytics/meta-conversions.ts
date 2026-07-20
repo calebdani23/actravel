@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
+import { areExternalBoundariesDisabled, externalBoundarySkipReason } from "@/lib/runtime/external-boundaries";
 import { parseMetaAttributionSnapshot } from "@/lib/analytics/meta-attribution";
 import { normalizeEmail, normalizeWhatsApp, type QuoteRequestInput } from "@/lib/validations/quote-request";
 
@@ -74,6 +75,10 @@ export function buildMetaLeadEventPayload(input: QuoteRequestInput, context: Met
 }
 
 export async function sendMetaLeadEvent(input: QuoteRequestInput, context: MetaConversionsContext): Promise<MetaConversionsSummary> {
+  if (areExternalBoundariesDisabled()) {
+    return { kind: "meta_conversions_api", status: "skipped", reason: externalBoundarySkipReason("meta_conversions") };
+  }
+
   if (!isMetaConversionsEnabled()) {
     return { kind: "meta_conversions_api", status: "skipped", reason: "Meta Pixel ID or Conversions API token is missing" };
   }

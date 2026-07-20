@@ -2,6 +2,7 @@ import "server-only";
 
 import { createGoogleSheetsClient, getGoogleSheetsConfig, quoteSheetName, type GoogleSheetsConfig } from "@/lib/google-sheets/client";
 import { buildLeadSheetRow } from "@/lib/google-sheets/lead-row";
+import { areExternalBoundariesDisabled, externalBoundarySkipReason } from "@/lib/runtime/external-boundaries";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/database.types";
 import type { QuoteRequestInput } from "@/lib/validations/quote-request";
@@ -105,6 +106,12 @@ export async function deliverQuoteSheetSync(values: ProcessQuoteSheetSyncInput, 
   let logId: string | null = null;
 
   try {
+    if (areExternalBoundariesDisabled()) {
+      const reason = externalBoundarySkipReason("google_sheets");
+      await insertLog(values.supabase, { leadId: values.leadId, quoteRequestId: values.quoteRequestId, sheetName, status: "skipped", reason, payload: basePayload(values, { disabledForE2E: true }) });
+      return { kind: "quote_request_sheet_sync", status: "skipped", reason };
+    }
+
     if ("missing" in config) {
       const reason = `Google Sheets sync skipped: missing ${missing.join(", ")}.`;
       await insertLog(values.supabase, { leadId: values.leadId, quoteRequestId: values.quoteRequestId, sheetName, status: "skipped", reason, payload: basePayload(values, { missing }) });

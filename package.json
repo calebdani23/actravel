@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:install": "playwright install --with-deps chromium",
     "test:lead-template-actions": "node --import tsx --test tests/lead-template-actions.test.tsx",
     "test:staff-validation": "node --import tsx --test tests/staff-validation.test.ts",
     "test:staff-admin": "node --conditions react-server --import tsx --test tests/staff-validation.test.ts tests/staff-admin.test.ts",
@@ -38,6 +41,7 @@
     "zod": "latest"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "latest",
     "@types/node": "latest",
     "@types/react": "latest",

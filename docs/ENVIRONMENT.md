@@ -40,6 +40,7 @@
 - `SUPABASE_DB_URL`: cadena Postgres para ejecutar `npm run db:seed` desde un entorno seguro.
 - `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`, `BOOTSTRAP_ADMIN_NAME`: credenciales locales/hosting para crear el primer administrador con `npm run db:bootstrap-admin`.
 - `BOOTSTRAP_ASESOR_EMAIL`, `BOOTSTRAP_ASESOR_PASSWORD`, `BOOTSTRAP_ASESOR_NAME`: credenciales locales/hosting para crear el asesor principal.
+- `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`: credenciales opcionales dedicadas para Playwright. Si faltan, los E2E reutilizan `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD`.
 
 Para crear el primer usuario administrador, configura `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD` en un entorno local/hosting seguro y ejecuta `npm run db:bootstrap-admin`. El asesor principal se crea si también existen `BOOTSTRAP_ASESOR_EMAIL` y `BOOTSTRAP_ASESOR_PASSWORD`. El script carga `.env.local` y luego `.env` automáticamente si las variables no vienen ya del entorno. No inventar ni commitear estas credenciales.
 
@@ -76,6 +77,11 @@ Los correos de cotización usan dos variantes dentro de un shell compartido de A
 - confirmación al cliente, optimizada para confianza, siguientes pasos y CTA de WhatsApp.
 
 Ningún fallo de email debe bloquear la persistencia del lead/cotización; la revisión operativa se hace desde `notification_logs` y el inbox configurado en `EMAIL_ADMIN`.
+
+### Local E2E safety switch
+
+- `E2E_DISABLE_EXTERNAL_BOUNDARIES`: cuando vale `1`, `true`, `yes` u `on`, la app omite envíos reales de Resend, Google Sheets y Meta Conversions API, pero mantiene el flujo normal de UI, validación, persistencia en Supabase, tracking redirect de WhatsApp y visibilidad en `/admin`.
+- `npm run test:e2e` activa este switch automáticamente dentro del `webServer` de Playwright para que una máquina local con secretos reales no dispare tráfico externo por accidente.
 
 ### Google Sheets
 

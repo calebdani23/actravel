@@ -30,6 +30,9 @@ venv/
 tmp/
 data/
 coverage/
+playwright-report/
+test-results/
+playwright/.auth/
 
 # Editors / OS
 .DS_Store

@@ -3,6 +3,7 @@ import "server-only";
 import { sendEmail } from "@/lib/email/provider";
 import { renderQuoteEmail } from "@/lib/email/templates/quote-request";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { areExternalBoundariesDisabled, externalBoundarySkipReason } from "@/lib/runtime/external-boundaries";
 import type { Json } from "@/lib/supabase/database.types";
 import type { QuoteRequestInput } from "@/lib/validations/quote-request";
 import { buildQuoteNotificationPlans, deliverQuoteNotification, type InsertLogResult, type NotificationSummary } from "@/lib/leads/quote-notification-core";
@@ -68,7 +69,26 @@ async function updateLog(supabase: SupabaseAdminClient, id: string, values: { st
 
 export async function processQuoteNotifications(values: ProcessQuoteNotificationsInput): Promise<NotificationSummary[]> {
   const summaries: NotificationSummary[] = [];
-  for (const plan of buildQuoteNotificationPlans(values.input, values.normalizedEmail)) {
+  const plans = buildQuoteNotificationPlans(values.input, values.normalizedEmail);
+
+  if (areExternalBoundariesDisabled()) {
+    const reason = externalBoundarySkipReason("email");
+    for (const plan of plans) {
+      await insertLog(values.supabase, {
+        leadId: values.leadId,
+        contactId: values.contactId,
+        recipient: plan.recipient,
+        templateName: plan.templateName,
+        status: "skipped",
+        reason,
+        payload: { quoteRequestId: values.quoteRequestId, leadId: values.leadId, locale: values.input.locale, destination: values.input.mainDestination, disabledForE2E: true } satisfies Json,
+      });
+      summaries.push({ kind: plan.templateName, status: "skipped", reason, recipient: plan.recipient });
+    }
+    return summaries;
+  }
+
+  for (const plan of plans) {
     const summary = await deliverQuoteNotification({
       plan,
       context: { quoteRequestId: values.quoteRequestId, leadId: values.leadId, contactId: values.contactId, locale: values.input.locale, destination: values.input.mainDestination },
