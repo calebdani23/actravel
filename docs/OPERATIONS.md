@@ -80,6 +80,26 @@ Enviar una cotización real de prueba y confirmar:
 - llega el email cliente
 - CTA de WhatsApp funciona
 
+### 1.1 Post-deploy consistency smoke
+
+Después de cada deploy productivo, correr también un smoke automatizado de consistencia de configuración:
+
+```bash
+NEXT_PUBLIC_SITE_URL=https://www.actravel.com \
+EMAIL_FROM="AC Travel <quotes@your-verified-domain.com>" \
+EMAIL_ADMIN=ventas@your-business-domain.com \
+npm run test:post-deploy-smoke
+```
+
+Este smoke no hace requests externas ni envía correos reales. Solo evalúa helpers/rutas locales y falla si detecta inconsistencias entre:
+
+- `NEXT_PUBLIC_SITE_URL` y los absolute URLs locales de SEO (`robots`, home, quote y `sitemap.xml`)
+- assets/links absolutos usados dentro de correos
+- CTA absoluto trackeado de WhatsApp usado en emails
+- formato básico de `EMAIL_FROM` y `EMAIL_ADMIN`
+
+Si falla, corregir env/configuración y redeployar antes de dar por bueno el release.
+
 ### 2. Calidad de datos
 
 Abrir `/admin/data-quality` y revisar:
@@ -112,6 +132,7 @@ Revisar:
 
 - último deploy productivo
 - funciones con errores
+- `npm run test:post-deploy-smoke` con las vars reales del entorno
 - rutas API críticas:
   - `/api/quote-request`
   - `/api/whatsapp-click`

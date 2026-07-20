@@ -11,6 +11,7 @@
 ### Sitio
 
 - `NEXT_PUBLIC_SITE_URL`: URL pública del sitio. En local puede ser `http://localhost:3000`. También se usa para convertir CTAs trackeados de WhatsApp a URLs absolutas dentro de correos, porque los clientes de email no resuelven de forma confiable rutas relativas.
+- Para el smoke post-deploy, `NEXT_PUBLIC_SITE_URL` debe ser un origin limpio (`https://www.actravel.com`) sin path, query ni hash; de ahí dependen `robots`, las URLs locales de home/quote/`sitemap.xml`, canonical URLs, assets absolutos de email y CTAs absolutos trackeados de WhatsApp.
 - `NEXT_PUBLIC_META_PIXEL_ID`: pixel público de Meta/Facebook para el sitio. Si existe, el layout público localizado carga el base pixel fuera de `/admin`, dispara `PageView` en carga inicial y cambios de ruta App Router, `ViewContent` en detalles públicos, `InitiateCheckout` al abrir cotización, `Lead` al enviar exitosamente la cotización y `Contact` al hacer click en el CTA centralizado de WhatsApp. El browser también conserva first-touch marketing context (`utm_*`, `fbclid`, `landingPath`, `referrer`, `_fbc`, `_fbp`) para enviarlo como contexto cliente/advisory y persistirlo en Supabase sin tratarlo como verdad canónica del sistema. Valor/documentación de referencia para este MVP: `1929420407723543`.
 - `META_CONVERSIONS_API_ACCESS_TOKEN`: token server-only opcional para enviar el evento crítico `Lead` por Meta Conversions API después de guardar exitosamente la cotización. Si falta este token o el pixel público, la app omite CAPI sin romper la persistencia principal.
 - `META_CONVERSIONS_TEST_EVENT_CODE`: código opcional de Meta para validar eventos controlados en staging/producción sin cambiar la lógica de negocio.
@@ -68,6 +69,7 @@ El modelo vigente mantiene WhatsApp como canal manual: el sitio mide clicks y co
 - `RESEND_API_KEY`: API key server-only de Resend para notificaciones reales del MVP.
 - `EMAIL_FROM`: remitente verificado en Resend. Debe usar un dominio/remitente validado en Resend antes de habilitar envíos reales.
 - `EMAIL_ADMIN`: inbox interno que recibe la notificación administrativa de cada cotización. Este valor es la única frontera de configuración para el destinatario interno; cambiarlo implica actualizar el entorno de hosting y aplicar el redeploy/restart que corresponda.
+- El smoke `npm run test:post-deploy-smoke` valida que `EMAIL_FROM` y `EMAIL_ADMIN` existan y contengan direcciones de email válidas antes de aprobar un deploy.
 
 Bloque 8 usa Resend exclusivamente para emails de cotización. Si falta `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_ADMIN` o el email del cliente, la solicitud de cotización se guarda de todos modos y `notification_logs` registra `skipped`, `failed` o `ambiguous` sin exponer respuestas del proveedor al cliente.
 
