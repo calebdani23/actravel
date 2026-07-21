@@ -64,7 +64,7 @@ export function AdminLoginForm() {
             aria-invalid={hasMessage || undefined}
             aria-describedby="admin-login-status"
             className={cn(
-              "h-12 w-full rounded-2xl border bg-white pl-11 pr-4 text-sm text-[#211816] shadow-[0_1px_2px_rgba(33,24,22,0.04)] outline-none transition focus:border-[#1b8bad] focus:ring-4 focus:ring-[#1b8bad]/20 disabled:cursor-not-allowed disabled:bg-[#f6f2ef] disabled:text-[#9b8f89]",
+              "h-12 w-full rounded-2xl border bg-white pl-11 pr-4 text-sm text-[#211816] shadow-[0_1px_2px_rgba(33,24,22,0.04)] outline-none transition focus:border-[#1b8bad] focus:ring-4 focus:ring-[#1b8bad]/20 disabled:cursor-not-allowed disabled:bg-[#f6f2ef] disabled:text-[#9b8f89] autofill:bg-transparent",
               hasMessage ? "border-[#eb0816]/40" : "border-[#eadfd9] hover:border-[#1b8bad]/40",
             )}
           />
@@ -87,7 +87,7 @@ export function AdminLoginForm() {
             aria-invalid={hasMessage || undefined}
             aria-describedby="admin-login-status"
             className={cn(
-              "h-12 w-full rounded-2xl border bg-white pl-11 pr-12 text-sm text-[#211816] shadow-[0_1px_2px_rgba(33,24,22,0.04)] outline-none transition focus:border-[#1b8bad] focus:ring-4 focus:ring-[#1b8bad]/20 disabled:cursor-not-allowed disabled:bg-[#f6f2ef] disabled:text-[#9b8f89]",
+              "h-12 w-full rounded-2xl border bg-white pl-11 pr-14 text-sm text-[#211816] shadow-[0_1px_2px_rgba(33,24,22,0.04)] outline-none transition focus:border-[#1b8bad] focus:ring-4 focus:ring-[#1b8bad]/20 disabled:cursor-not-allowed disabled:bg-[#f6f2ef] disabled:text-[#9b8f89] autofill:bg-transparent",
               hasMessage ? "border-[#eb0816]/40" : "border-[#eadfd9] hover:border-[#1b8bad]/40",
             )}
           />
@@ -95,7 +95,7 @@ export function AdminLoginForm() {
             type="button"
             onClick={() => setShowPassword((current) => !current)}
             disabled={!configured || isSubmitting}
-            className="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[#6d5f5a] outline-none transition hover:bg-[#f8eef7] hover:text-[#211816] focus-visible:ring-2 focus-visible:ring-[#1b8bad] disabled:cursor-not-allowed disabled:opacity-50"
+            className="absolute right-1.5 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-[#6d5f5a] outline-none transition hover:bg-[#f8eef7] hover:text-[#211816] focus-visible:ring-2 focus-visible:ring-[#1b8bad] disabled:cursor-not-allowed disabled:opacity-50"
             aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
             aria-pressed={showPassword}
           >
@@ -104,23 +104,17 @@ export function AdminLoginForm() {
         </div>
       </div>
 
-      <div
-        id="admin-login-status"
-        aria-live="polite"
-        className="min-h-[3.5rem] rounded-2xl border border-transparent"
-      >
+      <div id="admin-login-status" aria-live="polite" className="min-h-5">
         {message ? (
           <div className="flex h-full items-start gap-3 rounded-2xl border border-[#eb0816]/15 bg-[#fff3f3] px-4 py-3 text-sm text-[#8b2730]">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <p>{message}</p>
           </div>
-        ) : (
-          <div className="h-full px-1 py-3 text-sm text-transparent">.</div>
-        )}
+        ) : null}
       </div>
 
       <Button
-        className="h-12 w-full rounded-2xl bg-[linear-gradient(135deg,#ee592a_0%,#eb0816_100%)] text-sm font-semibold text-white shadow-[0_14px_30px_rgba(235,8,22,0.22)] hover:opacity-100 hover:shadow-[0_18px_38px_rgba(235,8,22,0.28)] focus-visible:ring-[#1b8bad] disabled:shadow-none"
+        className="h-12 w-full rounded-2xl bg-[linear-gradient(135deg,#c94722_0%,#a80d16_100%)] text-sm font-semibold text-white shadow-[0_14px_30px_rgba(168,13,22,0.24)] hover:opacity-100 hover:shadow-[0_18px_38px_rgba(168,13,22,0.3)] focus-visible:ring-[#1b8bad] disabled:shadow-none"
         type="submit"
         disabled={!configured || isSubmitting}
       >

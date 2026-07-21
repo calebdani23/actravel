@@ -79,3 +79,11 @@ a {
   transition-duration: 180ms;
   transition-timing-function: ease-out;
 }
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--ac-ink);
+  box-shadow: 0 0 0 1000px #fffaf6 inset;
+  transition: background-color 9999s ease-out 0s;
+}

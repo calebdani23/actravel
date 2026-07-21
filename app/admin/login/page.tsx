@@ -19,23 +19,22 @@ export default async function AdminLoginPage() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#fffdfb_0%,#fff7f3_100%)]">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-        <div className="grid w-full overflow-hidden rounded-[2rem] border border-white/70 bg-white/70 shadow-[0_30px_80px_rgba(33,24,22,0.12)] backdrop-blur-sm lg:grid-cols-[1.15fr_0.95fr]">
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl items-center px-3 py-4 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+        <div className="grid w-full overflow-hidden rounded-[1.9rem] border border-white/75 bg-white/72 shadow-[0_24px_70px_rgba(33,24,22,0.11)] backdrop-blur-sm lg:grid-cols-[1.15fr_0.95fr]">
           <section className="relative isolate overflow-hidden bg-[#ee592a] text-white">
-            <div className="relative flex min-h-[15rem] flex-col justify-between px-5 py-6 sm:min-h-[18rem] sm:px-7 sm:py-8 lg:min-h-[42rem] lg:px-10 lg:py-10">
+            <div className="relative flex min-h-[14.5rem] flex-col justify-between px-5 py-5 sm:min-h-[17rem] sm:px-7 sm:py-7 lg:min-h-[42rem] lg:px-10 lg:py-10">
               <div className="absolute inset-0">
                 <Image
-                  src="/brand/ac-travel-hero-banner-es.png"
+                  src="/brand/ac-travel-admin-login-visual.svg"
                   alt=""
                   fill
                   priority
                   sizes="(min-width: 1024px) 58vw, 100vw"
-                  className="object-cover object-center"
+                  className="object-cover object-[center_28%] sm:object-[center_24%] lg:object-center"
                 />
-                <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(238,89,42,0.76)_0%,rgba(235,8,22,0.54)_34%,rgba(27,139,173,0.22)_68%,rgba(33,24,22,0.82)_100%)]" />
-                <div className="absolute left-0 top-0 h-44 w-44 rounded-full bg-[#ee592a]/30 blur-3xl motion-reduce:transform-none" />
-                <div className="absolute bottom-0 right-0 h-52 w-52 rounded-full bg-[#eb0816]/28 blur-3xl motion-reduce:transform-none" />
-                <div className="absolute inset-y-0 left-0 w-32 bg-[linear-gradient(90deg,rgba(238,89,42,0.24),transparent)]" />
+                <div className="absolute inset-0 bg-[linear-gradient(130deg,rgba(204,63,26,0.2)_0%,rgba(204,63,26,0.08)_26%,rgba(211,44,31,0.16)_56%,rgba(32,19,17,0.58)_100%)]" />
+                <div className="absolute inset-y-0 left-0 w-40 bg-[linear-gradient(90deg,rgba(150,47,20,0.42),rgba(150,47,20,0.18),transparent)]" />
+                <div className="absolute inset-x-0 bottom-0 h-32 bg-[linear-gradient(180deg,transparent,rgba(33,24,22,0.22))] lg:h-40" />
               </div>
 
               <div className="relative z-10 flex items-start justify-between gap-4">
@@ -51,23 +50,23 @@ export default async function AdminLoginPage() {
                 </div>
               </div>
 
-              <div className="relative z-10 mt-10 max-w-xl lg:mt-auto">
+              <div className="relative z-10 mt-8 max-w-[20rem] sm:max-w-[24rem] lg:mt-auto lg:max-w-xl">
                 <p className="text-sm font-semibold tracking-[0.22em] text-white/80 uppercase">AC Travel Mx</p>
-                <h1 className="mt-3 max-w-md text-3xl font-semibold leading-tight text-balance sm:text-4xl lg:text-[2.75rem]">
+                <h1 className="mt-3 max-w-md text-[1.8rem] font-semibold leading-tight text-balance sm:text-4xl lg:text-[2.75rem]">
                   Panel administrativo
                 </h1>
                 <p className="mt-4 max-w-lg text-sm leading-6 text-white/88 sm:text-base">
                   Gestiona el catálogo, las promociones y las solicitudes de viaje desde un solo lugar.
                 </p>
-                <p className="mt-6 text-sm font-medium text-[#f8eef7] sm:text-base">
+                <p className="mt-5 text-sm font-medium text-[#f8eef7] sm:mt-6 sm:text-base">
                   Suma viajes, suma experiencias, suma sueños.
                 </p>
               </div>
             </div>
           </section>
 
-          <section className="flex items-center bg-[radial-gradient(circle_at_top,#f8eef7_0%,#fffefe_45%,#ffffff_100%)] px-4 py-5 sm:px-6 sm:py-7 lg:px-10 lg:py-10">
-            <Card className="w-full border-white/80 bg-white/92 shadow-none">
+          <section className="flex items-center bg-[radial-gradient(circle_at_top,#faf1f8_0%,#fffefd_44%,#ffffff_100%)] px-4 py-5 sm:px-6 sm:py-7 lg:px-9 lg:py-9">
+            <Card className="w-full rounded-[1.7rem] border border-[#f3e7e0] bg-white/95 shadow-[0_14px_38px_rgba(33,24,22,0.06)]">
               <CardContent className="p-5 sm:p-7 lg:p-8">
                 <div className="mb-6 space-y-4 sm:mb-7">
                   <Image
