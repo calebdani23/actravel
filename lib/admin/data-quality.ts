@@ -55,6 +55,19 @@ export type DuplicateAuditReport = {
   };
 };
 
+export type DataQualityIssue = {
+  id: string;
+  type: "duplicate_email" | "duplicate_phone" | "ambiguous_identity";
+  severity: "high" | "medium";
+  status: "pending" | "review";
+  module: "contacts" | "leads";
+  detectedAt: string;
+  title: string;
+  summary: string;
+  context: string[];
+  href: string;
+};
+
 const PAGE_SIZE = 1000;
 const referenceTableLabels: Record<ReferenceTableKey, string> = {
   leads: "leads",
@@ -314,11 +327,92 @@ export async function getDuplicateAuditSnapshot() {
   };
 }
 
+function dataQualityIssueTypeLabel(type: DataQualityIssue["type"]) {
+  return {
+    duplicate_email: "Email duplicado",
+    duplicate_phone: "Teléfono duplicado",
+    ambiguous_identity: "Identidad ambigua",
+  }[type];
+}
+
+function dataQualitySeverityLabel(severity: DataQualityIssue["severity"]) {
+  return severity === "high" ? "Alta" : "Media";
+}
+
+function dataQualityStatusLabel(status: DataQualityIssue["status"]) {
+  return status === "pending" ? "Pendiente" : "Revisión manual";
+}
+
+function dataQualityModuleLabel(module: DataQualityIssue["module"]) {
+  return module === "contacts" ? "Contactos" : "Prospectos";
+}
+
+function duplicateIssueDetectedAt(group: DuplicateGroupPlan) {
+  return group.contacts.reduce((latest, contact) => latest > contact.updatedAt ? latest : contact.updatedAt, group.contacts[0]?.updatedAt ?? new Date().toISOString());
+}
+
+function ambiguousIdentityReasonLabel(reason: string | null) {
+  if (!reason) return null;
+
+  const labels: Record<string, string> = {
+    no_match: "Sin coincidencia automática",
+    phone: "Coincidencia por teléfono",
+    email: "Coincidencia por correo",
+    phone_and_email: "Coincidencia por correo y teléfono",
+    duplicate_phone: "Múltiples contactos con el mismo teléfono",
+    duplicate_email: "Múltiples contactos con el mismo correo",
+    split_phone_email: "Teléfono y correo apuntan a contactos distintos",
+    multiple_candidates: "Hay varios candidatos posibles",
+  };
+
+  return labels[reason] ?? "La causa exacta requiere revisión manual";
+}
+
+export function buildDataQualityIssues(report: DuplicateAuditReport): DataQualityIssue[] {
+  const duplicateIssues = [...report.duplicateEmailGroups, ...report.duplicatePhoneGroups].map((group) => ({
+    id: `${group.kind}:${group.normalizedValue}`,
+    type: group.kind === "email" ? "duplicate_email" : "duplicate_phone",
+    severity: group.impactSummary.total >= 5 ? "high" : "medium",
+    status: "pending",
+    module: "contacts",
+    detectedAt: duplicateIssueDetectedAt(group),
+    title: `${group.kind === "email" ? "Email" : "Teléfono"} compartido por ${group.contacts.length} contacto(s)`,
+    summary: `Valor normalizado ${group.normalizedValue} con ${group.impactSummary.total} referencia(s) operativas relacionadas.`,
+    context: [
+      `${group.contacts.length} contacto(s) implicado(s)`,
+      `${group.impactSummary.total} referencia(s) asociada(s)`,
+      `Canónico sugerido según dependencia operativa`,
+    ],
+    href: "/admin/leads",
+  } satisfies DataQualityIssue));
+
+  const ambiguousIssues = report.ambiguousIdentityCases.map((item) => ({
+    id: item.id,
+    type: "ambiguous_identity",
+    severity: "high",
+    status: "review",
+    module: "leads",
+    detectedAt: item.createdAt,
+    title: item.reason ? `Coincidencia ambigua: ${ambiguousIdentityReasonLabel(item.reason)}` : "Coincidencia ambigua sin detalle adicional",
+    summary: `El sistema registró una resolución ambigua con ${item.matchedContactIds.length} contacto(s) relacionado(s).`,
+    context: [`${item.matchedContactIds.length} contacto(s) relacionado(s)`],
+    href: "/admin/leads",
+  } satisfies DataQualityIssue));
+
+  return [...duplicateIssues, ...ambiguousIssues].sort((a, b) => new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime());
+}
+
 export const dataQualityInternals = {
+  buildDataQualityIssues,
   buildDependencyIndex,
   buildDuplicateGroupPlans,
   buildAmbiguousIdentityCases,
   compareCanonicalPriority,
+  dataQualityIssueTypeLabel,
+  dataQualitySeverityLabel,
+  dataQualityStatusLabel,
+  dataQualityModuleLabel,
+  ambiguousIdentityReasonLabel,
   emptyDependencyCounts,
   totalDependencies,
 };

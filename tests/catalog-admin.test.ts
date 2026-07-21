@@ -4,8 +4,9 @@ import test from "node:test";
 
 import { parseDetailSectionsEditorValue, stringifyDetailSectionsEditorValue } from "@/lib/catalog-detail-sections";
 import { parsePromotionCommercialSectionsEditorValue, parsePromotionCommercialSectionsEditorValueOrThrow, stringifyPromotionCommercialSectionsEditorValue } from "@/lib/promotion-commercial-sections";
-import { resolveCatalogWriteState, resolvePromotionServiceIds } from "@/lib/admin/catalog";
-import { assertCatalogMutation, CatalogAdminActionError, buildCatalogAdminRedirectTarget, catalogActionSuccessMessage, sanitizeCatalogMutationPayload } from "@/lib/admin/catalog-actions";
+import { resolveCatalogStatusForDisplay, resolveCatalogWriteState, resolvePromotionServiceIds } from "@/lib/admin/catalog";
+import { assertCatalogMutation, CatalogAdminActionError, buildCatalogAdminRedirectTarget, catalogActionErrorMessage, catalogActionSuccessMessage, CATALOG_ADMIN_FEEDBACK_FOCUS, sanitizeCatalogMutationPayload } from "@/lib/admin/catalog-actions";
+import { normalizeLocalizedTabContent } from "@/lib/admin/localized-tab-content";
 import { buildCatalogMediaStoragePath, normalizeCatalogMediaValue, parseCatalogMediaStorageRef, validateCatalogMediaUploadFile } from "@/lib/catalog-media";
 
 test("catalog status workflow preserves published items on save and keeps explicit transitions", () => {
@@ -17,6 +18,9 @@ test("catalog status workflow preserves published items on save and keeps explic
   assert.deepEqual(resolveCatalogWriteState(current, "archive", now), { status: "archived", published_at: current.published_at });
   assert.deepEqual(resolveCatalogWriteState(current, "publish", now), { status: "published", published_at: now.toISOString() });
   assert.deepEqual(resolveCatalogWriteState(null, "save", now), { status: "draft", published_at: null });
+  assert.deepEqual(resolveCatalogWriteState({ status: null, published_at: current.published_at }, "save", now), { published_at: current.published_at });
+  assert.deepEqual(resolveCatalogWriteState({ status: "legacy-review", published_at: current.published_at }, "save", now), { status: "legacy-review", published_at: current.published_at });
+  assert.deepEqual(resolveCatalogWriteState({ status: null, published_at: current.published_at }, "save", now, "draft"), { status: "draft", published_at: current.published_at });
 });
 
 test("catalog media validation accepts absolute urls and normalized catalog-media refs", () => {
@@ -53,8 +57,41 @@ test("catalog admin mutation guards confirm existing-item save/publish writes", 
   assert.equal(catalogActionSuccessMessage("destinations", "publish", true), "Destinos: publicación actualizada correctamente.");
   assert.equal(
     buildCatalogAdminRedirectTarget("destinations", { status: "success", message: "ok", focusId: "dest-1" }),
-    "/admin/catalog/destinations?status=success&message=ok&focus=dest-1",
+    `/admin/catalog/destinations?status=success&message=ok&focus=${CATALOG_ADMIN_FEEDBACK_FOCUS}`,
   );
+});
+
+test("catalog action fallback errors stay operator-safe and avoid provider leaks", () => {
+  const message = catalogActionErrorMessage(new Error("Supabase storage path token=secret database failure"), {
+    resource: "services",
+    action: "save",
+  });
+
+  assert.equal(message, "No se pudo guardar el servicio. Revisa los datos capturados e inténtalo de nuevo.");
+  assert.doesNotMatch(message, /supabase|storage|path|token|database|failure/i);
+});
+
+test("catalog admin action errors are sanitized even when they carry raw backend details", () => {
+  const message = catalogActionErrorMessage(
+    new CatalogAdminActionError("No se pudo guardar el servicio. duplicate key value violates unique constraint public.services_slug_es_key at storage/path"),
+    {
+      resource: "services",
+      action: "save",
+    },
+  );
+
+  assert.equal(message, "No se pudo guardar el servicio. Revisa los datos capturados e inténtalo de nuevo.");
+  assert.doesNotMatch(message, /duplicate|constraint|public\.services_slug_es_key|storage\/path/i);
+});
+
+test("catalog display fallback only defaults new records to draft", () => {
+  assert.equal(resolveCatalogStatusForDisplay(undefined), "draft");
+  assert.equal(resolveCatalogStatusForDisplay({ status: null }), null);
+  assert.equal(resolveCatalogStatusForDisplay({ status: "unknown_status" }), "unknown_status");
+
+  const page = readFileSync("app/admin/(protected)/catalog/[resource]/page.tsx", "utf8");
+  assert.match(page, /resolveCatalogStatusForDisplay\(row\)/);
+  assert.doesNotMatch(page, /const status = row\?\.status \?\? "draft"/);
 });
 
 test("catalog admin mutation guards detect zero-row controlled failures", () => {
@@ -178,14 +215,26 @@ test("catalog admin UI exposes real media upload and explicit state actions", ()
   const page = readFileSync("app/admin/(protected)/catalog/[resource]/page.tsx", "utf8");
   const actions = readFileSync("app/admin/(protected)/catalog/actions.ts", "utf8");
   const catalog = readFileSync("lib/admin/catalog.ts", "utf8");
+  const submitBar = readFileSync("components/admin/catalog/catalog-submit-bar.tsx", "utf8");
+  const localizedTabs = readFileSync("components/admin/localized-editor-tabs.tsx", "utf8");
   const detailSections = readFileSync("lib/catalog-detail-sections.ts", "utf8");
   const databaseTypes = readFileSync("lib/supabase/database.types.ts", "utf8");
 
   assert.match(page, /name=\{`\$\{name\}_file`\}/);
   assert.match(page, /name=\{`\$\{name\}_clear`\}/);
   assert.match(page, /CATALOG_MEDIA_ACCEPT/);
-  assert.match(page, /Mover a borrador/);
-  assert.match(page, /Archivar/);
+  assert.match(page, /Pendientes de revisión/);
+  assert.match(page, /LocalizedEditorTabs/);
+  assert.match(page, /OperationDialog/);
+  assert.match(page, /Vista previa ES/);
+  assert.match(page, /Vista previa EN/);
+  assert.match(page, /SEO y slugs/);
+  assert.match(page, /Estado de publicación/);
+  assert.match(page, /4\. Imágenes y medios/);
+  assert.match(page, /5\. Precio e información comercial/);
+  assert.match(page, /6\. SEO y slugs/);
+  assert.match(page, /7\. Estado de publicación/);
+  assert.match(page, /8\. Vista previa/);
   assert.match(page, /name="package_id"/);
   assert.match(page, /name="service_ids"/);
   assert.match(page, /multiple/);
@@ -203,6 +252,20 @@ test("catalog admin UI exposes real media upload and explicit state actions", ()
   assert.match(page, /- Punto breve/);
   assert.match(page, /searchParams/);
   assert.match(page, /feedbackMessage/);
+  assert.match(page, /id="catalog-feedback"/);
+  assert.match(page, /CATALOG_ADMIN_FEEDBACK_FOCUS/);
+  assert.doesNotMatch(page, /id=\{row\.id\}/);
+  assert.doesNotMatch(page, /focus=\{row\.id\}/);
+  assert.doesNotMatch(page, /#\$\{row\.id\}/);
+  assert.match(page, /name="id" type="hidden" value=\{row\.id\}/);
+  assert.match(submitBar, /Guardando\.\.\./);
+  assert.match(submitBar, /Publicando\.\.\./);
+  assert.match(submitBar, /Mover a borrador/);
+  assert.match(submitBar, /Archivar/);
+  assert.match(localizedTabs, /role="tablist"/);
+  assert.match(localizedTabs, /normalizeLocalizedTabContent\(tab\.content\)/);
+  assert.match(localizedTabs, /Completo/);
+  assert.match(localizedTabs, /Pendiente/);
   assert.match(databaseTypes, /detail_sections_es/);
   assert.match(databaseTypes, /detail_sections_en/);
   assert.match(databaseTypes, /commercial_sections_es/);
@@ -232,4 +295,22 @@ test("catalog admin UI exposes real media upload and explicit state actions", ()
   assert.match(actions, /deleted media cleanup failed/);
   assert.match(detailSections, /export type DetailSection = \{ title: string; items: string\[] \}/);
   assert.match(detailSections, /export function parseDetailSectionsEditorValue/);
+});
+
+test("localized editor tab content normalization returns keyed children for tab panels", async () => {
+  const React = await import("react");
+  const children = normalizeLocalizedTabContent(
+    React.createElement(React.Fragment, null,
+      React.createElement("div", null, "ES"),
+      React.createElement("div", null, "EN"),
+    ),
+  );
+
+  assert.equal(children.length, 2);
+  for (const child of children) {
+    assert.equal(React.isValidElement(child), true);
+    if (React.isValidElement(child)) {
+      assert.notEqual(child.key, null);
+    }
+  }
 });

@@ -74,7 +74,7 @@ test("createStaffAccount compensates auth user when downstream write fails", asy
     deleteAuthUser: async (userId) => {
       cleanup.push(userId);
     },
-  }), /cleanup attempted/i);
+  }), /limpieza automática/i);
 
   assert.deepEqual(cleanup, ["user-2"]);
 });
@@ -98,7 +98,7 @@ test("updateStaffAccount blocks self-demotion and last-admin removal", async () 
     updateProfile: async () => undefined,
     replaceProfileRole: async () => undefined,
     insertAuditEvent: async () => undefined,
-  }), /own admin role/i);
+  }), /propio rol de administración/i);
 
   await assert.rejects(() => updateStaffAccount({
     profile_id: "user-2",
@@ -118,7 +118,7 @@ test("updateStaffAccount blocks self-demotion and last-admin removal", async () 
     updateProfile: async () => undefined,
     replaceProfileRole: async () => undefined,
     insertAuditEvent: async () => undefined,
-  }), /last active admin/i);
+  }), /último administrador activo/i);
 });
 
 test("deleteStaffAccount hard deletes a reference-free account and audits the action", async () => {
@@ -165,7 +165,7 @@ test("deleteStaffAccount blocks self-delete, last-admin delete, and referenced a
     getDeletionReferenceSummary: async () => ({ totalReferences: 0, references: [] }),
     insertAuditEvent: async () => undefined,
     deleteAuthUser: async () => undefined,
-  }), /cannot delete your own account/i);
+  }), /eliminar tu propia cuenta/i);
 
   await assert.rejects(() => deleteStaffAccount({
     profile_id: "user-last-admin",
@@ -181,7 +181,7 @@ test("deleteStaffAccount blocks self-delete, last-admin delete, and referenced a
     getDeletionReferenceSummary: async () => ({ totalReferences: 0, references: [] }),
     insertAuditEvent: async () => undefined,
     deleteAuthUser: async () => undefined,
-  }), /last active admin/i);
+  }), /último administrador activo/i);
 
   await assert.rejects(() => deleteStaffAccount({
     profile_id: "user-referenced",
@@ -203,7 +203,29 @@ test("deleteStaffAccount blocks self-delete, last-admin delete, and referenced a
     }),
     insertAuditEvent: async () => undefined,
     deleteAuthUser: async () => undefined,
-  }), /deactivate the account instead/i);
+  }), /desactiva la cuenta/i);
+});
+
+test("deleteStaffAccount refuses staff records outside the MVP single-role management scope", async () => {
+  await assert.rejects(() => deleteStaffAccount({
+    profile_id: "user-mixed",
+  }, actor, {
+    getStaffSnapshot: async () => ({
+      profile_id: "user-mixed",
+      full_name: "Mixed Roles",
+      is_active: true,
+      roles: ["admin", "marketing"],
+      email: "mixed@example.com",
+    }),
+    countActiveAdminsExcluding: async () => 1,
+    getDeletionReferenceSummary: async () => ({ totalReferences: 0, references: [] }),
+    insertAuditEvent: async () => {
+      throw new Error("audit should not run");
+    },
+    deleteAuthUser: async () => {
+      throw new Error("delete should not run");
+    },
+  }), /alcance MVP/i);
 });
 
 test("updateStaffAccount refuses staff records outside the MVP single-role management scope", async () => {
@@ -225,7 +247,7 @@ test("updateStaffAccount refuses staff records outside the MVP single-role manag
     updateProfile: async () => undefined,
     replaceProfileRole: async () => undefined,
     insertAuditEvent: async () => undefined,
-  }), /outside the MVP/i);
+  }), /alcance MVP/i);
 
   await assert.rejects(() => updateStaffAccount({
     profile_id: "user-multi",
@@ -245,7 +267,7 @@ test("updateStaffAccount refuses staff records outside the MVP single-role manag
     updateProfile: async () => undefined,
     replaceProfileRole: async () => undefined,
     insertAuditEvent: async () => undefined,
-  }), /single-role management scope/i);
+  }), /gestión con rol único/i);
 });
 
 test("buildStaffAuthCreatePayload keeps auth creation independent from app-level active status", () => {
@@ -318,7 +340,7 @@ test("requestCurrentStaffEmailChange returns a generic unavailable-email message
     insertAuditEvent: async () => {
       throw new Error("audit should not run");
     },
-  }), /This email cannot be used/i);
+  }), /ese correo no se puede usar/i);
 });
 
 test("advisor helper keeps only active admin and asesor rows without duplicates", () => {
@@ -360,13 +382,15 @@ test("staff routes and client boundaries enforce admin-only management", () => {
   assert.match(accountActions, /requestEmailChangeAction/);
   assert.match(accountActionState, /initialEmailChangeActionState/);
   assert.match(emailForm, /useActionState\(requestEmailChangeAction, initialEmailChangeActionState\)/);
-  assert.match(accountPage, /Signed in as/);
-  assert.match(accountPage, /Current sign-in email/);
+  assert.match(accountPage, /Mi cuenta/);
+  assert.match(accountPage, /Correo de acceso actual/);
   assert.match(accountPage, /<EmailChangeForm\s*\/?>/);
   assert.doesNotMatch(createForm, /createSupabaseAdminClient/);
   assert.doesNotMatch(list, /createSupabaseAdminClient/);
   assert.doesNotMatch(emailForm, /createSupabaseAdminClient/);
-  assert.match(list, /Permanent delete/);
+  assert.match(list, /staff\.is_manageable_in_mvp \? \(/);
+  assert.match(list, /Eliminación no disponible/);
+  assert.match(list, /Eliminar/);
   assert.match(adminShell, /\/admin\/staff/);
   assert.match(adminShell, /\/admin\/account/);
   assert.match(leads, /getAdvisorCapableStaff/);

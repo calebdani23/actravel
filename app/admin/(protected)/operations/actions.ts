@@ -2,14 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdminRole } from "@/lib/admin/auth";
+import { requiredTextFromOperationFormData, textFromOperationFormData, throwOperationActionError } from "@/lib/admin/operation-action-errors";
 import { optionalFile, removeStoredObject, removeStoredObjects, requiredFile, sameStorageObject, uploadPrivateFile } from "@/lib/admin/storage-uploads";
 import { createClient } from "@/lib/supabase/server";
 
-function text(formData: FormData, key: string, required = false) {
-  const value = formData.get(key);
-  const result = typeof value === "string" ? value.trim() : "";
-  if (required && !result) throw new Error(`${key} is required`);
-  return result || null;
+function text(formData: FormData, key: string) {
+  return textFromOperationFormData(formData, key);
 }
 
 function numberValue(formData: FormData, key: string) {
@@ -27,21 +25,21 @@ function revalidateOperations() {
 async function getExistingPaymentFile(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase.from("payments").select("id, proof_bucket, proof_path").eq("id", id).maybeSingle();
-  if (error) throw new Error(`No se pudo cargar el comprobante actual: ${error.message}`);
+  if (error) throwOperationActionError("payment-load-proof", error);
   return { supabase, file: data ? { bucket: data.proof_bucket, path: data.proof_path } : null };
 }
 
 async function getExistingDocumentFile(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase.from("documents").select("id, bucket, path").eq("id", id).maybeSingle();
-  if (error) throw new Error(`No se pudo cargar el documento actual: ${error.message}`);
+  if (error) throwOperationActionError("document-load-file", error);
   return { supabase, file: data ? { bucket: data.bucket, path: data.path } : null };
 }
 
 async function getBookingDocumentFiles(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase.from("documents").select("bucket, path").eq("booking_id", id);
-  if (error) throw new Error(`No se pudieron cargar los documentos de la reserva: ${error.message}`);
+  if (error) throwOperationActionError("booking-load-documents", error);
   return {
     supabase,
     files: (data ?? []).map((file) => ({ bucket: file.bucket, path: file.path })),
@@ -82,7 +80,7 @@ export async function upsertPaymentAction(formData: FormData) {
   const { error } = id ? await supabase.from("payments").update(payload).eq("id", id) : await supabase.from("payments").insert(payload);
   if (error) {
     if (upload) await upload.cleanup();
-    throw new Error(`No se pudo guardar el pago: ${error.message}`);
+    throwOperationActionError("payment-save", error);
   }
   if (upload && existing?.file && !sameStorageObject(existing.file, upload)) {
     try {
@@ -96,10 +94,10 @@ export async function upsertPaymentAction(formData: FormData) {
 
 export async function deletePaymentAction(formData: FormData) {
   await requireAdminRole(["admin", "finanzas"]);
-  const id = text(formData, "id", true)!;
+  const id = requiredTextFromOperationFormData(formData, "id", "payment-delete");
   const { supabase, file } = await getExistingPaymentFile(id);
   const { error } = await supabase.from("payments").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throwOperationActionError("payment-delete", error);
   if (file) {
     try {
       await removeStoredObject(supabase, file);
@@ -116,7 +114,7 @@ export async function upsertBookingAction(formData: FormData) {
   const id = text(formData, "id");
   const payload = {
     lead_id: text(formData, "lead_id"),
-    contact_id: text(formData, "contact_id", true),
+    contact_id: requiredTextFromOperationFormData(formData, "contact_id", "booking-save"),
     assigned_to: text(formData, "assigned_to"),
     booking_code: text(formData, "booking_code"),
     status: text(formData, "status") ?? "draft",
@@ -131,16 +129,16 @@ export async function upsertBookingAction(formData: FormData) {
     notes: text(formData, "notes"),
   };
   const { error } = id ? await supabase.from("bookings").update(payload).eq("id", id) : await supabase.from("bookings").insert(payload);
-  if (error) throw new Error(error.message);
+  if (error) throwOperationActionError("booking-save", error);
   revalidateOperations();
 }
 
 export async function deleteBookingAction(formData: FormData) {
   await requireAdminRole(["admin", "operaciones"]);
-  const id = text(formData, "id", true);
-  const { supabase, files } = await getBookingDocumentFiles(id!);
+  const id = requiredTextFromOperationFormData(formData, "id", "booking-delete");
+  const { supabase, files } = await getBookingDocumentFiles(id);
   const { error } = await supabase.from("bookings").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throwOperationActionError("booking-delete", error);
   if (files.length) {
     try {
       await removeStoredObjects(supabase, files);
@@ -156,7 +154,7 @@ export async function upsertDocumentAction(formData: FormData) {
   const id = text(formData, "id");
   const existing = id ? await getExistingDocumentFile(id) : null;
   const supabase = existing?.supabase ?? await createClient();
-  const title = text(formData, "title", true);
+  const title = requiredTextFromOperationFormData(formData, "title", "document-save");
   const documentFile = id ? optionalFile(formData, "document_file") : requiredFile(formData, "document_file", "Selecciona un archivo para crear el documento.");
   const upload = documentFile
     ? await uploadPrivateFile(supabase, "documents", documentFile, {
@@ -179,7 +177,7 @@ export async function upsertDocumentAction(formData: FormData) {
   const { error } = id ? await supabase.from("documents").update(payload).eq("id", id) : await supabase.from("documents").insert(payload);
   if (error) {
     if (upload) await upload.cleanup();
-    throw new Error(`No se pudo guardar el documento: ${error.message}`);
+    throwOperationActionError("document-save", error);
   }
   if (upload && existing?.file && !sameStorageObject(existing.file, upload)) {
     try {
@@ -193,10 +191,10 @@ export async function upsertDocumentAction(formData: FormData) {
 
 export async function deleteDocumentAction(formData: FormData) {
   await requireAdminRole(["admin", "operaciones"]);
-  const id = text(formData, "id", true)!;
+  const id = requiredTextFromOperationFormData(formData, "id", "document-delete");
   const { supabase, file } = await getExistingDocumentFile(id);
   const { error } = await supabase.from("documents").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throwOperationActionError("document-delete", error);
   if (file) {
     try {
       await removeStoredObject(supabase, file);

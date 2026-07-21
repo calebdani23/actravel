@@ -144,6 +144,19 @@ test("admin log display helpers sanitize template identifiers and backend error 
   assert.doesNotMatch(adminLogsInternals.partialLoadMessage([rawError]) ?? "", /send_notification|notification_logs|relation/i);
 });
 
+test("admin log action helpers return safe validation and backend failure messages", () => {
+  assert.throws(() => adminLogsInternals.requiredNotificationLogId(new FormData()), /registro válido/i);
+
+  const invalidIncidentStatus = new FormData();
+  invalidIncidentStatus.set("incidentStatus", "drop_table");
+  assert.throws(() => adminLogsInternals.requiredIncidentStatus(invalidIncidentStatus), /estado de incidencia válido/i);
+
+  const rawError = new Error("Function send_notification failed: relation notification_logs does not exist");
+  assert.equal(adminLogsInternals.sanitizeLogActionError("retry", rawError), "No se pudo solicitar el reintento del envío. Intenta nuevamente.");
+  assert.equal(adminLogsInternals.sanitizeLogActionError("incident-status", rawError), "No se pudo actualizar la incidencia. Intenta nuevamente.");
+  assert.doesNotMatch(adminLogsInternals.sanitizeLogActionError("retry", rawError), /function|notification_logs|relation/i);
+});
+
 test("admin log incident presentation stays Spanish-safe for unknown templates and provider failures", () => {
   const incident = adminLogsInternals.buildNotificationIncident({
     id: "notif-2",

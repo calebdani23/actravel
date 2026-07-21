@@ -5,7 +5,20 @@ export type AccountActionState = {
 };
 
 export type PasswordChangeActionState = AccountActionState;
-export type EmailChangeActionState = AccountActionState;
+export type EmailChangeActionState = AccountActionState & {
+  values: {
+    email: string;
+    confirm_email: string;
+  };
+};
 
 export const initialPasswordChangeActionState: PasswordChangeActionState = { ok: false, message: null, fieldErrors: {} };
-export const initialEmailChangeActionState: EmailChangeActionState = { ok: false, message: null, fieldErrors: {} };
+export const initialEmailChangeActionState: EmailChangeActionState = {
+  ok: false,
+  message: null,
+  fieldErrors: {},
+  values: {
+    email: "",
+    confirm_email: "",
+  },
+};

@@ -82,3 +82,9 @@ test("data quality ambiguous identity cases expose recent reasons and matched co
     },
   ]);
 });
+
+test("data quality issue labels map ambiguous reasons to safe Spanish text with generic fallback", () => {
+  assert.equal(dataQualityInternals.ambiguousIdentityReasonLabel("duplicate_phone"), "Múltiples contactos con el mismo teléfono");
+  assert.equal(dataQualityInternals.ambiguousIdentityReasonLabel("split_phone_email"), "Teléfono y correo apuntan a contactos distintos");
+  assert.equal(dataQualityInternals.ambiguousIdentityReasonLabel("raw_provider_timeout:msg_123"), "La causa exacta requiere revisión manual");
+});

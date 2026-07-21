@@ -1,11 +1,11 @@
 import "server-only";
 
 import { resolvePromotionServiceIds as resolvePromotionServiceIdsBase } from "@/lib/catalog/promotion-relations";
+import { catalogStatusLabel, isCatalogStatus, resolveCatalogStatusForDisplay, summarizeCatalogStatuses, type CatalogStatus, type CatalogStatusSummary } from "@/lib/admin/catalog-status";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
 
 export type CatalogResource = "destinations" | "services" | "packages" | "promotions";
-export type CatalogStatus = "draft" | "published" | "archived";
 export type CatalogWriteIntent = "save" | "publish" | "draft" | "archive";
 
 export const catalogResources = {
@@ -25,17 +25,13 @@ export type PromotionRow = Tables<"promotions"> & {
 };
 
 export const resolvePromotionServiceIds = resolvePromotionServiceIdsBase;
-
-export function catalogStatusLabel(status?: string | null) {
-  if (status === "published") return "Publicado";
-  if (status === "archived") return "Archivado";
-  return "Borrador";
-}
+export { catalogStatusLabel, isCatalogStatus, resolveCatalogStatusForDisplay, summarizeCatalogStatuses, type CatalogStatus, type CatalogStatusSummary };
 
 export function resolveCatalogWriteState(
-  current: { status?: CatalogStatus | null; published_at?: string | null } | null | undefined,
+  current: { status?: string | null; published_at?: string | null } | null | undefined,
   intent: CatalogWriteIntent,
   now = new Date(),
+  submittedStatus?: string | null,
 ) {
   if (intent === "publish") {
     return { status: "published" as const, published_at: now.toISOString() };
@@ -53,8 +49,21 @@ export function resolveCatalogWriteState(
     return { status: "draft" as const, published_at: null };
   }
 
+  if (isCatalogStatus(submittedStatus)) {
+    return {
+      status: submittedStatus,
+      published_at: current.published_at ?? null,
+    };
+  }
+
+  if (current.status == null) {
+    return {
+      published_at: current.published_at ?? null,
+    };
+  }
+
   return {
-    status: current.status ?? "draft",
+    status: current.status,
     published_at: current.published_at ?? null,
   };
 }

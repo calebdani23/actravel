@@ -128,6 +128,13 @@ export class CatalogAdminActionError extends Error {
   }
 }
 
+type CatalogActionErrorContext = {
+  resource: CatalogResource;
+  action: CatalogActionKind;
+};
+
+export const CATALOG_ADMIN_FEEDBACK_FOCUS = "feedback";
+
 function actionVerb(action: CatalogActionKind) {
   if (action === "publish") return "publicar";
   if (action === "draft") return "mover a borrador";
@@ -198,12 +205,12 @@ export function buildCatalogAdminRedirectTarget(
   feedback: { status: "success" | "error"; message: string; focusId?: string | null },
 ) {
   const params = new URLSearchParams({ status: feedback.status, message: feedback.message });
-  if (feedback.focusId) params.set("focus", feedback.focusId);
+  if (feedback.focusId) params.set("focus", CATALOG_ADMIN_FEEDBACK_FOCUS);
   return `/admin/catalog/${resource}?${params.toString()}`;
 }
 
-export function catalogActionErrorMessage(error: unknown) {
-  if (error instanceof CatalogAdminActionError) return error.message;
-  if (error instanceof Error && error.message.trim()) return `No se pudo completar la operación. ${error.message.trim()}`;
-  return "No se pudo completar la operación. Intenta de nuevo y, si persiste, revisa el registro en Supabase.";
+export function catalogActionErrorMessage(error: unknown, context: CatalogActionErrorContext) {
+  void error;
+
+  return `No se pudo ${actionVerb(context.action)} el ${singularLabel(context.resource)}. Revisa los datos capturados e inténtalo de nuevo.`;
 }

@@ -10,7 +10,7 @@ import { parsePromotionCommercialSectionsEditorValueOrThrow } from "@/lib/promot
 import { resolvePromotionServiceIds } from "@/lib/catalog/promotion-relations";
 import { catalogMediaStorageObject, normalizeCatalogMediaValue, uploadCatalogMediaFile } from "@/lib/catalog-media";
 import { createClient } from "@/lib/supabase/server";
-import { resolveCatalogWriteState, type CatalogResource, type CatalogStatus, type CatalogWriteIntent } from "@/lib/admin/catalog";
+import { resolveCatalogWriteState, type CatalogResource, type CatalogWriteIntent } from "@/lib/admin/catalog";
 import type { TablesInsert } from "@/lib/supabase/database.types";
 import { type Locale } from "@/lib/i18n/config";
 import { localizedPath } from "@/lib/content/public-site";
@@ -67,7 +67,7 @@ type ExistingCatalogRecord = {
   id: string;
   slug_es: string | null;
   slug_en: string | null;
-  status: CatalogStatus | null;
+  status: string | null;
   published_at: string | null;
   hero_image_url: string | null;
   thumbnail_image_url: string | null;
@@ -85,6 +85,11 @@ type UploadedCatalogMedia = {
   bucket: string;
   path: string;
   value: string;
+};
+
+type CatalogPublicationState = {
+  status?: string;
+  published_at: string | null;
 };
 
 function uploadSlot(field: CatalogMediaField) {
@@ -240,7 +245,7 @@ function revalidatePublicCatalog(resource: CatalogResource, slugs: Array<string 
   revalidatePath("/sitemap.xml");
 }
 
-function destinationPayload(formData: FormData, publication: { status: CatalogStatus; published_at: string | null }, media: { hero_image_url: string | null; thumbnail_image_url: string | null }): TablesInsert<"destinations"> {
+function destinationPayload(formData: FormData, publication: CatalogPublicationState, media: { hero_image_url: string | null; thumbnail_image_url: string | null }): TablesInsert<"destinations"> {
   const base = { ...publication, is_featured: bool(formData, "is_featured") };
   return {
     ...base,
@@ -260,7 +265,7 @@ function destinationPayload(formData: FormData, publication: { status: CatalogSt
   };
 }
 
-function servicePayload(formData: FormData, publication: { status: CatalogStatus; published_at: string | null }, media: { hero_image_url: string | null; thumbnail_image_url: string | null }): TablesInsert<"services"> {
+function servicePayload(formData: FormData, publication: CatalogPublicationState, media: { hero_image_url: string | null; thumbnail_image_url: string | null }): TablesInsert<"services"> {
   const base = { ...publication, is_featured: bool(formData, "is_featured") };
   return {
     ...base,
@@ -281,7 +286,7 @@ function servicePayload(formData: FormData, publication: { status: CatalogStatus
   };
 }
 
-function packagePayload(formData: FormData, publication: { status: CatalogStatus; published_at: string | null }, media: { hero_image_url: string | null; thumbnail_image_url: string | null }): TablesInsert<"packages"> {
+function packagePayload(formData: FormData, publication: CatalogPublicationState, media: { hero_image_url: string | null; thumbnail_image_url: string | null }): TablesInsert<"packages"> {
   const base = { ...publication, is_featured: bool(formData, "is_featured") };
   return {
     ...base,
@@ -302,7 +307,7 @@ function packagePayload(formData: FormData, publication: { status: CatalogStatus
   };
 }
 
-function promotionPayload(formData: FormData, publication: { status: CatalogStatus; published_at: string | null }, media: { hero_image_url: string | null; thumbnail_image_url: string | null }): TablesInsert<"promotions"> {
+function promotionPayload(formData: FormData, publication: CatalogPublicationState, media: { hero_image_url: string | null; thumbnail_image_url: string | null }): TablesInsert<"promotions"> {
   const base = { ...publication, is_featured: bool(formData, "is_featured") };
   const serviceIds = promotionServiceIds(formData);
   return {
@@ -413,7 +418,11 @@ async function writeCatalogRecord(formData: FormData, intent: CatalogWriteIntent
   }
 }
 
-async function finishCatalogAction(formData: FormData, action: () => Promise<{ resource: CatalogResource; focusId?: string | null; message: string }>) {
+async function finishCatalogAction(
+  formData: FormData,
+  actionKind: CatalogWriteIntent | "delete",
+  action: () => Promise<{ resource: CatalogResource; focusId?: string | null; message: string }>,
+) {
   const fallbackResource = resources.includes(String(formData.get("resource")) as CatalogResource)
     ? (String(formData.get("resource")) as CatalogResource)
     : "destinations";
@@ -428,7 +437,7 @@ async function finishCatalogAction(formData: FormData, action: () => Promise<{ r
     feedback = { status: "success", message: result.message, focusId: result.focusId };
   } catch (error) {
     console.error("[catalog] admin action failed", error);
-    feedback = { status: "error", message: catalogActionErrorMessage(error), focusId };
+    feedback = { status: "error", message: catalogActionErrorMessage(error, { resource: targetResource, action: actionKind }), focusId };
   }
 
   redirect(buildCatalogAdminRedirectTarget(targetResource, feedback));
@@ -442,17 +451,17 @@ function revalidateCatalog(resource: CatalogResource, slugs: Array<string | null
 
 export async function upsertCatalogAction(formData: FormData) {
   await requireAdminRole(["admin", "marketing"]);
-  await finishCatalogAction(formData, () => writeCatalogRecord(formData, "save"));
+  await finishCatalogAction(formData, "save", () => writeCatalogRecord(formData, "save"));
 }
 
 export async function publishCatalogAction(formData: FormData) {
   await requireAdminRole(["admin", "marketing"]);
-  await finishCatalogAction(formData, () => writeCatalogRecord(formData, "publish"));
+  await finishCatalogAction(formData, "publish", () => writeCatalogRecord(formData, "publish"));
 }
 
 export async function moveCatalogToDraftAction(formData: FormData) {
   await requireAdminRole(["admin", "marketing"]);
-  await finishCatalogAction(formData, async () => {
+  await finishCatalogAction(formData, "draft", async () => {
     const supabase = await createClient();
     const resource = resourceValue(formData);
     const id = text(formData, "id", true);
@@ -472,7 +481,7 @@ export async function moveCatalogToDraftAction(formData: FormData) {
 
 export async function archiveCatalogAction(formData: FormData) {
   await requireAdminRole(["admin", "marketing"]);
-  await finishCatalogAction(formData, async () => {
+  await finishCatalogAction(formData, "archive", async () => {
     const supabase = await createClient();
     const resource = resourceValue(formData);
     const id = text(formData, "id", true);
@@ -492,7 +501,7 @@ export async function archiveCatalogAction(formData: FormData) {
 
 export async function deleteCatalogAction(formData: FormData) {
   await requireAdminRole(["admin", "marketing"]);
-  await finishCatalogAction(formData, async () => {
+  await finishCatalogAction(formData, "delete", async () => {
     const resource = resourceValue(formData);
     const id = text(formData, "id", true);
     const supabase = await createClient();

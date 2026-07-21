@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
 
 export type IncidentStatus = "open" | "resolved";
+export type NotificationLogActionKind = "retry" | "incident-status";
 export type WhatsappClickRow = Tables<"whatsapp_clicks"> & { contacts: { first_name: string; last_name: string | null; phone: string | null } | null };
 export type NotificationLogRow = Tables<"notification_logs"> & { contacts: { first_name: string; last_name: string | null; email: string | null; phone: string | null } | null };
 
@@ -20,6 +21,9 @@ export type OperationalIncidentRow = {
   title: string;
   detail: string;
   retryEligible: boolean;
+  channel: "email";
+  moduleLabel: string;
+  severity: "high" | "medium" | "info";
 };
 
 type NotificationOperatorSummaryInput = {
@@ -28,8 +32,45 @@ type NotificationOperatorSummaryInput = {
   errorMessage?: string | null;
 };
 
+const LOG_ACTION_VALIDATION_MESSAGES = {
+  logId: "Selecciona un registro válido.",
+  incidentStatus: "Selecciona un estado de incidencia válido.",
+} as const;
+
+const LOG_ACTION_FAILURE_MESSAGES: Record<NotificationLogActionKind, string> = {
+  retry: "No se pudo solicitar el reintento del envío. Intenta nuevamente.",
+  "incident-status": "No se pudo actualizar la incidencia. Intenta nuevamente.",
+};
+
+const LOG_ACTION_SAFE_MESSAGES = new Set<string>([
+  ...Object.values(LOG_ACTION_VALIDATION_MESSAGES),
+]);
+
 function asIncidentStatus(value: string | null | undefined): IncidentStatus {
   return value === "resolved" ? "resolved" : "open";
+}
+
+function requiredNotificationLogId(formData: FormData) {
+  const value = formData.get("logId");
+  if (typeof value !== "string") throw new Error(LOG_ACTION_VALIDATION_MESSAGES.logId);
+
+  const trimmed = value.trim();
+  if (!trimmed) throw new Error(LOG_ACTION_VALIDATION_MESSAGES.logId);
+  return trimmed;
+}
+
+function requiredIncidentStatus(formData: FormData) {
+  const value = formData.get("incidentStatus");
+  if (value !== "open" && value !== "resolved") throw new Error(LOG_ACTION_VALIDATION_MESSAGES.incidentStatus);
+  return value as IncidentStatus;
+}
+
+function sanitizeLogActionError(action: NotificationLogActionKind, error: unknown) {
+  console.error("[admin-logs] action failed", { action, error });
+  if (error instanceof Error && LOG_ACTION_SAFE_MESSAGES.has(error.message)) {
+    return error.message;
+  }
+  return LOG_ACTION_FAILURE_MESSAGES[action];
 }
 
 function retryEligible(status: string) {
@@ -51,6 +92,18 @@ function notificationStatusLabel(status: string) {
 
 function notificationTemplateLabel(name?: string | null) {
   return templateDisplayLabel(name) ?? "Plantilla operativa";
+}
+
+function channelLabel(channel?: string | null) {
+  if (channel === "email") return "Correo";
+  if (channel === "whatsapp") return "WhatsApp";
+  return "No identificado";
+}
+
+function incidentSeverity(status: string, incidentStatus?: IncidentStatus | null): "high" | "medium" | "info" {
+  if (status === "failed" || status === "ambiguous" || incidentStatus === "open") return "high";
+  if (status === "queued" || status === "processing") return "medium";
+  return "info";
 }
 
 function notificationOperatorSummary({ status, incidentStatus, errorMessage }: NotificationOperatorSummaryInput) {
@@ -83,6 +136,9 @@ function buildNotificationIncident(row: NotificationLogRow): OperationalIncident
     title: notificationTemplateLabel(row.template_name),
     detail: row.recipient ?? row.contacts?.email ?? "Sin destinatario",
     retryEligible: retryEligible(row.status),
+    channel: "email",
+    moduleLabel: "Mensajería",
+    severity: incidentSeverity(row.status, asIncidentStatus(row.incident_status)),
   };
 }
 
@@ -147,10 +203,15 @@ export async function getAdminLogs() {
 
 export const adminLogsInternals = {
   buildNotificationIncident,
+  channelLabel,
+  incidentSeverity,
   notificationOperatorSummary,
   notificationStatusLabel,
   notificationTemplateLabel,
   partialLoadMessage,
+  requiredIncidentStatus,
+  requiredNotificationLogId,
+  sanitizeLogActionError,
   shouldShowIncident,
   whatsappModuleLabel,
 };

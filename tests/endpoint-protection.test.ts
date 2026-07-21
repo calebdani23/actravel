@@ -102,13 +102,17 @@ test("quote schema normalizes blank meta lead event ids before validation", () =
 test("admin log retry actions are role gated and forms submit a single logId", () => {
   const actions = readFileSync("app/admin/(protected)/logs/actions.ts", "utf8");
   const page = readFileSync("app/admin/(protected)/logs/page.tsx", "utf8");
+  const actionForm = readFileSync("components/admin/logs/log-action-form.tsx", "utf8");
 
   assert.match(actions, /requireAdminRole\(\["admin", "marketing"\]\)/);
   assert.match(actions, /retryNotificationLog\(logId\(formData\), session\.user\.id\)/);
   assert.match(actions, /setNotificationIncidentStatus\(logId\(formData\), incidentStatus\(formData\), session\.user\.id\)/);
   assert.equal(actions.indexOf("await requireAdminRole") < actions.indexOf("retryNotificationLog(logId(formData), session.user.id)"), true);
-  assert.match(page, /name="logId"/);
-  assert.match(page, /name="incidentStatus"/);
+  assert.match(actions, /sanitizeLogActionError\("retry", error\)/);
+  assert.match(actionForm, /name="logId"/);
+  assert.match(actionForm, /name="incidentStatus"/);
+  assert.match(actionForm, /useActionState\(action, initialLogActionState\)/);
+  assert.match(actionForm, /AlertBanner/);
   assert.match(page, /const canRetry = status === "failed" \|\| status === "queued"/);
 });
 

@@ -134,18 +134,18 @@ function getStaffManagementState(roles: string[]) {
       managedRole: null,
       hasUnsupportedRole: true,
       isManageableInMvp: false,
-      blockReason: "This staff account includes roles outside the MVP admin/asesor scope and cannot be edited here safely.",
+      blockReason: "Esta cuenta incluye roles fuera del alcance MVP de administración y asesoría, por lo que aquí solo puede consultarse.",
     } as const;
   }
 
   if (managedRoles.length !== 1 || uniqueRoles.length !== 1) {
     return {
-      managedRole: null,
-      hasUnsupportedRole: false,
-      isManageableInMvp: false,
-      blockReason: uniqueRoles.length === 0
-        ? "This staff account has no role assignment and cannot be edited here safely."
-        : "This staff account uses a multi-role assignment outside the MVP single-role management scope and cannot be edited here safely.",
+        managedRole: null,
+        hasUnsupportedRole: false,
+        isManageableInMvp: false,
+        blockReason: uniqueRoles.length === 0
+          ? "Esta cuenta no tiene un rol asignado y aquí solo puede consultarse."
+          : "Esta cuenta usa múltiples roles fuera del alcance MVP de gestión con rol único y aquí solo puede consultarse.",
     } as const;
   }
 
@@ -158,9 +158,9 @@ function getStaffManagementState(roles: string[]) {
 }
 
 function buildCreateFailureMessage(error: unknown, cleanupAttempted: boolean, cleanupFailed: boolean) {
-  const base = error instanceof Error ? error.message : "Staff account creation failed.";
-  if (cleanupFailed) return `${base} Cleanup attempted but failed; contact a technical maintainer with the target email and timestamp.`;
-  if (cleanupAttempted) return `${base} Cleanup attempted successfully.`;
+  const base = error instanceof Error ? error.message : "No se pudo crear el usuario interno.";
+  if (cleanupFailed) return `${base} Se intentó la limpieza automática, pero no terminó correctamente. Comparte correo objetivo y hora del intento con mantenimiento técnico.`;
+  if (cleanupAttempted) return `${base} Se completó la limpieza automática del intento parcial.`;
   return base;
 }
 
@@ -170,7 +170,7 @@ function buildAuditEvent(event: StaffEventInsert): StaffEventInsert {
 
 function buildDeleteBlockedMessage(summary: StaffDeletionReferenceSummary) {
   const details = summary.references.map((reference) => `${reference.label} (${reference.count})`).join(", ");
-  return `Permanent delete is blocked because this account is still referenced by ${details}. Deactivate the account instead to preserve history.`;
+  return `La eliminación permanente está bloqueada porque esta cuenta todavía aparece referenciada por ${details}. Desactiva la cuenta para conservar el historial.`;
 }
 
 async function loadRoleRows() {
@@ -201,7 +201,7 @@ async function resolveManagedRoleId(role: ManagedStaffRole) {
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin.from("roles").select("id, name").eq("name", role).maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data?.id) throw new Error(`Missing seeded role: ${role}`);
+  if (!data?.id) throw new Error(`Falta el rol base requerido para ${role}.`);
   return data.id;
 }
 
@@ -267,11 +267,11 @@ async function createAuthUser(input: { email: string; password: string; full_nam
   const { data, error } = await admin.auth.admin.createUser(buildStaffAuthCreatePayload(input));
   if (error) {
     if (/already|registered|exists/i.test(error.message)) {
-      throw new Error("A staff account with that email already exists.");
+      throw new Error("Ya existe un usuario interno con ese correo.");
     }
     throw new Error(error.message);
   }
-  if (!data.user?.id) throw new Error("Supabase did not return a created auth user.");
+  if (!data.user?.id) throw new Error("No se pudo confirmar la creación del acceso.");
   return { id: data.user.id, email: data.user.email ?? input.email };
 }
 
@@ -320,10 +320,10 @@ async function updateOwnEmail(email: string) {
 }
 
 function mapEmailChangeError(error: unknown) {
-  const message = error instanceof Error ? error.message : "Could not request the email change.";
+  const message = error instanceof Error ? error.message : "No se pudo solicitar el cambio de correo.";
 
   if (/already|registered|exists|email.*used|duplicate|taken/i.test(message)) {
-    return new Error("This email cannot be used. Try another email or contact an administrator.");
+    return new Error("Ese correo no se puede usar. Intenta con otro o contacta a una persona administradora.");
   }
 
   return error instanceof Error ? error : new Error(message);
@@ -486,7 +486,7 @@ export async function createStaffAccount(input: CreateStaffInput, actor: StaffAc
 
 export async function updateStaffAccount(input: UpdateStaffInput, actor: StaffActor, deps: UpdateDeps = defaultUpdateDeps()) {
   const snapshot = await deps.getStaffSnapshot(input.profile_id);
-  if (!snapshot) throw new Error("Staff profile was not found.");
+  if (!snapshot) throw new Error("No encontramos el perfil solicitado.");
   const managementState = getStaffManagementState(snapshot.roles);
   if (!managementState.isManageableInMvp) throw new Error(managementState.blockReason);
 
@@ -497,12 +497,12 @@ export async function updateStaffAccount(input: UpdateStaffInput, actor: StaffAc
   const isSelf = snapshot.profile_id === actor.id;
   const removesAdminAccess = snapshot.is_active && snapshot.roles.includes("admin") && (!input.is_active || input.role !== "admin");
 
-  if (isSelf && input.role !== "admin") throw new Error("You cannot remove your own admin role.");
-  if (isSelf && !input.is_active) throw new Error("You cannot deactivate your own account.");
+  if (isSelf && input.role !== "admin") throw new Error("No puedes quitarte tu propio rol de administración.");
+  if (isSelf && !input.is_active) throw new Error("No puedes desactivar tu propia cuenta.");
 
   if (removesAdminAccess) {
     const otherActiveAdmins = await deps.countActiveAdminsExcluding(snapshot.profile_id);
-    if (otherActiveAdmins === 0) throw new Error("This change would remove the last active admin.");
+    if (otherActiveAdmins === 0) throw new Error("Este cambio quitaría al último administrador activo.");
   }
 
   const roleId = await deps.getManagedRoleId(nextManagedRole);
@@ -540,12 +540,14 @@ export async function updateStaffAccount(input: UpdateStaffInput, actor: StaffAc
 
 export async function deleteStaffAccount(input: DeleteStaffInput, actor: StaffActor, deps: DeleteDeps = defaultDeleteDeps()) {
   const snapshot = await deps.getStaffSnapshot(input.profile_id);
-  if (!snapshot) throw new Error("Staff profile was not found.");
-  if (snapshot.profile_id === actor.id) throw new Error("You cannot delete your own account.");
+  if (!snapshot) throw new Error("No encontramos el perfil solicitado.");
+  const managementState = getStaffManagementState(snapshot.roles);
+  if (!managementState.isManageableInMvp) throw new Error(managementState.blockReason);
+  if (snapshot.profile_id === actor.id) throw new Error("No puedes eliminar tu propia cuenta.");
 
   if (snapshot.is_active && snapshot.roles.includes("admin")) {
     const otherActiveAdmins = await deps.countActiveAdminsExcluding(snapshot.profile_id);
-    if (otherActiveAdmins === 0) throw new Error("You cannot delete the last active admin.");
+    if (otherActiveAdmins === 0) throw new Error("No puedes eliminar al último administrador activo.");
   }
 
   const referenceSummary = await deps.getDeletionReferenceSummary(snapshot.profile_id);

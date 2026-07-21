@@ -1,10 +1,21 @@
 "use client";
 
-import { useMemo, useRef, useState, type RefObject } from "react";
+import Link from "next/link";
+import { useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useFormStatus } from "react-dom";
 import { deleteTemplateAction, upsertTemplateAction } from "@/app/admin/(protected)/templates/actions";
 import { Button } from "@/components/ui/button";
-import { getTemplateVariableCatalog, getTemplateVariableExamples, type MessageTemplateChannel } from "@/lib/admin/template-variables";
+import {
+  StatusBadge,
+  adminFieldHintClassName,
+  adminInputClassName,
+  adminSelectClassName,
+} from "@/components/admin/admin-primitives";
+import { LocalizedEditorTabs } from "@/components/admin/localized-editor-tabs";
+import { getTemplateVariableCatalog, getTemplateVariableExamples, templateChannelLabel, templateVariableSourceLabel, type MessageTemplateChannel } from "@/lib/admin/template-variables";
 import { renderMessageTemplate, validateTemplatePlaceholders } from "@/lib/admin/template-renderer";
+import { translateTemplateValidationMessage } from "@/lib/admin/template-action-helpers";
+import { getPendingSafeCancelState } from "@/lib/admin/pending-safe-navigation";
 
 type TemplateFormTemplate = {
   id: string;
@@ -43,6 +54,10 @@ function sortSelectedVariables(keys: string[], catalog: ReturnType<typeof getTem
   });
 }
 
+function completeness(value: string, secondValue?: string) {
+  return Boolean(value.trim() && (secondValue === undefined || secondValue.trim()));
+}
+
 function FieldInput({
   field,
   label,
@@ -63,11 +78,11 @@ function FieldInput({
   textarea?: boolean;
 }) {
   return (
-    <label className={`space-y-1 text-sm font-medium ${textarea ? "md:col-span-2" : ""}`}>
+    <label className={`space-y-1.5 text-sm font-medium text-[color:var(--admin-foreground)] ${textarea ? "lg:col-span-2" : ""}`}>
       <span>{label}</span>
       {textarea ? (
         <textarea
-          className="min-h-28 w-full rounded-md border px-3 py-2 text-sm"
+          className="min-h-36 w-full rounded-[var(--admin-radius-control)] border border-[color:var(--admin-input-border)] bg-white px-3.5 py-2.5 text-sm text-[color:var(--admin-foreground)] shadow-[var(--admin-shadow-control)] outline-none transition-[border-color,box-shadow] placeholder:text-[color:var(--admin-placeholder)] hover:border-[color:var(--admin-accent-soft)] focus-visible:border-[color:var(--admin-accent)] focus-visible:ring-4 focus-visible:ring-[color:var(--admin-ring)]"
           name={field}
           onChange={(event) => onChange(event.target.value)}
           onFocus={() => onFocus(field)}
@@ -77,7 +92,7 @@ function FieldInput({
         />
       ) : (
         <input
-          className="w-full rounded-md border px-3 py-2 text-sm"
+          className={adminInputClassName}
           name={field}
           onChange={(event) => onChange(event.target.value)}
           onFocus={() => onFocus(field)}
@@ -87,6 +102,72 @@ function FieldInput({
         />
       )}
     </label>
+  );
+}
+
+function TemplateSection({ title, description, children, defaultOpen = true }: Readonly<{ title: string; description?: string; children: ReactNode; defaultOpen?: boolean }>) {
+  return (
+    <details className="overflow-hidden rounded-[var(--admin-radius-card)] border border-[color:var(--admin-border)] bg-[color:var(--admin-surface-muted)]" open={defaultOpen}>
+      <summary className="cursor-pointer list-none px-4 py-3.5 marker:hidden">
+        <span className="flex items-center justify-between gap-3 text-sm font-semibold text-[color:var(--admin-foreground)]">
+          <span>{title}</span>
+          <span className="text-xs font-medium text-[color:var(--admin-muted-foreground)]">Abrir / cerrar</span>
+        </span>
+        {description ? <span className="mt-1 block pr-8 text-xs leading-5 text-[color:var(--admin-muted-foreground)]">{description}</span> : null}
+      </summary>
+      <div className="border-t border-[color:var(--admin-border-subtle)] px-4 py-4">{children}</div>
+    </details>
+  );
+}
+
+function CopyPreviewButton({ label, value }: Readonly<{ label: string; value: string }>) {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <Button
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(value);
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 1800);
+        } catch {
+          setCopied(false);
+        }
+      }}
+      size="sm"
+      type="button"
+      variant="outline"
+    >
+      {copied ? `${label} copiado` : label}
+    </Button>
+  );
+}
+
+function TemplateSubmitBar({ isEditing, disableSave }: Readonly<{ isEditing: boolean; disableSave: boolean }>) {
+  const { pending } = useFormStatus();
+  const [submittedAction, setSubmittedAction] = useState<string | null>(null);
+  const cancelState = getPendingSafeCancelState("/admin/templates", pending);
+
+  return (
+    <div className="sticky bottom-0 z-10 flex flex-wrap gap-2 border-t border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface)]/95 px-1 pb-1 pt-4 backdrop-blur">
+      <Button disabled={disableSave || pending} onClick={() => setSubmittedAction("save")} type="submit">
+        {pending && submittedAction === "save" ? "Guardando..." : isEditing ? "Guardar cambios" : "Crear plantilla"}
+      </Button>
+      {isEditing ? (
+        <Button disabled={pending} formAction={deleteTemplateAction} onClick={() => setSubmittedAction("delete")} type="submit" variant="outline">
+          {pending && submittedAction === "delete" ? "Eliminando..." : "Eliminar"}
+        </Button>
+      ) : null}
+      {cancelState.kind === "disabled" ? (
+        <Button aria-disabled={cancelState.ariaDisabled} disabled type="button" variant="ghost">
+          Cancelar
+        </Button>
+      ) : (
+        <Button asChild type="button" variant="ghost">
+          <Link href={cancelState.href}>Cancelar</Link>
+        </Button>
+      )}
+    </div>
   );
 }
 
@@ -163,109 +244,128 @@ export function TemplateForm({ template }: { template?: TemplateFormTemplate }) 
   const renderedBodyEn = renderMessageTemplate(bodyEn, previewVariables);
 
   return (
-    <form action={upsertTemplateAction} className="space-y-4 rounded-lg border p-4">
+    <form action={upsertTemplateAction} className="space-y-4">
       {template ? <input name="id" type="hidden" value={template.id} /> : null}
       {selectedVariables.map((variable) => <input key={variable} name="variables" type="hidden" value={variable} />)}
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <label className="space-y-1 text-sm font-medium">
-          <span>Nombre</span>
-          <input className="w-full rounded-md border px-3 py-2 text-sm" defaultValue={template?.name ?? ""} name="name" required />
-        </label>
-        <label className="space-y-1 text-sm font-medium">
-          <span>Canal</span>
-          <select className="w-full rounded-md border px-3 py-2 text-sm" name="channel" onChange={(event) => setChannel(event.target.value as MessageTemplateChannel)} value={channel}>
-            <option value="whatsapp">WhatsApp</option>
-            <option value="email">Email</option>
-          </select>
-        </label>
-        <label className="space-y-1 text-sm font-medium">
-          <span>Categoría</span>
-          <input className="w-full rounded-md border px-3 py-2 text-sm" defaultValue={template?.category ?? "general"} name="category" />
-        </label>
-        <label className="space-y-1 text-sm font-medium">
-          <span>Orden</span>
-          <input className="w-full rounded-md border px-3 py-2 text-sm" defaultValue={String(template?.sort_order ?? 100)} name="sort_order" />
-        </label>
-        <label className="space-y-1 text-sm font-medium md:col-span-2">
-          <span>Descripción</span>
-          <input className="w-full rounded-md border px-3 py-2 text-sm" defaultValue={template?.description ?? ""} name="description" />
-        </label>
+      <TemplateSection description="Nombre visible, canal operativo y metadatos internos de organización." title="1. Configuración básica">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <label className="space-y-1.5 text-sm font-medium text-[color:var(--admin-foreground)]">
+            <span>Nombre visible</span>
+            <input className={adminInputClassName} defaultValue={template?.name ?? ""} name="name" required />
+          </label>
+          <label className="space-y-1.5 text-sm font-medium text-[color:var(--admin-foreground)]">
+            <span>Canal</span>
+            <select className={adminSelectClassName} name="channel" onChange={(event) => setChannel(event.target.value as MessageTemplateChannel)} value={channel}>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="email">Email</option>
+            </select>
+          </label>
+          <label className="space-y-1.5 text-sm font-medium text-[color:var(--admin-foreground)]">
+            <span>Categoría</span>
+            <input className={adminInputClassName} defaultValue={template?.category ?? "general"} name="category" />
+            <p className={adminFieldHintClassName}>Se conserva el identificador exacto enviado al servidor.</p>
+          </label>
+          <label className="space-y-1.5 text-sm font-medium text-[color:var(--admin-foreground)]">
+            <span>Orden</span>
+            <input className={adminInputClassName} defaultValue={String(template?.sort_order ?? 100)} name="sort_order" />
+          </label>
+          <label className="space-y-1.5 text-sm font-medium text-[color:var(--admin-foreground)] lg:col-span-2">
+            <span>Descripción operativa</span>
+            <input className={adminInputClassName} defaultValue={template?.description ?? ""} name="description" />
+          </label>
+        </div>
+      </TemplateSection>
 
-        {channel === "email" ? (
-          <>
-            <FieldInput field="subject_es" inputRef={subjectEsRef} label="Asunto ES" onChange={setSubjectEs} onFocus={setActiveField} value={subjectEs} />
-            <FieldInput field="subject_en" inputRef={subjectEnRef} label="Asunto EN" onChange={setSubjectEn} onFocus={setActiveField} value={subjectEn} />
-          </>
-        ) : null}
+      <TemplateSection description="Edita el contenido por idioma y revisa rápidamente si cada versión está lista." title="2. Contenido bilingüe">
+        <LocalizedEditorTabs
+          defaultTab="es"
+          tabs={[
+            {
+              key: "es",
+              label: "Versión ES",
+              complete: completeness(bodyEs, channel === "email" ? subjectEs : undefined),
+              description: "Versión principal en español para el canal seleccionado.",
+              content: (
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {channel === "email" ? <FieldInput field="subject_es" inputRef={subjectEsRef} label="Asunto en español" onChange={setSubjectEs} onFocus={setActiveField} value={subjectEs} /> : null}
+                  <FieldInput field="body_es" inputRef={bodyEsRef} label="Cuerpo en español" onChange={setBodyEs} onFocus={setActiveField} required textarea value={bodyEs} />
+                </div>
+              ),
+            },
+            {
+              key: "en",
+              label: "Versión EN",
+              complete: completeness(bodyEn, channel === "email" ? subjectEn : undefined),
+              description: "Versión equivalente en inglés para el sitio y la operación bilingüe.",
+              content: (
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {channel === "email" ? <FieldInput field="subject_en" inputRef={subjectEnRef} label="Asunto en inglés" onChange={setSubjectEn} onFocus={setActiveField} value={subjectEn} /> : null}
+                  <FieldInput field="body_en" inputRef={bodyEnRef} label="Cuerpo en inglés" onChange={setBodyEn} onFocus={setActiveField} required textarea value={bodyEn} />
+                </div>
+              ),
+            },
+          ]}
+        />
+      </TemplateSection>
 
-        <FieldInput field="body_es" inputRef={bodyEsRef} label="Cuerpo ES" onChange={setBodyEs} onFocus={setActiveField} required textarea value={bodyEs} />
-        <FieldInput field="body_en" inputRef={bodyEnRef} label="Cuerpo EN" onChange={setBodyEn} onFocus={setActiveField} required textarea value={bodyEn} />
-
-        <div className="space-y-3 rounded-lg border bg-muted/20 p-3 md:col-span-2">
+      <TemplateSection description="Declara solo variables válidas para el canal y añádelas al cursor activo con el formato permitido." title="3. Variables y validación">
+        <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold">Variables seleccionadas</span>
+            <StatusBadge tone="neutral">Canal: {templateChannelLabel(channel)}</StatusBadge>
+            <StatusBadge tone={validation.isValid ? "success" : "warning"}>{validation.isValid ? "Validación lista" : "Requiere corrección"}</StatusBadge>
+            <StatusBadge tone="brand">Campo activo: {FIELD_LABELS[activeField]}</StatusBadge>
+            <StatusBadge tone="neutral">Variables declaradas: {selectedVariables.length}</StatusBadge>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
             {selectedVariables.length ? selectedVariables.map((variable) => (
               <button
-                className="rounded-full border px-2 py-1 text-xs"
+                className="rounded-full border border-[color:var(--admin-border)] bg-white px-3 py-1.5 text-xs font-medium text-[color:var(--admin-foreground)]"
                 key={variable}
                 onClick={() => toggleVariable(variable)}
                 type="button"
               >
                 {`{{${variable}}}`} ×
               </button>
-            )) : <span className="text-xs text-muted-foreground">Sin variables seleccionadas aún.</span>}
+            )) : <p className="text-sm text-[color:var(--admin-muted-foreground)]">Todavía no hay variables seleccionadas.</p>}
           </div>
 
           {validation.errors.length ? (
-            <ul className="space-y-1 rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-800">
-              {validation.errors.map((message) => <li key={message}>• {message}</li>)}
+            <ul className="space-y-1 rounded-[var(--admin-radius-card)] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              {validation.errors.map((message) => <li key={message}>• {translateTemplateValidationMessage(message)}</li>)}
             </ul>
           ) : null}
           {validation.warnings.length ? (
-            <ul className="space-y-1 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-              {validation.warnings.map((message) => <li key={message}>• {message}</li>)}
+            <ul className="space-y-1 rounded-[var(--admin-radius-card)] border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              {validation.warnings.map((message) => <li key={message}>• {translateTemplateValidationMessage(message)}</li>)}
             </ul>
           ) : null}
 
-          {validation.undeclaredVariables.length ? (
-            <div className="flex flex-wrap items-center gap-2 text-xs text-red-800">
-              <span>Agregar usadas sin seleccionar:</span>
-              {validation.undeclaredVariables.map((variable) => (
-                <Button key={variable} onClick={() => toggleVariable(variable)} size="sm" type="button" variant="outline">{`Seleccionar {{${variable}}}`}</Button>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="space-y-3 rounded-lg border p-3 md:col-span-2">
-          <div>
-            <p className="text-sm font-semibold">Catálogo global de variables</p>
-            <p className="text-xs text-muted-foreground">Selecciona variables válidas por canal e insértalas con el formato canónico <code className="rounded bg-muted px-1">{"{{key}}"}</code>.</p>
-          </div>
-          <div className="grid gap-2 lg:grid-cols-2">
+          <div className="grid gap-3 lg:grid-cols-2">
             {channelCatalog.map((item) => {
               const isUsed = validation.usedVariables.includes(item.key);
               const isSelected = selectedSet.has(item.key);
               const status = isUsed && isSelected ? "Usada y seleccionada" : isUsed ? "Usada sin seleccionar" : isSelected ? "Seleccionada sin uso" : "Disponible";
+
               return (
-                <div className="space-y-2 rounded-md border p-3" key={item.key}>
+                <div className="rounded-[var(--admin-radius-card)] border border-[color:var(--admin-border-subtle)] bg-white p-4" key={item.key}>
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <label className="flex items-start gap-2 text-sm">
+                    <label className="flex items-start gap-2 text-sm text-[color:var(--admin-foreground)]">
                       <input checked={isSelected} onChange={() => toggleVariable(item.key)} type="checkbox" />
                       <span>
                         <span className="font-semibold">{item.label}</span>
-                        <span className="ml-2 rounded bg-muted px-1 py-0.5 font-mono text-xs">{`{{${item.key}}}`}</span>
+                        <span className="ml-2 rounded bg-[color:var(--admin-surface-muted)] px-1.5 py-0.5 font-mono text-xs">{`{{${item.key}}}`}</span>
                       </span>
                     </label>
-                    <span className={`rounded-full px-2 py-1 text-[11px] ${isUsed && !isSelected ? "bg-red-100 text-red-800" : isSelected && !isUsed ? "bg-amber-100 text-amber-900" : isSelected ? "bg-emerald-100 text-emerald-900" : "bg-muted text-muted-foreground"}`}>{status}</span>
+                    <StatusBadge tone={isUsed && !isSelected ? "error" : isSelected && !isUsed ? "warning" : isSelected ? "success" : "neutral"}>{status}</StatusBadge>
                   </div>
-                  <p className="text-xs text-muted-foreground">{item.description}</p>
-                  <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                    <span className="rounded bg-muted px-2 py-1">Source: {item.source}</span>
-                    <span className="rounded bg-muted px-2 py-1">Example: {String(item.example)}</span>
+                  <p className="mt-2 text-xs leading-5 text-[color:var(--admin-muted-foreground)]">{item.description}</p>
+                  <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-[color:var(--admin-muted-foreground)]">
+                    <span className="rounded bg-[color:var(--admin-surface-muted)] px-2 py-1">Origen: {templateVariableSourceLabel(item.source)}</span>
+                    <span className="rounded bg-[color:var(--admin-surface-muted)] px-2 py-1">Ejemplo: {String(item.example)}</span>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     <Button onClick={() => insertVariable(item.key)} size="sm" type="button" variant="outline">Insertar</Button>
                     {!isSelected ? <Button onClick={() => toggleVariable(item.key)} size="sm" type="button" variant="ghost">Seleccionar</Button> : null}
                   </div>
@@ -274,36 +374,42 @@ export function TemplateForm({ template }: { template?: TemplateFormTemplate }) 
             })}
           </div>
         </div>
+      </TemplateSection>
 
-        <label className="flex items-center gap-2 text-sm font-medium md:col-span-2">
-          <input defaultChecked={template?.is_active ?? true} name="is_active" type="checkbox" /> Activa
-        </label>
+      <TemplateSection description="Controla si la plantilla queda disponible y revisa el resultado con datos de ejemplo antes de guardar." title="4. Estado y vista previa" defaultOpen={false}>
+        <div className="space-y-4">
+          <label className="flex items-center gap-3 rounded-[var(--admin-radius-card)] border border-[color:var(--admin-border-subtle)] bg-white p-4 text-sm font-medium text-[color:var(--admin-foreground)]">
+            <input className="h-4 w-4" defaultChecked={template?.is_active ?? true} name="is_active" type="checkbox" />
+            <span>
+              <span className="block">Plantilla activa</span>
+              <span className="mt-1 block text-xs font-normal text-[color:var(--admin-muted-foreground)]">Si la desactivas, se conserva para edición pero sale de la operación activa.</span>
+            </span>
+          </label>
 
-        <div className="space-y-3 rounded-lg border bg-muted/30 p-3 text-sm md:col-span-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Vista previa con datos de ejemplo</span>
-            {validation.usedVariables.length ? <span className="rounded-full bg-white px-2 py-1 text-xs text-muted-foreground">Usa: {validation.usedVariables.join(", ")}</span> : null}
-            <span className="rounded-full bg-white px-2 py-1 text-xs text-muted-foreground">Campo activo: {FIELD_LABELS[activeField]}</span>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">ES</p>
-              {renderedSubjectEs ? <p className="font-medium">{renderedSubjectEs}</p> : null}
-              <p className="whitespace-pre-wrap rounded-md bg-white p-3 text-xs leading-relaxed">{renderedBodyEs}</p>
+          <div className="rounded-[var(--admin-radius-card)] border border-[color:var(--admin-border-subtle)] bg-white p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-[color:var(--admin-muted-foreground)]">Vista previa con datos de ejemplo</span>
+              {validation.usedVariables.length ? <StatusBadge tone="neutral">Usa: {validation.usedVariables.join(", ")}</StatusBadge> : null}
+              <CopyPreviewButton label="Copiar ES" value={`${renderedSubjectEs ? `${renderedSubjectEs}\n` : ""}${renderedBodyEs}`} />
+              <CopyPreviewButton label="Copiar EN" value={`${renderedSubjectEn ? `${renderedSubjectEn}\n` : ""}${renderedBodyEn}`} />
             </div>
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">EN</p>
-              {renderedSubjectEn ? <p className="font-medium">{renderedSubjectEn}</p> : null}
-              <p className="whitespace-pre-wrap rounded-md bg-white p-3 text-xs leading-relaxed">{renderedBodyEn}</p>
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              <div className="space-y-2">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">ES</p>
+                {renderedSubjectEs ? <p className="font-medium text-[color:var(--admin-foreground)]">{renderedSubjectEs}</p> : null}
+                <p className="whitespace-pre-wrap rounded-[var(--admin-radius-control)] bg-[color:var(--admin-surface-muted)] p-3 text-sm leading-relaxed text-[color:var(--admin-foreground)]">{renderedBodyEs}</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">EN</p>
+                {renderedSubjectEn ? <p className="font-medium text-[color:var(--admin-foreground)]">{renderedSubjectEn}</p> : null}
+                <p className="whitespace-pre-wrap rounded-[var(--admin-radius-control)] bg-[color:var(--admin-surface-muted)] p-3 text-sm leading-relaxed text-[color:var(--admin-foreground)]">{renderedBodyEn}</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </TemplateSection>
 
-      <div className="flex flex-wrap gap-2">
-        <Button disabled={!validation.isValid} type="submit">{template ? "Guardar cambios" : "Crear plantilla"}</Button>
-        {template ? <Button formAction={deleteTemplateAction} type="submit" variant="outline">Eliminar</Button> : null}
-      </div>
+      <TemplateSubmitBar disableSave={!validation.isValid} isEditing={Boolean(template)} />
     </form>
   );
 }

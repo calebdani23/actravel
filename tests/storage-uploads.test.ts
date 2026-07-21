@@ -51,7 +51,7 @@ test("booking delete flow prefetches related documents before cascading database
 
   assert.match(actions, /async function getBookingDocumentFiles\(id: string\)/);
   assert.match(actions, /from\("documents"\)\.select\("bucket, path"\)\.eq\("booking_id", id\)/);
-  assert.match(actions, /const \{ supabase, files \} = await getBookingDocumentFiles\(id!\);/);
+  assert.match(actions, /const \{ supabase, files \} = await getBookingDocumentFiles\(id\);/);
   assert.match(actions, /from\("bookings"\)\.delete\(\)\.eq\("id", id\)/);
   assert.match(actions, /await removeStoredObjects\(supabase, files\)/);
   assert.match(actions, /console\.error\("\[bookings\] deleted documents cleanup failed"/);

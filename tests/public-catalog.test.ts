@@ -9,13 +9,14 @@ import { normalizeCurrencyPreference, parseCurrencyCookie, resolveCurrencyPrefer
 import { shouldSyncQuoteFormCurrency } from "@/lib/quote-form-currency-sync";
 import { normalizePromotionCommercialSectionsValue } from "@/lib/promotion-commercial-sections";
 import { resolveCatalogMediaUrl } from "@/lib/catalog-media";
-import { buildLivePublicCatalogContent } from "@/lib/content/public-catalog";
+import { buildLivePublicCatalogContent, buildPublicCatalogLogDetails } from "@/lib/content/public-catalog";
 import { buildPublicCatalogStaticParams } from "@/lib/content/public-catalog-utils";
 import { buildFallbackCatalogContent, buildPublicCatalogContent, buildPublicCatalogItem, buildPublicHomeContent, getPublicSiteContent, getRelatedPromotionItems, mergeCatalogWithFallback, priceLabel, publishedCatalogRows, translateSlug } from "@/lib/content/public-site";
+import type { CatalogRowLike } from "@/lib/content/public-site";
 import { buildDetailAlternatePaths, getLocalizedPath, resolveAlternateLocalizedPath } from "@/lib/i18n/public-routes";
 import { buildQuotePageInitialContext } from "@/lib/quote-page-context";
 
-function buildQueryResult(data: unknown, error: { message: string; code?: string } | null = null) {
+function buildQueryResult(data: CatalogRowLike[] | null, error: { message: string; code?: string; details?: string; hint?: string } | null = null) {
   return { data, error };
 }
 
@@ -428,6 +429,61 @@ test("catalog fallback is reused end-to-end when live loading fails", () => {
   assert.equal(catalog.destinations.some((entry) => entry.slug.es === "cancun"), true);
   assert.equal(params.some((entry) => entry.slug === "cancun"), true);
   assert.equal(item?.id, "cancun");
+});
+
+test("public catalog query logging stays compact and excludes provider html or secrets", () => {
+  const originalError = console.error;
+  const calls: unknown[][] = [];
+  console.error = (...args: unknown[]) => {
+    calls.push(args);
+  };
+
+  try {
+    const liveCatalog = buildLivePublicCatalogContent("es", {
+      destinations: buildQueryResult([], {
+        message: "<html><body>522 token=secret https://example.com/catalog?token=secret</body></html>",
+        code: "522",
+        details: "signedUrl=https://example.com/private?sig=abc123",
+        hint: "password=hunter2",
+      }),
+      services: buildQueryResult([], null),
+      packages: buildQueryResult([], null),
+      promotions: buildQueryResult([], null),
+    });
+
+    const catalog = liveCatalog ?? buildFallbackCatalogContent("es");
+    const logged = JSON.stringify(calls);
+
+    assert.equal(liveCatalog, null);
+    assert.equal(catalog.destinations.some((entry) => entry.slug.es === "cancun"), true);
+    assert.equal(calls.length, 1);
+    assert.match(logged, /Respuesta no disponible del servicio de catálogo/);
+    assert.match(logged, /"code":"522"/);
+    assert.doesNotMatch(logged, /<html|body>|token=secret|hunter2|signedUrl|https:\/\/example\.com\/catalog\?token=secret|abc123/i);
+  } finally {
+    console.error = originalError;
+  }
+});
+
+test("public catalog fatal log details keep safe status and generic summary only", () => {
+  const details = buildPublicCatalogLogDetails({
+    message: "<html>Cloudflare 522</html>",
+    stack: "Error: boom\n at secret.ts:1:1",
+    status: 522,
+    code: "cf_timeout",
+    url: "https://example.com/private?token=secret",
+  }, {
+    summary: "No se pudo cargar el catálogo externo",
+  });
+
+  const logged = JSON.stringify(details);
+
+  assert.deepEqual(details, {
+    code: "cf_timeout",
+    status: 522,
+    summary: "No se pudo cargar el catálogo externo",
+  });
+  assert.doesNotMatch(logged, /<html|Cloudflare 522|secret\.ts|token=secret|https:\/\/example\.com\/private/i);
 });
 
 test("successful live empty sections stay empty without demo backfill", () => {

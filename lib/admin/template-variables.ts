@@ -24,11 +24,17 @@ export type TemplateVariableDefinition = {
   leadResolver?: (input: LeadTemplateVariableInput) => TemplateVariableValue;
 };
 
+const TEMPLATE_VARIABLE_SOURCE_LABELS: Record<TemplateVariableSource, string> = {
+  lead: "Prospecto",
+  advisor: "Asesor asignado",
+  system: "Sistema",
+};
+
 export const TEMPLATE_VARIABLE_CATALOG = [
   {
     key: "name",
-    label: "Traveler name",
-    description: "Primary contact or traveler display name.",
+    label: "Nombre del viajero",
+    description: "Nombre principal del contacto o del viajero para mostrar en el mensaje.",
     source: "lead",
     channels: ["email", "whatsapp"],
     example: "María",
@@ -36,8 +42,8 @@ export const TEMPLATE_VARIABLE_CATALOG = [
   },
   {
     key: "destination",
-    label: "Destination",
-    description: "Requested destination for the trip.",
+    label: "Destino",
+    description: "Destino solicitado para el viaje.",
     source: "lead",
     channels: ["email", "whatsapp"],
     example: "Riviera Maya",
@@ -45,8 +51,8 @@ export const TEMPLATE_VARIABLE_CATALOG = [
   },
   {
     key: "startDate",
-    label: "Start date",
-    description: "Requested departure date.",
+    label: "Fecha de salida",
+    description: "Fecha de inicio o salida solicitada.",
     source: "lead",
     channels: ["email", "whatsapp"],
     example: "2026-07-15",
@@ -54,8 +60,8 @@ export const TEMPLATE_VARIABLE_CATALOG = [
   },
   {
     key: "endDate",
-    label: "End date",
-    description: "Requested return date.",
+    label: "Fecha de regreso",
+    description: "Fecha de regreso solicitada.",
     source: "lead",
     channels: ["email", "whatsapp"],
     example: "2026-07-20",
@@ -63,8 +69,8 @@ export const TEMPLATE_VARIABLE_CATALOG = [
   },
   {
     key: "travelers",
-    label: "Travelers",
-    description: "Traveler count for the request.",
+    label: "Viajeros",
+    description: "Cantidad de viajeros en la solicitud.",
     source: "lead",
     channels: ["email", "whatsapp"],
     example: 2,
@@ -72,8 +78,8 @@ export const TEMPLATE_VARIABLE_CATALOG = [
   },
   {
     key: "budget",
-    label: "Budget",
-    description: "Budget text captured from the lead.",
+    label: "Presupuesto",
+    description: "Presupuesto capturado desde el prospecto.",
     source: "lead",
     channels: ["email", "whatsapp"],
     example: "$45,000 MXN",
@@ -81,8 +87,8 @@ export const TEMPLATE_VARIABLE_CATALOG = [
   },
   {
     key: "advisor",
-    label: "Advisor",
-    description: "Assigned advisor name with AC Travel fallback.",
+    label: "Asesor",
+    description: "Nombre del asesor asignado, con AC Travel como respaldo.",
     source: "advisor",
     channels: ["email", "whatsapp"],
     example: "AC Travel",
@@ -90,8 +96,8 @@ export const TEMPLATE_VARIABLE_CATALOG = [
   },
   {
     key: "status",
-    label: "Lead status",
-    description: "Current lead status label.",
+    label: "Estado del prospecto",
+    description: "Etiqueta actual del estado del prospecto.",
     source: "system",
     channels: ["email", "whatsapp"],
     example: "Cotizando",
@@ -102,6 +108,17 @@ export const TEMPLATE_VARIABLE_CATALOG = [
 const VARIABLE_BY_KEY = new Map<string, TemplateVariableDefinition>(TEMPLATE_VARIABLE_CATALOG.map((item) => [item.key, item]));
 
 export const SUPPORTED_LEAD_TEMPLATE_VARIABLES = TEMPLATE_VARIABLE_CATALOG.map((item) => item.key);
+
+export function templateVariableSourceLabel(source?: string | null) {
+  if (!source) return "Origen no identificado";
+  return TEMPLATE_VARIABLE_SOURCE_LABELS[source as TemplateVariableSource] ?? "Origen no identificado";
+}
+
+export function templateChannelLabel(channel?: string | null) {
+  if (channel === "email") return "Email";
+  if (channel === "whatsapp") return "WhatsApp";
+  return "Canal no identificado";
+}
 
 export function getTemplateVariableCatalog(channel?: MessageTemplateChannel) {
   if (!channel) return [...TEMPLATE_VARIABLE_CATALOG];

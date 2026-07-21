@@ -24,6 +24,55 @@ type CatalogQueryResults = {
   promotions: CatalogQueryResult;
 };
 
+type PublicCatalogLogDetails = {
+  section?: keyof CatalogQueryResults;
+  code?: string;
+  status?: number;
+  summary: string;
+};
+
+function sanitizePublicCatalogCode(value: unknown) {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return /^[A-Za-z0-9_-]{1,32}$/.test(trimmed) ? trimmed : undefined;
+}
+
+function sanitizePublicCatalogStatus(value: unknown) {
+  return typeof value === "number" && Number.isInteger(value) && value >= 100 && value <= 599 ? value : undefined;
+}
+
+export function buildPublicCatalogLogDetails(
+  error: unknown,
+  options: {
+    section?: keyof CatalogQueryResults;
+    summary: string;
+  },
+): PublicCatalogLogDetails {
+  const code = sanitizePublicCatalogCode(error && typeof error === "object" && "code" in error ? error.code : undefined);
+  const status = sanitizePublicCatalogStatus(error && typeof error === "object" && "status" in error ? error.status : undefined)
+    ?? sanitizePublicCatalogStatus(error && typeof error === "object" && "statusCode" in error ? error.statusCode : undefined);
+
+  return {
+    ...(options.section ? { section: options.section } : {}),
+    ...(code ? { code } : {}),
+    ...(status ? { status } : {}),
+    summary: options.summary,
+  };
+}
+
+function logPublicCatalogQueryFailure(section: keyof CatalogQueryResults, error: CatalogQueryError) {
+  console.error(`[public-catalog] ${section} query failed`, buildPublicCatalogLogDetails(error, {
+    section,
+    summary: "Respuesta no disponible del servicio de catálogo",
+  }));
+}
+
+function logPublicCatalogFatalError(error: unknown) {
+  console.error("[public-catalog] Fatal error loading catalog", buildPublicCatalogLogDetails(error, {
+    summary: "No se pudo cargar el catálogo externo",
+  }));
+}
+
 function shouldRetryWithoutDetailSections(error: CatalogQueryError | null) {
   return error?.code === "42703" && /detail_sections_(es|en)/.test(error.message);
 }
@@ -117,12 +166,7 @@ export function buildLivePublicCatalogContent(locale: Locale, results: CatalogQu
 
   for (const [section, error] of Object.entries(queryErrors)) {
     if (error) {
-      console.error(`[public-catalog] ${section} query failed`, {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-      });
+      logPublicCatalogQueryFailure(section as keyof CatalogQueryResults, error);
     }
   }
 
@@ -177,7 +221,7 @@ export async function getLivePublicCatalogContent(locale: Locale) {
       promotions: { data: (promotionsResult.data ?? []) as CatalogRowLike[], error: promotionsResult.error },
     });
   } catch (error) {
-    console.error("[public-catalog] Fatal error loading catalog:", error);
+    logPublicCatalogFatalError(error);
     return null;
   }
 }

@@ -1,74 +1,60 @@
-"use client";
-
-import { useActionState } from "react";
-import { deleteStaffAction, updateStaffAction } from "@/app/admin/(protected)/staff/actions";
-import { initialStaffDeleteActionState, initialStaffUpdateActionState } from "@/app/admin/(protected)/staff/action-state";
+import { OperationDialog } from "@/components/admin/operations/operation-dialog";
+import { EmptyState, StatusBadge } from "@/components/admin/admin-primitives";
+import { StaffDeleteForm, StaffEditForm } from "@/components/admin/staff/staff-action-forms";
 import type { StaffAccount } from "@/lib/admin/staff";
+import { formatAdminDateTime } from "@/lib/admin/format";
+import { staffActiveStateLabel, staffLastActivityLabel, staffManagementNote, staffRoleLabel, staffRolesSummary } from "@/lib/admin/staff-view";
 
-function RowForm({ staff }: { staff: StaffAccount }) {
-  const [updateState, updateAction] = useActionState(updateStaffAction, initialStaffUpdateActionState);
-  const [deleteState, deleteAction] = useActionState(deleteStaffAction, initialStaffDeleteActionState);
-  const isEditable = staff.is_manageable_in_mvp;
-
+function StaffCard({ staff }: Readonly<{ staff: StaffAccount }>) {
   return (
-    <div className="space-y-3 rounded-lg border p-4">
-      <form action={updateAction} className="grid gap-3 md:grid-cols-6">
-        <input name="profile_id" type="hidden" value={staff.id} />
-        <div className="md:col-span-2">
-          <label className="text-xs font-medium text-muted-foreground" htmlFor={`full_name-${staff.id}`}>Full name</label>
-          <input className="mt-1 w-full rounded-md border px-3 py-2 text-sm" defaultValue={staff.full_name} id={`full_name-${staff.id}`} name="full_name" />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-muted-foreground">Email</label>
-          <p className="mt-2 break-all text-sm">{staff.email ?? "—"}</p>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-muted-foreground" htmlFor={`role-${staff.id}`}>Role</label>
-          <select className="mt-1 w-full rounded-md border px-3 py-2 text-sm" defaultValue={staff.role ?? "asesor"} disabled={!isEditable} id={`role-${staff.id}`} name="role">
-            <option value="asesor">Asesor</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2 pt-6">
-          <input defaultChecked={staff.is_active} disabled={!isEditable} id={`is_active-${staff.id}`} name="is_active" type="checkbox" />
-          <label className="text-sm" htmlFor={`is_active-${staff.id}`}>App access active</label>
-        </div>
-        <div className="flex items-end justify-end">
-          <button className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60" disabled={!isEditable} type="submit">Save</button>
-        </div>
-      </form>
-
-      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-        <span>ID: {staff.id}</span>
-        <span>App access: {staff.is_active ? "Active" : "Inactive"}</span>
-        <span>Current roles: {staff.roles.join(", ") || "Unassigned"}</span>
-        <span>Created: {new Date(staff.created_at).toLocaleString()}</span>
-        <span>Updated: {new Date(staff.updated_at).toLocaleString()}</span>
-      </div>
-
-      {!isEditable ? <p className="text-xs text-amber-700">{staff.management_block_reason}</p> : <p className="text-xs text-muted-foreground">Inactive blocks AC Travel admin access via <code>profiles.is_active</code>; it does not suspend the mailbox or ban the Supabase Auth user.</p>}
-      {updateState.message ? <p className={`text-sm ${updateState.ok ? "text-emerald-700" : "text-red-700"}`}>{updateState.message}</p> : null}
-
-      <form action={deleteAction} className="rounded-md border border-red-200 bg-red-50/60 p-3">
-        <input name="profile_id" type="hidden" value={staff.id} />
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-1 text-xs text-red-900">
-            <p className="font-semibold">Permanent delete</p>
-            <p>Only use this when the account is truly disposable. Self-delete, deleting the last active admin, and deleting accounts still referenced in leads/bookings/history are blocked automatically.</p>
-            <p>If AC Travel still has historical references to this staff member, deactivate the account instead.</p>
+    <article className="rounded-[var(--admin-radius-card)] border border-[color:var(--admin-border-subtle)] bg-white p-4 shadow-[var(--admin-shadow-card)]">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 flex-1 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-lg font-semibold text-[color:var(--admin-foreground)]">{staff.full_name || "No identificado"}</h3>
+            <StatusBadge tone={staff.is_active ? "success" : "warning"}>{staffActiveStateLabel(staff.is_active)}</StatusBadge>
+            <StatusBadge tone={staff.role ? "brand" : "neutral"}>{staff.role ? staffRoleLabel(staff.role) : "Rol no identificado"}</StatusBadge>
+            {!staff.is_manageable_in_mvp ? <StatusBadge tone="warning">Solo lectura</StatusBadge> : null}
           </div>
-          <button className="rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100" type="submit">Permanently delete</button>
+          <p className="break-all text-sm text-[color:var(--admin-muted-foreground)]">{staff.email ?? "No identificado"}</p>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Roles visibles</p>
+              <p className="mt-1 text-sm font-medium text-[color:var(--admin-foreground)]">{staffRolesSummary(staff.roles)}</p>
+            </div>
+            <div className="rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Creado</p>
+              <p className="mt-1 text-sm font-medium text-[color:var(--admin-foreground)]">{formatAdminDateTime(staff.created_at)}</p>
+            </div>
+            <div className="rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Actividad</p>
+              <p className="mt-1 text-sm font-medium text-[color:var(--admin-foreground)]">{staffLastActivityLabel(staff.updated_at)}</p>
+            </div>
+            <div className="rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Estado de edición</p>
+              <p className="mt-1 text-sm font-medium text-[color:var(--admin-foreground)]">{staff.is_manageable_in_mvp ? "Gestionable" : "Restringido"}</p>
+            </div>
+          </div>
+          <p className="text-sm text-[color:var(--admin-muted-foreground)]">{staffManagementNote(staff.management_block_reason)}</p>
         </div>
-        {deleteState.message ? <p className={`mt-3 text-sm ${deleteState.ok ? "text-emerald-700" : "text-red-700"}`}>{deleteState.message}</p> : null}
-      </form>
-    </div>
+        <div className="flex flex-wrap gap-2">
+          <OperationDialog description={`Edita ${staff.full_name || "este usuario"} sin cambiar contratos del servidor ni validaciones existentes.`} title={`Editar ${staff.full_name || "usuario"}`} triggerLabel="Editar">
+            <StaffEditForm staff={staff} />
+          </OperationDialog>
+          {staff.is_manageable_in_mvp ? (
+            <OperationDialog description="Revisa el impacto antes de confirmar la eliminación permanente." title={`Eliminar ${staff.full_name || "usuario"}`} triggerClassName="border border-red-200 bg-white text-red-700 hover:bg-red-50" triggerLabel="Eliminar">
+              <StaffDeleteForm staff={staff} />
+            </OperationDialog>
+          ) : (
+            <StatusBadge tone="neutral">Eliminación no disponible</StatusBadge>
+          )}
+        </div>
+      </div>
+    </article>
   );
 }
 
 export function StaffList({ staff }: { staff: StaffAccount[] }) {
-  return (
-    <div className="space-y-4">
-      {staff.length ? staff.map((row) => <RowForm key={row.id} staff={row} />) : <p className="text-sm text-muted-foreground">No staff records were found.</p>}
-    </div>
-  );
+  if (!staff.length) return <EmptyState description="Cuando existan usuarios internos visibles aparecerán aquí." title="Sin usuarios para mostrar" />;
+  return <div className="grid gap-4">{staff.map((row) => <StaffCard key={row.id} staff={row} />)}</div>;
 }

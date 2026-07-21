@@ -21,7 +21,7 @@ export async function createStaffAction(_previous: StaffCreateActionState, formD
   if (!parsed.success) {
     return {
       ok: false,
-      message: "Review the highlighted fields.",
+      message: "Revisa los campos marcados.",
       fieldErrors: parsed.fieldErrors,
       values: {
         email: parsed.values.email,
@@ -37,14 +37,14 @@ export async function createStaffAction(_previous: StaffCreateActionState, formD
     revalidateStaffPages();
     return {
       ok: true,
-      message: `Staff account created for ${parsed.data.email}. Share the initial password through an approved secure manual channel.`,
+      message: `Usuario creado para ${parsed.data.email}. Comparte la contraseña inicial por un canal manual aprobado.`,
       fieldErrors: {},
       values: initialStaffCreateActionState.values,
     };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Could not create the staff account.",
+      message: error instanceof Error ? error.message : "No se pudo crear el usuario.",
       fieldErrors: {},
       values: { email: parsed.data.email, full_name: parsed.data.full_name, role: parsed.data.role, is_active: parsed.data.is_active },
     };
@@ -55,15 +55,15 @@ export async function updateStaffAction(_previous: StaffUpdateActionState, formD
   const session = await requireAdminRole(["admin"]);
   const parsed = parseUpdateStaffFormData(formData);
   if (!parsed.success) {
-    return { ok: false, message: "Review the highlighted fields.", fieldErrors: parsed.fieldErrors };
+    return { ok: false, message: "Revisa los campos marcados.", fieldErrors: parsed.fieldErrors };
   }
 
   try {
     await updateStaffAccount(parsed.data, { id: session.user.id, email: session.user.email, roles: session.roles });
     revalidateStaffPages();
-    return { ok: true, message: "Staff account updated.", fieldErrors: {} };
+    return { ok: true, message: "Usuario actualizado.", fieldErrors: {} };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "Could not update the staff account.", fieldErrors: {} };
+    return { ok: false, message: error instanceof Error ? error.message : "No se pudo actualizar el usuario.", fieldErrors: {} };
   }
 }
 
@@ -71,14 +71,14 @@ export async function deleteStaffAction(_previous: StaffDeleteActionState, formD
   const session = await requireAdminRole(["admin"]);
   const parsed = parseDeleteStaffFormData(formData);
   if (!parsed.success) {
-    return { ok: false, message: "Invalid staff account selection.", fieldErrors: parsed.fieldErrors };
+    return { ok: false, message: "Selección de usuario no válida.", fieldErrors: parsed.fieldErrors };
   }
 
   try {
     await deleteStaffAccount(parsed.data, { id: session.user.id, email: session.user.email, roles: session.roles });
     revalidateStaffPages();
-    return { ok: true, message: "Staff account permanently deleted.", fieldErrors: {} };
+    return { ok: true, message: "Usuario eliminado de forma permanente.", fieldErrors: {} };
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : "Could not permanently delete the staff account.", fieldErrors: {} };
+    return { ok: false, message: error instanceof Error ? error.message : "No se pudo eliminar el usuario de forma permanente.", fieldErrors: {} };
   }
 }
