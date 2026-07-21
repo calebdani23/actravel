@@ -30,11 +30,12 @@ export default async function AdminLoginPage() {
                   fill
                   priority
                   sizes="(min-width: 1024px) 58vw, 100vw"
-                  className="object-cover object-[center_28%] sm:object-[center_24%] lg:object-center"
+                  className="object-cover object-[center_30%] sm:object-[center_26%] lg:object-[center_48%]"
                 />
-                <div className="absolute inset-0 bg-[linear-gradient(130deg,rgba(204,63,26,0.2)_0%,rgba(204,63,26,0.08)_26%,rgba(211,44,31,0.16)_56%,rgba(32,19,17,0.68)_100%)]" />
-                <div className="absolute inset-y-0 left-0 w-40 bg-[linear-gradient(90deg,rgba(150,47,20,0.42),rgba(150,47,20,0.18),transparent)]" />
-                <div className="absolute inset-x-0 bottom-0 h-32 bg-[linear-gradient(180deg,transparent,rgba(33,24,22,0.32))] lg:h-40" />
+                <div className="absolute inset-0 bg-[linear-gradient(130deg,rgba(197,58,23,0.28)_0%,rgba(197,58,23,0.14)_24%,rgba(210,56,36,0.18)_56%,rgba(32,19,17,0.74)_100%)]" />
+                <div className="absolute inset-y-0 left-0 w-44 bg-[linear-gradient(90deg,rgba(146,45,20,0.52),rgba(146,45,20,0.24),transparent)]" />
+                <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(115,35,17,0.18),transparent)] lg:h-28" />
+                <div className="absolute inset-x-0 bottom-0 h-32 bg-[linear-gradient(180deg,transparent,rgba(33,24,22,0.38))] lg:h-40" />
               </div>
 
               <div className="relative z-10 flex items-start justify-between gap-4">
@@ -51,14 +52,14 @@ export default async function AdminLoginPage() {
               </div>
 
               <div className="relative z-10 mt-8 max-w-[20rem] sm:max-w-[24rem] lg:mt-auto lg:max-w-xl">
-                <p className="text-sm font-semibold tracking-[0.22em] text-white/80 uppercase [text-shadow:0_1px_10px_rgba(17,10,9,0.18)]">AC Travel Mx</p>
-                <h1 className="mt-3 max-w-md text-[1.8rem] font-semibold leading-tight text-balance [text-shadow:0_2px_14px_rgba(17,10,9,0.22)] sm:text-4xl lg:text-[2.75rem]">
+                <p className="text-sm font-semibold tracking-[0.22em] text-white/80 uppercase [text-shadow:0_2px_12px_rgba(17,10,9,0.24)]">AC Travel Mx</p>
+                <h1 className="mt-3 max-w-md text-[1.8rem] font-semibold leading-tight text-balance [text-shadow:0_4px_18px_rgba(17,10,9,0.28)] sm:text-4xl lg:text-[2.75rem]">
                   Panel administrativo
                 </h1>
-                <p className="mt-4 max-w-lg text-sm leading-6 text-white/88 [text-shadow:0_1px_10px_rgba(17,10,9,0.16)] sm:text-base">
+                <p className="mt-4 max-w-lg text-sm leading-6 text-white/88 [text-shadow:0_2px_12px_rgba(17,10,9,0.2)] sm:text-base">
                   Gestiona el catálogo, las promociones y las solicitudes de viaje desde un solo lugar.
                 </p>
-                <p className="mt-5 text-sm font-medium text-[#f8eef7] [text-shadow:0_1px_10px_rgba(17,10,9,0.16)] sm:mt-6 sm:text-base">
+                <p className="mt-5 text-sm font-medium text-[#f8eef7] [text-shadow:0_2px_12px_rgba(17,10,9,0.2)] sm:mt-6 sm:text-base">
                   Suma viajes, suma experiencias, suma sueños.
                 </p>
               </div>
