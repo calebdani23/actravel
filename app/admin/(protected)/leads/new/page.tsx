@@ -14,9 +14,9 @@ export default async function NewLeadPage() {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8">
       <div>
-        <Link className="text-sm font-semibold text-[var(--ac-blue)] hover:underline" href="/admin/leads">← Volver a leads</Link>
-        <h1 className="mt-2 text-3xl font-bold">Nuevo lead</h1>
-        <p className="mt-2 text-muted-foreground">Crea un lead manual sin disparar flujos automáticos de cotización o email.</p>
+        <Link className="text-sm font-semibold text-[var(--ac-blue)] hover:underline" href="/admin/leads">← Volver a prospectos</Link>
+        <h1 className="mt-2 text-3xl font-bold">Nuevo prospecto</h1>
+        <p className="mt-2 text-muted-foreground">Crea un prospecto manual sin disparar flujos automáticos de cotización o correo electrónico.</p>
       </div>
 
       <Card>

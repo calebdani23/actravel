@@ -1,153 +1,281 @@
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertBanner, EmptyState, MetricCard, PageContainer, PageHeader, QuietActionButton, SectionCard, StatusBadge } from "@/components/admin/admin-primitives";
+import { Button } from "@/components/ui/button";
+import { formatAdminDate, formatAdminDateTime, formatAdminDateWindowLabel, formatAdminInteger } from "@/lib/admin/format";
 import { getDuplicateAuditSnapshot } from "@/lib/admin/data-quality";
 import { getDashboardMetrics } from "@/lib/admin/dashboard";
 
-const metricCards = [
-  { key: "leadsToday", label: "Leads hoy" },
-  { key: "failedEmails", label: "Emails fallidos" },
-  { key: "whatsappClicks", label: "Clicks WhatsApp" },
-] as const;
+function alertTone(level: "healthy" | "warning" | "critical") {
+  if (level === "critical") return "error" as const;
+  if (level === "warning") return "warning" as const;
+  return "success" as const;
+}
 
-function alertClasses(level: "healthy" | "warning" | "critical") {
-  if (level === "critical") return "border-red-200 bg-red-50 text-red-900";
-  if (level === "warning") return "border-amber-200 bg-amber-50 text-amber-900";
-  return "border-emerald-200 bg-emerald-50 text-emerald-900";
+function incidentTone(status: "open" | "resolved") {
+  return status === "open" ? "warning" : "success";
+}
+
+function tripRange(start?: string | null, end?: string | null) {
+  if (!start && !end) return "Sin fechas cargadas";
+  const startLabel = start ? formatAdminDate(start) : "Por definir";
+  const endLabel = end ? formatAdminDate(end) : "Por definir";
+  return `${startLabel} → ${endLabel}`;
+}
+
+function followUpTone(overdue: boolean) {
+  return overdue ? "warning" : "info";
 }
 
 export default async function AdminDashboardPage() {
   const [metrics, dataQuality] = await Promise.all([getDashboardMetrics(), getDuplicateAuditSnapshot()]);
+  const today = new Date();
+  const currentWindow = formatAdminDateWindowLabel(today, "próximos 7 días");
+
+  if (metrics.errors.length) console.error("Dashboard operational metrics partial error", { errors: metrics.errors });
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-8">
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--ac-blue)]">Panel interno</p>
-        <h1 className="mt-2 text-3xl font-bold">Dashboard operativo</h1>
-        <p className="mt-2 text-muted-foreground">Visibilidad rápida de captación, incidentes y actividad comercial reciente.</p>
-      </div>
+    <PageContainer>
+      <PageHeader
+        eyebrow="Operación diaria"
+        title="Dashboard operativo"
+        description="Prioriza alertas, seguimientos, pagos y reservas reales sin exponer detalles técnicos de proveedores o integraciones."
+        breadcrumbs={[{ label: "Panel interno", href: "/admin/dashboard" }, { label: "Dashboard operativo" }]}
+        actions={
+          <>
+            {metrics.lastSynchronizedAt ? <p className="text-xs text-[color:var(--admin-muted-foreground)]">Actualizado {formatAdminDateTime(metrics.lastSynchronizedAt)}</p> : null}
+            <QuietActionButton asChild>
+              <Link href="/admin/dashboard">Actualizar</Link>
+            </QuietActionButton>
+          </>
+        }
+      />
+
+      <AlertBanner description={`Ventana actual: ${currentWindow}. La sesión muestra solo la información permitida por tu rol y RLS.`} tone="info" />
 
       {metrics.alerts.map((alert) => (
-        <Card className={alertClasses(alert.level)} key={`${alert.level}-${alert.title}`}>
-          <CardContent className="pt-6">
-            <p className="font-semibold">{alert.title}</p>
-            <p className="mt-1 text-sm">{alert.detail}</p>
-          </CardContent>
-        </Card>
+        <AlertBanner description={alert.detail} key={`${alert.level}-${alert.title}`} title={alert.title} tone={alertTone(alert.level)} />
       ))}
 
       {metrics.errors.length ? (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="pt-6 text-sm text-amber-900">
-            Algunas métricas no pudieron cargarse por permisos o datos no disponibles: {metrics.errors.join("; ")}
-          </CardContent>
-        </Card>
+        <AlertBanner description="Algunas métricas no pudieron cargarse por completo en esta sesión. Los datos visibles siguen respetando tus permisos y puedes revisar los logs autorizados si necesitas más detalle técnico." title="Carga parcial" tone="warning" />
       ) : null}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {metricCards.map(({ key, label }) => (
-          <Card key={key}>
-            <CardHeader>
-              <CardTitle className="text-base">{label}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{metrics.counts[key]}</p>
-              <p className="mt-2 text-xs text-muted-foreground">{metrics.windows[key]}</p>
-            </CardContent>
-          </Card>
-        ))}
+        <MetricCard detail={metrics.windows.overdueFollowUps} label="Seguimientos vencidos" tone={metrics.counts.overdueFollowUps ? "warning" : "info"} value={formatAdminInteger(metrics.counts.overdueFollowUps)} />
+        <MetricCard detail={metrics.windows.pendingPayments} label="Pagos pendientes" tone={metrics.counts.pendingPayments ? "warning" : "neutral"} value={formatAdminInteger(metrics.counts.pendingPayments)} />
+        <MetricCard detail={metrics.windows.upcomingBookings} label="Reservas próximas" tone={metrics.counts.upcomingBookings ? "brand" : "neutral"} value={formatAdminInteger(metrics.counts.upcomingBookings)} />
+        <MetricCard detail={metrics.windows.leadsToday} label="Prospectos de hoy" tone="brand" value={formatAdminInteger(metrics.counts.leadsToday)} />
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Calidad de datos P2.3</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-md border bg-slate-50 p-3">
-                <p className="text-muted-foreground">Contactos auditados</p>
-                <p className="mt-1 text-2xl font-bold">{dataQuality.totalContacts}</p>
-              </div>
-              <div className="rounded-md border bg-slate-50 p-3">
-                <p className="text-muted-foreground">Eventos ambiguos</p>
-                <p className="mt-1 text-2xl font-bold">{dataQuality.ambiguousIdentityEvents}</p>
-              </div>
-            </div>
-            <p className="text-muted-foreground">
-              Duplicados exactos detectados: <span className="font-semibold text-foreground">{dataQuality.duplicateEmailGroups}</span> por email y <span className="font-semibold text-foreground">{dataQuality.duplicatePhoneGroups}</span> por teléfono.
-            </p>
-            <div className="rounded-md border bg-slate-50 p-3 text-muted-foreground">
-              Esta vista prepara merges manuales/transaccionales y documenta por qué la unicidad dura sigue diferida.
-              <div className="mt-3">
-                <Link className="font-semibold text-[var(--ac-blue)] hover:underline" href="/admin/data-quality">
-                  Abrir auditoría de duplicados →
-                </Link>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Errores e incidentes recientes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {metrics.recentIncidents.length ? (
-              <ul className="space-y-3 text-sm">
-                {metrics.recentIncidents.map((incident) => (
-                  <li className="rounded-md border p-3" key={`${incident.source}-${incident.id}`}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium">Email · {incident.title}</p>
-                        <p className="text-muted-foreground">{incident.detail}</p>
-                      </div>
-                      <span className={`rounded-full px-2 py-1 text-xs font-semibold ${incident.incidentStatus === "open" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
-                        {incident.incidentStatus === "open" ? "Abierto" : "Resuelto"}
-                      </span>
+      <section className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
+        <SectionCard
+          title="Seguimientos por atender"
+          description="Primero aparecen los leads vencidos o con contacto programado más cercano."
+          actions={<QuietActionButton asChild><Link href="/admin/leads">Ver CRM</Link></QuietActionButton>}
+        >
+          {metrics.followUps.length ? (
+            <div className="space-y-3">
+              {metrics.followUps.slice(0, 8).map((item) => (
+                <article className="rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4" key={item.id}>
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div className="min-w-0 space-y-1">
+                      <Link className="font-semibold text-[color:var(--admin-accent)] hover:underline" href={`/admin/leads/${item.leadId}`}>{item.contactName}</Link>
+                      <p className="text-sm text-[color:var(--admin-foreground)]">{item.summary}</p>
+                      <p className="text-xs text-[color:var(--admin-muted-foreground)]">{item.statusLabel} · {item.advisorName}</p>
                     </div>
-                    <p className="mt-2 text-xs text-muted-foreground">{incident.status} · {new Date(incident.createdAt).toLocaleString("es-MX")}</p>
-                    {incident.errorMessage ? <p className="mt-2 text-xs text-red-700">{incident.errorMessage}</p> : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground">Sin incidentes recientes visibles.</p>
-            )}
-          </CardContent>
-        </Card>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusBadge tone={followUpTone(item.overdue)}>{item.overdue ? "Vencido" : "Programado"}</StatusBadge>
+                       <span className="text-xs text-[color:var(--admin-muted-foreground)]">{formatAdminDateTime(item.followUpAt)}</span>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState description="Todavía no hay seguimientos programados visibles para esta sesión." title="Sin seguimientos pendientes" />
+          )}
+        </SectionCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Leads por canal (7 días)</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {metrics.leadsByChannel.length ? (
-              <ul className="space-y-2 text-sm">
-                {metrics.leadsByChannel.map((channel) => (
-                  <li className="flex justify-between border-b pb-2 last:border-b-0" key={channel.source}>
-                    <span>{channel.source}</span>
-                    <span className="font-semibold">{channel.count}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground">Sin leads visibles todavía.</p>
-            )}
+        <SectionCard
+          title="Pagos pendientes"
+          description="Registro operativo con acceso directo al módulo de pagos cuando exista trabajo pendiente."
+          actions={<QuietActionButton asChild><Link href="/admin/payments">Abrir pagos</Link></QuietActionButton>}
+        >
+          {metrics.pendingPayments.length ? (
+            <div className="space-y-3">
+              {metrics.pendingPayments.map((payment) => (
+                <article className="rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4" key={payment.id}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-[color:var(--admin-foreground)]">{payment.contactName}</p>
+                      <p className="text-sm text-[color:var(--admin-muted-foreground)]">{payment.paymentTypeLabel} · {payment.amountLabel}</p>
+                    </div>
+                    <StatusBadge tone="warning">{payment.statusLabel}</StatusBadge>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[color:var(--admin-muted-foreground)]">
+                     <span>Registrado {formatAdminDateTime(payment.createdAt)}</span>
+                    {payment.leadId ? <Link className="font-medium text-[color:var(--admin-accent)] hover:underline" href={`/admin/leads/${payment.leadId}`}>Abrir lead</Link> : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState description="No hay pagos pendientes visibles en este momento." title="Operación de pagos al día" />
+          )}
+        </SectionCard>
+      </section>
 
-            <div className="rounded-md border bg-slate-50 p-3 text-sm text-muted-foreground">
-              <p>Revisa incidentes abiertos antes de cerrar el día operativo.</p>
-              <div className="mt-3 flex gap-4">
-                <Link className="font-semibold text-[var(--ac-blue)] hover:underline" href="/admin/logs">
-                  Abrir logs →
-                </Link>
-                <Link className="font-semibold text-[var(--ac-blue)] hover:underline" href="/admin/leads">
-                  Abrir leads →
-                </Link>
+      <section className="grid gap-4 xl:grid-cols-2">
+        <SectionCard title="Embudo por estado" description="Distribución real de los prospectos visibles según su etapa actual.">
+          {metrics.statusBreakdown.length ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-[color:var(--admin-border-subtle)] text-xs uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">
+                  <tr>
+                    <th className="py-3 pr-4">Estado</th>
+                    <th className="py-3 pr-4">Prospectos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {metrics.statusBreakdown.map((item) => (
+                    <tr className="border-b border-[color:var(--admin-border-subtle)] last:border-b-0" key={item.status}>
+                      <td className="py-3 pr-4 text-[color:var(--admin-foreground)]">{item.label}</td>
+                      <td className="py-3 pr-4 font-semibold text-[color:var(--admin-foreground)]">{formatAdminInteger(item.count)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyState description="Cuando existan leads visibles, aquí verás su distribución por estado." title="Sin embudo disponible" />
+          )}
+        </SectionCard>
+
+        <SectionCard title="Reservas de los próximos 7 días" description="Calendario corto para anticipar salidas y atención operativa." actions={<QuietActionButton asChild><Link href="/admin/operations/bookings">Abrir reservas</Link></QuietActionButton>}>
+          {metrics.upcomingBookings.length ? (
+            <div className="space-y-3">
+              {metrics.upcomingBookings.map((booking) => (
+                <article className="rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4" key={booking.id}>
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div className="space-y-1">
+                      <p className="font-semibold text-[color:var(--admin-foreground)]">{booking.bookingCode ?? booking.contactName}</p>
+                      <p className="text-sm text-[color:var(--admin-foreground)]">{booking.contactName} · {booking.destinationName}</p>
+                      <p className="text-xs text-[color:var(--admin-muted-foreground)]">{tripRange(booking.startsOn, booking.endsOn)}</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusBadge tone="brand">{booking.statusLabel}</StatusBadge>
+                      {booking.leadId ? <Link className="text-xs font-medium text-[color:var(--admin-accent)] hover:underline" href={`/admin/leads/${booking.leadId}`}>Abrir lead</Link> : null}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState description="No hay reservas próximas cargadas dentro de la ventana operativa actual." title="Sin salidas cercanas" />
+          )}
+        </SectionCard>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-3">
+        <SectionCard title="Actividad comercial reciente" description="Últimos leads actualizados para retomar conversación o resolver bloqueos. Se muestran hasta 6 registros recientes." className="xl:col-span-2">
+          {metrics.recentLeadActivity.length ? (
+            <div className="space-y-3">
+              {metrics.recentLeadActivity.map((item) => (
+                <article className="rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4" key={item.id}>
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div className="space-y-1">
+                      <Link className="font-semibold text-[color:var(--admin-accent)] hover:underline" href={`/admin/leads/${item.leadId}`}>{item.title}</Link>
+                      <p className="text-sm text-[color:var(--admin-foreground)]">{item.summary}</p>
+                      <p className="text-xs text-[color:var(--admin-muted-foreground)]">{item.statusLabel} · {item.advisorName}</p>
+                    </div>
+                    <span className="text-xs text-[color:var(--admin-muted-foreground)]">{formatAdminDateTime(item.updatedAt)}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState description="Todavía no hay actividad reciente visible para construir esta lista." title="Sin actividad reciente" />
+          )}
+        </SectionCard>
+
+        <SectionCard title="Calidad de datos" description="Resumen corto para detectar duplicados o identidades ambiguas antes del cierre del día.">
+          <div className="space-y-4 text-sm">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              <div className="rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4">
+                <p className="text-[color:var(--admin-muted-foreground)]">Contactos auditados</p>
+                <p className="mt-1 text-2xl font-semibold text-[color:var(--admin-foreground)]">{formatAdminInteger(dataQuality.totalContacts)}</p>
+              </div>
+              <div className="rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4">
+                <p className="text-[color:var(--admin-muted-foreground)]">Eventos ambiguos</p>
+                <p className="mt-1 text-2xl font-semibold text-[color:var(--admin-foreground)]">{formatAdminInteger(dataQuality.ambiguousIdentityEvents)}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            <p className="text-[color:var(--admin-muted-foreground)]">Duplicados detectados: <span className="font-semibold text-[color:var(--admin-foreground)]">{formatAdminInteger(dataQuality.duplicateEmailGroups)}</span> por correo y <span className="font-semibold text-[color:var(--admin-foreground)]">{formatAdminInteger(dataQuality.duplicatePhoneGroups)}</span> por teléfono.</p>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/admin/data-quality">Abrir auditoría de duplicados</Link>
+            </Button>
+          </div>
+        </SectionCard>
       </section>
-    </main>
+
+      <section className="grid gap-4 xl:grid-cols-2">
+        <SectionCard title="Incidentes recientes" description="Solo se muestran resúmenes operativos sin mensajes técnicos del proveedor." actions={<QuietActionButton asChild><Link href="/admin/logs">Abrir logs</Link></QuietActionButton>}>
+          {metrics.recentIncidents.length ? (
+            <div className="space-y-3">
+              {metrics.recentIncidents.map((incident) => (
+                <article className="rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4" key={`${incident.source}-${incident.id}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-[color:var(--admin-foreground)]">{incident.title}</p>
+                      <p className="text-sm text-[color:var(--admin-muted-foreground)]">{incident.detail}</p>
+                    </div>
+                    <StatusBadge tone={incidentTone(incident.incidentStatus)}>{incident.incidentStatus === "open" ? "Abierto" : "Resuelto"}</StatusBadge>
+                  </div>
+                  <p className="mt-2 text-xs text-[color:var(--admin-muted-foreground)]">Actualizado {formatAdminDateTime(incident.updatedAt)}</p>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState description="Cuando exista una incidencia visible para tu rol aparecerá aquí con su estado actual." title="Sin incidentes recientes" />
+          )}
+        </SectionCard>
+
+        <SectionCard title="Canal y asesor" description="Volumen reciente por origen de captación y carga comercial actual.">
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold text-[color:var(--admin-foreground)]">Canales recientes</h2>
+              {metrics.leadsByChannel.length ? (
+                <ul className="space-y-2 text-sm">
+                  {metrics.leadsByChannel.map((item) => (
+                    <li className="flex items-center justify-between gap-3 rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] px-3 py-2" key={item.source}>
+                      <span className="text-[color:var(--admin-foreground)]">{item.label}</span>
+                      <span className="font-semibold text-[color:var(--admin-foreground)]">{formatAdminInteger(item.count)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState description="Todavía no hay leads recientes para construir este desglose." title="Sin datos por canal" />
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold text-[color:var(--admin-foreground)]">Asesores activos</h2>
+              {metrics.advisorPerformance.length ? (
+                <ul className="space-y-2 text-sm">
+                  {metrics.advisorPerformance.map((item) => (
+                    <li className="flex items-center justify-between gap-3 rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] px-3 py-2" key={item.advisorId ?? item.advisorName}>
+                      <span className="text-[color:var(--admin-foreground)]">{item.advisorName}</span>
+                      <span className="font-semibold text-[color:var(--admin-foreground)]">{formatAdminInteger(item.count)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState description="Cuando existan leads asignados visibles, esta tabla mostrará la carga por asesor." title="Sin carga comercial visible" />
+              )}
+            </div>
+          </div>
+        </SectionCard>
+      </section>
+    </PageContainer>
   );
 }

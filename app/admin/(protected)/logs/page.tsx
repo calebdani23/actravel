@@ -2,30 +2,27 @@ import {
   retryNotificationLogAction,
   setNotificationIncidentStatusAction,
 } from "@/app/admin/(protected)/logs/actions";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertBanner, EmptyState, MetricCard, PageContainer, PageHeader, SectionCard, StatusBadge } from "@/components/admin/admin-primitives";
+import { Button } from "@/components/ui/button";
 import { requireAdminRole } from "@/lib/admin/auth";
-import { getAdminLogs, type IncidentStatus, type NotificationLogRow, type OperationalIncidentRow } from "@/lib/admin/logs";
+import { formatAdminDateTime, formatAdminInteger } from "@/lib/admin/format";
+import { adminLogsInternals, getAdminLogs, type IncidentStatus, type NotificationLogRow, type OperationalIncidentRow } from "@/lib/admin/logs";
 import { hasAnyRole } from "@/lib/supabase/roles";
 
 function retryBadge(status: string, incidentStatus?: IncidentStatus, rowId?: string | null) {
   if (incidentStatus === "resolved" && (status === "failed" || status === "ambiguous")) {
-    return <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">Resolved</span>;
+    return <StatusBadge tone="success">Resuelto</StatusBadge>;
   }
-  if (status === "failed" || status === "queued") return <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">Retry eligible</span>;
-  if (status === "processing") return <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">Processing</span>;
-  if (status === "ambiguous") return <span className="rounded-full bg-purple-100 px-2 py-1 text-xs font-semibold text-purple-800">Manual review</span>;
-  if (status === "sent" || (status === "success" && rowId)) return <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800">Complete</span>;
-  return <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">Read-only</span>;
+  if (status === "failed" || status === "queued") return <StatusBadge tone="warning">Reintento posible</StatusBadge>;
+  if (status === "processing") return <StatusBadge tone="info">Procesando</StatusBadge>;
+  if (status === "ambiguous") return <StatusBadge tone="brand">Revisión manual</StatusBadge>;
+  if (status === "sent" || (status === "success" && rowId)) return <StatusBadge tone="success">Completado</StatusBadge>;
+  return <StatusBadge tone="neutral">Solo lectura</StatusBadge>;
 }
 
 function ActionButton({ label, tone = "primary" }: { label: string; tone?: "primary" | "secondary" }) {
   return (
-    <button
-      className={tone === "primary" ? "rounded-md bg-[var(--ac-blue)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90" : "rounded-md border px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"}
-      type="submit"
-    >
-      {label}
-    </button>
+    <Button size="sm" type="submit" variant={tone === "primary" ? "default" : "outline"}>{label}</Button>
   );
 }
 
@@ -55,34 +52,39 @@ function IncidentControls({ canOperate, logId, incidentStatus, retryAction, retr
 }
 
 function NotificationItem({ canOperate, row }: { canOperate: boolean; row: NotificationLogRow }) {
+  const templateLabel = adminLogsInternals.notificationTemplateLabel(row.template_name);
+  const operatorSummary = adminLogsInternals.notificationOperatorSummary({
+    status: row.status,
+    incidentStatus: (row.incident_status as IncidentStatus) ?? "open",
+    errorMessage: row.error_message,
+  });
+
   return (
-    <li className="rounded-md border p-3">
+    <li className="rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4">
       <div className="flex items-start justify-between gap-3">
-        <p className="font-medium">{row.channel} · {row.status}</p>
+        <p className="font-medium text-[color:var(--admin-foreground)]">{row.channel === "email" ? "Correo electrónico" : "WhatsApp"} · {adminLogsInternals.notificationStatusLabel(row.status)}</p>
         {retryBadge(row.status, row.incident_status as IncidentStatus)}
       </div>
-      <p className="text-muted-foreground">{row.template_name ?? row.recipient ?? "—"} · {new Date(row.created_at).toLocaleString("es-MX")}</p>
-      <p className="text-xs text-muted-foreground">Intentos: {row.attempt_count ?? 0}{row.last_attempt_at ? ` · Último: ${new Date(row.last_attempt_at).toLocaleString("es-MX")}` : ""}{row.incident_updated_at ? ` · Incidente: ${row.incident_status} ${new Date(row.incident_updated_at).toLocaleString("es-MX")}` : ""}</p>
-      {row.error_message ? <p className="text-xs text-red-700">{row.error_message}</p> : null}
-      <IncidentControls canOperate={canOperate} incidentStatus={(row.incident_status as IncidentStatus) ?? "open"} logId={row.id} retryAction={retryNotificationLogAction} retryLabel="Reintentar email" setIncidentAction={setNotificationIncidentStatusAction} status={row.status} />
+      <p className="text-[color:var(--admin-muted-foreground)]">{templateLabel} · {formatAdminDateTime(row.created_at)}</p>
+      <p className="text-xs text-[color:var(--admin-muted-foreground)]">Intentos: {formatAdminInteger(row.attempt_count ?? 0)}{row.last_attempt_at ? ` · Último: ${formatAdminDateTime(row.last_attempt_at)}` : ""}{row.incident_updated_at ? ` · Incidente: ${row.incident_status === "resolved" ? "resuelto" : "abierto"} ${formatAdminDateTime(row.incident_updated_at)}` : ""}</p>
+      {operatorSummary ? <p className="text-xs text-[color:var(--admin-error-fg)]">{operatorSummary}</p> : null}
+      <IncidentControls canOperate={canOperate} incidentStatus={(row.incident_status as IncidentStatus) ?? "open"} logId={row.id} retryAction={retryNotificationLogAction} retryLabel="Reintentar envío" setIncidentAction={setNotificationIncidentStatusAction} status={row.status} />
     </li>
   );
 }
 
 function RecentIncidentItem({ row }: { row: OperationalIncidentRow }) {
   return (
-    <li className="rounded-md border p-3">
+    <li className="rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-medium">Email · {row.title}</p>
-          <p className="text-muted-foreground">{row.detail}</p>
+          <p className="font-medium text-[color:var(--admin-foreground)]">Correo electrónico · {row.title}</p>
+          <p className="text-[color:var(--admin-muted-foreground)]">{row.detail}</p>
         </div>
-        <span className={`rounded-full px-2 py-1 text-xs font-semibold ${row.incidentStatus === "open" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
-          {row.incidentStatus === "open" ? "Abierto" : "Resuelto"}
-        </span>
+        <StatusBadge tone={row.incidentStatus === "open" ? "warning" : "success"}>{row.incidentStatus === "open" ? "Abierto" : "Resuelto"}</StatusBadge>
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">{row.status} · {new Date(row.createdAt).toLocaleString("es-MX")}</p>
-      {row.errorMessage ? <p className="mt-2 text-xs text-red-700">{row.errorMessage}</p> : null}
+      <p className="mt-2 text-xs text-[color:var(--admin-muted-foreground)]">{adminLogsInternals.notificationStatusLabel(row.status)} · {formatAdminDateTime(row.createdAt)}</p>
+      {row.errorMessage ? <p className="mt-2 text-xs text-[color:var(--admin-error-fg)]">{row.errorMessage}</p> : null}
     </li>
   );
 }
@@ -93,74 +95,68 @@ export default async function LogsPage() {
   const { whatsapp, notifications, recentIncidents, incidentSummary, errors } = await getAdminLogs();
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--ac-blue)]">Auditoría ligera</p>
-        <h1 className="mt-2 text-3xl font-bold">Logs operativos</h1>
-        <p className="mt-2 text-muted-foreground">WhatsApp y notificaciones con visibilidad de incidentes persistentes. {canOperate ? "Puedes reintentar y cerrar/reabrir incidentes de email." : "Tu acceso es de solo lectura."}</p>
-      </div>
+    <PageContainer>
+      <PageHeader
+        breadcrumbs={[{ label: "Resumen" }, { label: "Registro" }]}
+        description={`WhatsApp y notificaciones con visibilidad de incidentes persistentes. ${canOperate ? "Puedes reintentar y cerrar o reabrir incidencias de correo." : "Tu acceso es de solo lectura."}`}
+        eyebrow="Auditoría ligera"
+        title="Registro operativo"
+      />
 
-      {errors.length ? (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="pt-6 text-sm text-amber-900">Algunas consultas fallaron: {errors.join("; ")}</CardContent>
-        </Card>
-      ) : null}
+      {errors.length ? <AlertBanner description={adminLogsInternals.partialLoadMessage(errors) ?? undefined} title="Carga parcial" tone="warning" /> : null}
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard detail="Correo electrónico con estatus abierto y seguimiento pendiente." label="Incidentes abiertos" tone={incidentSummary.openNotifications ? "warning" : "success"} value={formatAdminInteger(incidentSummary.openNotifications)} />
+        <MetricCard detail="Incidencias visibles en el historial reciente." label="Incidentes recientes" tone="neutral" value={formatAdminInteger(recentIncidents.length)} />
+        <MetricCard detail="Eventos visibles para la sesión actual." label="Clics de WhatsApp" tone="info" value={formatAdminInteger(whatsapp.length)} />
+        <MetricCard detail="Incluye filas con acción y filas de solo lectura." label="Notificaciones" tone="brand" value={formatAdminInteger(notifications.length)} />
+      </section>
 
       <section className="grid gap-4 lg:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Incidentes abiertos</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <p>Email: <span className="font-semibold">{incidentSummary.openNotifications}</span></p>
-            <p className="text-muted-foreground">Los incidentes resueltos permanecen visibles en el historial reciente.</p>
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Errores e incidentes recientes</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <SectionCard className="lg:col-span-1" description="Los incidentes resueltos permanecen visibles en el historial reciente." title="Estado general">
+          <div className="space-y-3 text-sm">
+            <p className="text-[color:var(--admin-foreground)]">Correo electrónico: <span className="font-semibold">{formatAdminInteger(incidentSummary.openNotifications)}</span></p>
+            <p className="text-[color:var(--admin-muted-foreground)]">{canOperate ? "Puedes intervenir en incidentes permitidos desde esta vista." : "Tu sesión no permite intervenir; solo consultar."}</p>
+          </div>
+        </SectionCard>
+        <SectionCard className="lg:col-span-3" description="Resumen de errores o ambigüedades visibles para la sesión actual." title="Errores e incidentes recientes">
+          <div>
             {recentIncidents.length ? (
               <ul className="grid gap-3 md:grid-cols-2">{recentIncidents.map((row) => <RecentIncidentItem key={`${row.source}-${row.id}`} row={row} />)}</ul>
             ) : (
-              <p className="text-sm text-muted-foreground">Sin incidentes recientes visibles.</p>
+              <EmptyState description="Cuando haya incidentes persistentes visibles para tu sesión, aparecerán aquí." title="Sin incidentes recientes" />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>WhatsApp clicks ({whatsapp.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <SectionCard description="Eventos recientes de apertura de conversación sin mutaciones sobre el dato original." title={`Clics de WhatsApp ${formatAdminInteger(whatsapp.length)}`}>
+          <div>
             {whatsapp.length ? (
               <ul className="space-y-3 text-sm">
                 {whatsapp.map((row) => (
-                  <li className="rounded-md border p-3" key={row.id}>
+                  <li className="rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4" key={row.id}>
                     <div className="flex items-start justify-between gap-3">
-                      <p className="font-medium">{row.phone ?? row.contacts?.phone ?? "Sin teléfono"}</p>
-                      <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">Read-only</span>
+                      <p className="font-medium text-[color:var(--admin-foreground)]">{row.phone ?? row.contacts?.phone ?? "Sin teléfono"}</p>
+                      <StatusBadge tone="neutral">Solo lectura</StatusBadge>
                     </div>
-                    <p className="text-muted-foreground">{row.page_path ?? "—"} · {new Date(row.created_at).toLocaleString("es-MX")}</p>
+                    <p className="text-[color:var(--admin-muted-foreground)]">{adminLogsInternals.whatsappModuleLabel(row.page_path)} · {formatAdminDateTime(row.created_at)}</p>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-muted-foreground">Sin clicks visibles.</p>
+              <EmptyState description="Todavía no hay eventos de apertura de WhatsApp visibles para tu sesión." title="Sin clics visibles" />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Notificaciones ({notifications.length})</CardTitle>
-          </CardHeader>
-          <CardContent>{notifications.length ? <ul className="space-y-3 text-sm">{notifications.map((row) => <NotificationItem canOperate={canOperate} key={row.id} row={row} />)}</ul> : <p className="text-sm text-muted-foreground">Sin notificaciones visibles.</p>}</CardContent>
-        </Card>
+        <SectionCard className="lg:col-span-2" description="Historial reciente de envíos e incidentes persistentes. Conserva las acciones actuales cuando el rol lo permite." title={`Notificaciones ${formatAdminInteger(notifications.length)}`}>
+          <div>
+            {notifications.length ? <ul className="space-y-3 text-sm">{notifications.map((row) => <NotificationItem canOperate={canOperate} key={row.id} row={row} />)}</ul> : <EmptyState description="No hay notificaciones visibles para la sesión actual." title="Sin notificaciones visibles" />}
+          </div>
+        </SectionCard>
       </section>
-    </main>
+    </PageContainer>
   );
 }

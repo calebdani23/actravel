@@ -1,5 +1,7 @@
 import "server-only";
 
+import { templateDisplayLabel } from "@/lib/admin/leads";
+import { formatAdminModuleLabelFromPath } from "@/lib/admin/format";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
 
@@ -20,12 +22,53 @@ export type OperationalIncidentRow = {
   retryEligible: boolean;
 };
 
+type NotificationOperatorSummaryInput = {
+  status: string;
+  incidentStatus?: IncidentStatus | null;
+  errorMessage?: string | null;
+};
+
 function asIncidentStatus(value: string | null | undefined): IncidentStatus {
   return value === "resolved" ? "resolved" : "open";
 }
 
 function retryEligible(status: string) {
   return status === "failed" || status === "queued";
+}
+
+function notificationStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    queued: "En cola",
+    processing: "Procesando",
+    sent: "Enviado",
+    success: "Completado",
+    failed: "Fallido",
+    ambiguous: "Ambiguo",
+    skipped: "Omitido",
+  };
+  return labels[status] ?? "Estado no identificado";
+}
+
+function notificationTemplateLabel(name?: string | null) {
+  return templateDisplayLabel(name) ?? "Plantilla operativa";
+}
+
+function notificationOperatorSummary({ status, incidentStatus, errorMessage }: NotificationOperatorSummaryInput) {
+  if (!errorMessage && !(status === "failed" || status === "ambiguous" || status === "queued" || status === "processing" || status === "skipped")) return null;
+  if (status === "ambiguous" || incidentStatus === "open") return "La incidencia requiere revisión.";
+  if (status === "failed") return "No se pudo completar el envío.";
+  if (status === "queued") return "El envío sigue en cola.";
+  if (status === "processing") return "El envío sigue en proceso.";
+  if (status === "skipped") return "El envío fue omitido.";
+  return "Se registró una actualización operativa.";
+}
+
+function partialLoadMessage(errors: string[]) {
+  return errors.length ? "Parte del historial no pudo cargarse por completo. Intenta actualizar la vista." : null;
+}
+
+function whatsappModuleLabel(pagePath?: string | null) {
+  return formatAdminModuleLabelFromPath(pagePath);
 }
 
 function buildNotificationIncident(row: NotificationLogRow): OperationalIncidentRow {
@@ -36,8 +79,8 @@ function buildNotificationIncident(row: NotificationLogRow): OperationalIncident
     incidentStatus: asIncidentStatus(row.incident_status),
     createdAt: row.created_at,
     updatedAt: row.incident_updated_at ?? row.updated_at,
-    errorMessage: row.error_message,
-    title: row.template_name ?? row.recipient ?? "Email",
+    errorMessage: notificationOperatorSummary({ status: row.status, incidentStatus: asIncidentStatus(row.incident_status), errorMessage: row.error_message }),
+    title: notificationTemplateLabel(row.template_name),
     detail: row.recipient ?? row.contacts?.email ?? "Sin destinatario",
     retryEligible: retryEligible(row.status),
   };
@@ -98,11 +141,16 @@ export async function getAdminLogs() {
       openNotifications,
       resolvedIncidents: recentIncidents.filter((row) => row.incidentStatus === "resolved").length,
     },
-    errors: [...errors, whatsapp.error?.message, notifications.error?.message].filter(Boolean),
+    errors: [...errors, whatsapp.error?.message, notifications.error?.message].filter((value): value is string => Boolean(value)),
   };
 }
 
 export const adminLogsInternals = {
   buildNotificationIncident,
+  notificationOperatorSummary,
+  notificationStatusLabel,
+  notificationTemplateLabel,
+  partialLoadMessage,
   shouldShowIncident,
+  whatsappModuleLabel,
 };

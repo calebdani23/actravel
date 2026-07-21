@@ -27,13 +27,13 @@ export const manualLeadSchema = z.object({
   const normalizedPhone = value.phone ? normalizeWhatsApp(value.phone) : "";
   const normalizedEmail = normalizeEmail(value.email);
   if (!normalizedPhone && !normalizedEmail) {
-    ctx.addIssue({ code: "custom", path: ["phone"], message: "Phone or email is required" });
+    ctx.addIssue({ code: "custom", path: ["phone"], message: "Debes capturar un teléfono o un correo electrónico" });
   }
   if (value.phone && normalizedPhone.length > 0 && normalizedPhone.length < 10) {
-    ctx.addIssue({ code: "custom", path: ["phone"], message: "Phone must contain at least 10 digits" });
+    ctx.addIssue({ code: "custom", path: ["phone"], message: "El teléfono debe incluir al menos 10 dígitos" });
   }
   if (value.email && !normalizedEmail) {
-    ctx.addIssue({ code: "custom", path: ["email"], message: "Email must be valid" });
+    ctx.addIssue({ code: "custom", path: ["email"], message: "Ingresa un correo electrónico válido" });
   }
 });
 

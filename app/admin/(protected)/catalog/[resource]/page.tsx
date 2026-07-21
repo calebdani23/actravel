@@ -184,7 +184,7 @@ function CatalogForm({ resource, row, destinations, services, packages }: { reso
   const promotionServiceIds = resolvePromotionServiceIds(promotion ?? {});
 
   return (
-    <form action={upsertCatalogAction} className="space-y-5 rounded-lg border p-4" encType="multipart/form-data">
+    <form action={upsertCatalogAction} className="space-y-5 rounded-lg border p-4">
       <input name="resource" type="hidden" value={resource} />
       {row ? <input name="id" type="hidden" value={row.id} /> : null}
       <div className="grid gap-3 md:grid-cols-2">

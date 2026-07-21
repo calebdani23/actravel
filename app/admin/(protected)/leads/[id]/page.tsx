@@ -1,30 +1,89 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ActivityTimeline, DetailList, ErrorState, PageContainer, PageHeader, QuietActionButton, SectionCard, StatusBadge, adminInputClassName, adminSelectClassName } from "@/components/admin/admin-primitives";
 import { Button } from "@/components/ui/button";
 import { requireAdminRole } from "@/lib/admin/auth";
-import { hasAnyRole } from "@/lib/supabase/roles";
-import { formatLeadSourceLabel, getAdvisors, getLeadDetail, getLeadStatuses } from "@/lib/admin/leads";
+import { formatLeadPriorityLabel, formatLeadSourceLabel, getAdvisors, getLeadDetail, getLeadStatuses } from "@/lib/admin/leads";
+import { formatAdminCurrency, formatAdminDate, formatAdminDateTime, formatAdminTravelerCount } from "@/lib/admin/format";
+import { buildAdminSearchQueryString } from "@/lib/admin/navigation";
 import { getActiveMessageTemplates } from "@/lib/admin/templates";
 import { leadTemplateVariables } from "@/lib/admin/template-renderer";
+import { buildTrackedWhatsAppUrl, sanitizeWhatsAppPhone } from "@/lib/whatsapp/link";
 import { LeadTemplateActions } from "@/components/admin/leads/whatsapp-template-actions";
 import { addLeadNoteAction, assignLeadAction, registerFollowUpAction, updateLeadStatusAction } from "./actions";
+import { hasAnyRole } from "@/lib/supabase/roles";
 
-type PageProps = { params: Promise<{ id: string }> };
+type PageProps = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
 function money(mxn?: number | null, usd?: number | null) {
-  if (mxn !== null && mxn !== undefined) return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(mxn);
-  if (usd !== null && usd !== undefined) return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(usd);
+  if (mxn !== null && mxn !== undefined) return formatAdminCurrency(mxn, "MXN");
+  if (usd !== null && usd !== undefined) return formatAdminCurrency(usd, "USD");
   return "—";
 }
 
-function Field({ label, value }: { label: string; value?: React.ReactNode }) {
-  return <div><dt className="text-xs uppercase tracking-wide text-muted-foreground">{label}</dt><dd className="mt-1 font-medium">{value || "—"}</dd></div>;
+function formatDateTime(value: string) {
+  return formatAdminDateTime(value);
 }
 
-export default async function LeadDetailPage({ params }: PageProps) {
-  const [{ id }, session] = await Promise.all([params, requireAdminRole(["admin", "asesor"])]);
-  const [{ lead, timeline, payments, bookings, documents, error }, statuses, advisors, messageTemplates] = await Promise.all([
+function formatDate(value?: string | null) {
+  return formatAdminDate(value);
+}
+
+function leadStatusTone(status?: string | null) {
+  if (!status) return "neutral" as const;
+  if (["won", "booked", "converted", "paid"].includes(status)) return "success" as const;
+  if (["new", "contacted", "qualified", "proposal_sent"].includes(status)) return "info" as const;
+  if (["lost", "cancelled", "archived"].includes(status)) return "neutral" as const;
+  return "brand" as const;
+}
+
+function paymentTypeLabel(type: string) {
+  const labels: Record<string, string> = { deposit: "Anticipo", partial: "Parcial", balance: "Liquidación", full: "Pago total", refund: "Reembolso" };
+  return labels[type] ?? "Tipo de pago no identificado";
+}
+
+function paymentStatusLabel(status: string) {
+  const labels: Record<string, string> = { pending: "Pendiente", received: "Recibido", verified: "Verificado", rejected: "Rechazado", refunded: "Reembolsado" };
+  return labels[status] ?? "Estado de pago no identificado";
+}
+
+function bookingStatusLabel(status: string) {
+  const labels: Record<string, string> = { draft: "Borrador", confirmed: "Confirmada", in_progress: "En viaje", completed: "Completada", cancelled: "Cancelada" };
+  return labels[status] ?? "Estado de reserva no identificado";
+}
+
+function documentTypeLabel(type: string) {
+  const labels: Record<string, string> = { passport: "Pasaporte", visa: "Visa", itinerary: "Itinerario", voucher: "Voucher", ticket: "Boleto", invoice: "Factura", receipt: "Comprobante" };
+  return labels[type] ?? "Documento operativo";
+}
+
+function documentStatusLabel(status: string) {
+  const labels: Record<string, string> = { pending: "Pendiente", requested: "Solicitado", received: "Recibido", approved: "Aprobado", rejected: "Rechazado", archived: "Archivado" };
+  return labels[status] ?? "Estado documental no identificado";
+}
+
+function localeLabel(locale?: string | null) {
+  const labels: Record<string, string> = {
+    es: "Español",
+    "es-MX": "Español (MX)",
+    en: "Inglés",
+    "en-US": "Inglés (US)",
+  };
+  if (!locale) return "Sin preferencia";
+  return labels[locale] ?? "Idioma no identificado";
+}
+
+function relatedName(profile?: { full_name: string | null } | Array<{ full_name: string | null }> | null) {
+  if (Array.isArray(profile)) return profile[0]?.full_name ?? null;
+  return profile?.full_name ?? null;
+}
+
+export default async function LeadDetailPage({ params, searchParams }: PageProps) {
+  const [{ id }, currentSearchParams, session] = await Promise.all([params, searchParams, requireAdminRole(["admin", "asesor"])]);
+  const [{ lead, notes, timeline, payments, bookings, documents, error }, statuses, advisors, messageTemplates] = await Promise.all([
     getLeadDetail(id),
     getLeadStatuses(),
     getAdvisors(),
@@ -33,7 +92,7 @@ export default async function LeadDetailPage({ params }: PageProps) {
 
   if (!lead && !error) notFound();
   const canAssign = hasAnyRole(session.roles, ["admin"]);
-  const contactName = [lead?.contacts?.first_name, lead?.contacts?.last_name].filter(Boolean).join(" ");
+  const contactName = [lead?.contacts?.first_name, lead?.contacts?.last_name].filter(Boolean).join(" ") || "Lead";
   const templateVariables = lead ? leadTemplateVariables({
     contactName,
     destination: lead.destinations?.name_es ?? lead.summary,
@@ -44,49 +103,163 @@ export default async function LeadDetailPage({ params }: PageProps) {
     advisorName: lead.profiles?.full_name,
     status: lead.lead_statuses?.label_es,
   }) : {};
+  const whatsappHref = lead ? buildTrackedWhatsAppUrl({
+    message: `Hola ${contactName}, continuamos con tu viaje a ${lead.destinations?.name_es ?? lead.summary ?? "AC Travel"}.`,
+    phone: lead.contacts?.phone,
+    locale: lead.contacts?.preferred_locale,
+    pagePath: "admin-lead-detail",
+    leadId: lead.id,
+    contactId: lead.contact_id,
+  }) : null;
+  const hasWhatsApp = Boolean(sanitizeWhatsAppPhone(lead?.contacts?.phone));
+  const crmBaseHref = `/admin/leads${buildAdminSearchQueryString(currentSearchParams)}`;
+
+  if (error) console.error("Lead detail dashboard-safe error", { leadId: id, error });
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <Link className="text-sm font-semibold text-[var(--ac-blue)] hover:underline" href="/admin/leads">← Volver a leads</Link>
-          <h1 className="mt-2 text-3xl font-bold">{[lead?.contacts?.first_name, lead?.contacts?.last_name].filter(Boolean).join(" ") || "Lead"}</h1>
-          <p className="mt-2 text-muted-foreground">{lead?.summary ?? "Detalle de seguimiento interno."}</p>
-        </div>
-        <span className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-semibold">{lead?.lead_statuses?.label_es ?? "Sin estado"}</span>
-      </div>
+    <PageContainer>
+      <PageHeader
+        eyebrow="CRM"
+        title={contactName}
+        description={lead ? `${lead.destinations?.name_es ?? "Sin destino"} · ${formatDate(lead.travel_start_date)} → ${formatDate(lead.travel_end_date)} · ${lead.profiles?.full_name ?? "Sin asesor asignado"}` : "Detalle del prospecto."}
+        breadcrumbs={[{ label: "Comercial", href: crmBaseHref }, { label: "Prospectos", href: crmBaseHref }, { label: contactName }]}
+        actions={
+          <>
+            <QuietActionButton asChild>
+              <Link href={crmBaseHref}>Volver al CRM</Link>
+            </QuietActionButton>
+            {lead?.contact_id ? <QuietActionButton asChild><Link href="/admin/payments">Registrar pago</Link></QuietActionButton> : null}
+            {hasWhatsApp && whatsappHref ? <Button asChild><a href={whatsappHref} rel="noreferrer" target="_blank">Abrir WhatsApp</a></Button> : null}
+          </>
+        }
+      />
 
-      {error ? <Card className="border-amber-200 bg-amber-50"><CardContent className="pt-6 text-sm text-amber-900">No se pudo cargar el lead: {error}</CardContent></Card> : null}
+      {error ? <ErrorState description="No se pudieron cargar algunos datos del prospecto. Intenta actualizar la vista o revisa los logs autorizados si el problema continúa." title="Carga incompleta" /> : null}
+
       {!lead ? null : (
-        <>
-          <section className="grid gap-4 lg:grid-cols-3">
-            <Card className="lg:col-span-2">
-              <CardHeader><CardTitle>Datos del lead</CardTitle></CardHeader>
-              <CardContent>
-                <dl className="grid gap-4 md:grid-cols-3">
-                  <Field label="Email" value={lead.contacts?.email} />
-                  <Field label="WhatsApp" value={lead.contacts?.phone} />
-                  <Field label="Idioma" value={lead.contacts?.preferred_locale?.toUpperCase()} />
-                  <Field label="Destino" value={lead.destinations?.name_es} />
-                  <Field label="Servicio" value={lead.services?.name_es} />
-                  <Field label="Viaje" value={`${lead.travel_start_date ?? "—"} → ${lead.travel_end_date ?? "—"}`} />
-                  <Field label="Viajeros" value={lead.travelers_count} />
-                  <Field label="Budget" value={money(lead.budget_mxn, lead.budget_usd)} />
-                  <Field label="Canal" value={formatLeadSourceLabel(lead.source)} />
-                  <Field label="Prioridad" value={lead.priority} />
-                  <Field label="Asesor" value={lead.profiles?.full_name ?? "Sin asignar"} />
-                  <Field label="Actualizado" value={new Date(lead.updated_at).toLocaleString("es-MX")} />
-                </dl>
-              </CardContent>
-            </Card>
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.95fr)_minmax(280px,1fr)] xl:items-start">
+          <div className="space-y-6">
+            <SectionCard
+              title="Resumen del prospecto"
+              description="Vista comercial principal con datos de contacto, viaje, presupuesto y contexto operativo actual."
+              actions={<StatusBadge tone={leadStatusTone(lead.lead_statuses?.name)}>{lead.lead_statuses?.label_es ?? "Sin estado"}</StatusBadge>}
+            >
+              <div className="space-y-5">
+                <div className="flex flex-wrap gap-2">
+                  <StatusBadge tone="neutral">{formatLeadPriorityLabel(lead.priority)}</StatusBadge>
+                  <StatusBadge tone="neutral">{formatLeadSourceLabel(lead.source)}</StatusBadge>
+                  <StatusBadge tone="neutral">Actualizado {formatDateTime(lead.updated_at)}</StatusBadge>
+                </div>
+                {lead.summary ? <p className="text-sm leading-6 text-[color:var(--admin-foreground)]">{lead.summary}</p> : null}
+                <DetailList
+                  columns={3}
+                  items={[
+                    { label: "Correo", value: lead.contacts?.email ?? "Sin correo" },
+                    { label: "WhatsApp", value: lead.contacts?.phone ?? "Sin WhatsApp" },
+                    { label: "Idioma", value: localeLabel(lead.contacts?.preferred_locale) },
+                    { label: "Destino", value: lead.destinations?.name_es ?? "Sin destino" },
+                    { label: "Servicio", value: lead.services?.name_es ?? "Sin servicio" },
+                    { label: "Viaje", value: `${formatDate(lead.travel_start_date)} → ${formatDate(lead.travel_end_date)}` },
+                    { label: "Viajeros", value: formatAdminTravelerCount(lead.travelers_count) },
+                    { label: "Presupuesto", value: money(lead.budget_mxn, lead.budget_usd) },
+                    { label: "Asesor", value: lead.profiles?.full_name ?? "Sin asignar" },
+                  ]}
+                />
+              </div>
+            </SectionCard>
 
-            <Card>
-              <CardHeader><CardTitle>Acciones rápidas</CardTitle></CardHeader>
-              <CardContent className="space-y-5">
+            {lead.contacts?.notes ? (
+              <SectionCard title="Contexto del contacto" description="Notas existentes guardadas directamente en la ficha del contacto.">
+                <p className="whitespace-pre-wrap text-sm leading-6 text-[color:var(--admin-foreground)]">{lead.contacts.notes}</p>
+              </SectionCard>
+            ) : null}
+
+            {notes.length ? (
+              <SectionCard title="Notas internas" description="Registro escrito por el equipo comercial para este prospecto.">
+                <div className="space-y-3">
+                  {notes.map((note) => (
+                    <article className="rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4" key={note.id}>
+                      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                        <p className="text-sm font-semibold text-[color:var(--admin-foreground)]">{relatedName(note.profiles) ?? "Equipo interno"}</p>
+                        <p className="text-xs text-[color:var(--admin-muted-foreground)]">{formatDateTime(note.created_at)}</p>
+                      </div>
+                      <p className="mt-2 whitespace-pre-wrap text-sm text-[color:var(--admin-foreground)]">{note.body}</p>
+                    </article>
+                  ))}
+                </div>
+              </SectionCard>
+            ) : null}
+
+            <SectionCard title="Actividad comercial" description="Línea de tiempo con eventos reales del lead, sin mensajes técnicos de proveedores o payloads internos.">
+              <ActivityTimeline items={timeline} emptyDescription="Aún no hay eventos comerciales visibles para este prospecto." emptyTitle="Sin actividad comercial" />
+            </SectionCard>
+
+            {(payments.length || bookings.length || documents.length) ? (
+              <section className="grid gap-4 lg:grid-cols-3">
+                {payments.length ? (
+                  <SectionCard title="Pagos relacionados" description="Pagos visibles enlazados a este lead.">
+                    <div className="space-y-3">
+                      {payments.map((payment) => (
+                        <article className="rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4" key={payment.id}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-semibold text-[color:var(--admin-foreground)]">{money(payment.currency === "MXN" ? payment.amount : null, payment.currency === "USD" ? payment.amount : null)}</p>
+                              <p className="text-xs text-[color:var(--admin-muted-foreground)]">{paymentTypeLabel(payment.payment_type)} · {formatDateTime(payment.created_at)}</p>
+                            </div>
+                            <StatusBadge tone={payment.status === "pending" ? "warning" : "success"}>{paymentStatusLabel(payment.status)}</StatusBadge>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </SectionCard>
+                ) : null}
+
+                {bookings.length ? (
+                  <SectionCard title="Reservas relacionadas" description="Reservas visibles ya asociadas a este prospecto.">
+                    <div className="space-y-3">
+                      {bookings.map((booking) => (
+                        <article className="rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4" key={booking.id}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-semibold text-[color:var(--admin-foreground)]">{booking.booking_code ?? booking.id.slice(0, 8)}</p>
+                              <p className="text-xs text-[color:var(--admin-muted-foreground)]">{formatDate(booking.starts_on)} → {formatDate(booking.ends_on)}</p>
+                            </div>
+                            <StatusBadge tone="brand">{bookingStatusLabel(booking.status)}</StatusBadge>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </SectionCard>
+                ) : null}
+
+                {documents.length ? (
+                  <SectionCard title="Documentos relacionados" description="Documentos visibles ya cargados para este lead.">
+                    <div className="space-y-3">
+                      {documents.map((document) => (
+                        <article className="rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4" key={document.id}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-semibold text-[color:var(--admin-foreground)]">{document.title}</p>
+                              <p className="text-xs text-[color:var(--admin-muted-foreground)]">{documentTypeLabel(document.document_type)} · {formatDateTime(document.created_at)}</p>
+                            </div>
+                            <StatusBadge tone="neutral">{documentStatusLabel(document.status)}</StatusBadge>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </SectionCard>
+                ) : null}
+              </section>
+            ) : null}
+          </div>
+
+          <aside className="space-y-6 xl:sticky xl:top-24">
+            <SectionCard title="Acciones rápidas" description="Todas las acciones mantienen la misma lógica de servidor, permisos y revalidación actuales.">
+              <div className="space-y-5">
                 <form action={updateLeadStatusAction} className="space-y-2">
                   <input name="leadId" type="hidden" value={lead.id} />
-                  <label className="text-sm font-medium" htmlFor="statusId">Cambiar estado</label>
-                  <select className="w-full rounded-md border px-3 py-2 text-sm" defaultValue={lead.lead_statuses?.id ?? ""} id="statusId" name="statusId">
+                  <label className="text-sm font-medium text-[color:var(--admin-foreground)]" htmlFor="statusId">Cambiar estado</label>
+                  <select className={adminSelectClassName} defaultValue={lead.lead_statuses?.id ?? ""} id="statusId" name="statusId">
                     {statuses.map((status) => <option key={status.id} value={status.id}>{status.label_es}</option>)}
                   </select>
                   <Button className="w-full" type="submit">Guardar estado</Button>
@@ -95,14 +268,21 @@ export default async function LeadDetailPage({ params }: PageProps) {
                 {canAssign ? (
                   <form action={assignLeadAction} className="space-y-2">
                     <input name="leadId" type="hidden" value={lead.id} />
-                    <label className="text-sm font-medium" htmlFor="advisorId">Asignar asesor</label>
-                    <select className="w-full rounded-md border px-3 py-2 text-sm" defaultValue={lead.profiles?.id ?? ""} id="advisorId" name="advisorId">
+                    <label className="text-sm font-medium text-[color:var(--admin-foreground)]" htmlFor="advisorId">Asignar asesor</label>
+                    <select className={adminSelectClassName} defaultValue={lead.profiles?.id ?? ""} id="advisorId" name="advisorId">
                       <option value="">Sin asignar</option>
                       {advisors.map((advisor) => <option key={advisor.id} value={advisor.id}>{advisor.full_name}</option>)}
                     </select>
                     <Button className="w-full" type="submit" variant="outline">Guardar asignación</Button>
                   </form>
                 ) : null}
+
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                  {hasWhatsApp && whatsappHref ? <Button asChild variant="outline"><a href={whatsappHref} rel="noreferrer" target="_blank">Abrir WhatsApp</a></Button> : null}
+                  <Button asChild variant="outline"><Link href="/admin/operations/bookings">Crear reserva</Link></Button>
+                  <Button asChild variant="outline"><Link href="/admin/payments">Registrar pago</Link></Button>
+                  <Button asChild variant="outline"><Link href="/admin/operations/documents">Agregar documento</Link></Button>
+                </div>
 
                 <LeadTemplateActions
                   contactId={lead.contact_id}
@@ -116,53 +296,33 @@ export default async function LeadDetailPage({ params }: PageProps) {
 
                 <form action={addLeadNoteAction} className="space-y-2">
                   <input name="leadId" type="hidden" value={lead.id} />
-                  <label className="text-sm font-medium" htmlFor="body">Nota interna</label>
-                  <textarea className="min-h-28 w-full rounded-md border px-3 py-2 text-sm" id="body" name="body" required />
-                  <Button className="w-full" type="submit">Agregar nota</Button>
+                  <label className="text-sm font-medium text-[color:var(--admin-foreground)]" htmlFor="body">Agregar nota</label>
+                  <textarea className={`${adminInputClassName} min-h-28 py-3`} id="body" name="body" required />
+                  <Button className="w-full" type="submit">Guardar nota</Button>
                 </form>
 
-                <form action={registerFollowUpAction} className="space-y-2 rounded-md border p-3">
+                <form action={registerFollowUpAction} className="space-y-2 rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4">
                   <input name="leadId" type="hidden" value={lead.id} />
-                  <label className="text-sm font-medium" htmlFor="followUpBody">Registrar seguimiento</label>
-                  <textarea className="min-h-24 w-full rounded-md border px-3 py-2 text-sm" id="followUpBody" name="followUpBody" required />
-                  <label className="text-sm font-medium" htmlFor="followUpAt">Próximo contacto (opcional)</label>
-                  <input className="w-full rounded-md border px-3 py-2 text-sm" id="followUpAt" name="followUpAt" type="datetime-local" />
-                  <Button className="w-full" type="submit">Registrar seguimiento</Button>
+                  <label className="text-sm font-medium text-[color:var(--admin-foreground)]" htmlFor="followUpBody">Registrar seguimiento</label>
+                  <textarea className={`${adminInputClassName} min-h-24 py-3`} id="followUpBody" name="followUpBody" required />
+                  <label className="text-sm font-medium text-[color:var(--admin-foreground)]" htmlFor="followUpAt">Próximo contacto (opcional)</label>
+                  <input className={adminInputClassName} id="followUpAt" name="followUpAt" type="datetime-local" />
+                  <Button className="w-full" type="submit">Guardar seguimiento</Button>
                 </form>
-              </CardContent>
-            </Card>
-          </section>
+              </div>
+            </SectionCard>
 
-          <section>
-            <Card>
-              <CardHeader><CardTitle>Timeline comercial</CardTitle></CardHeader>
-              <CardContent>
-                {timeline.length ? (
-                  <ol className="space-y-3 text-sm">
-                    {timeline.map((item) => (
-                      <li key={item.id} className="rounded-md border p-3">
-                        <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
-                          <p className="font-semibold">{item.label}</p>
-                          <p className="text-xs text-muted-foreground">{new Date(item.at).toLocaleString("es-MX")}</p>
-                        </div>
-                        {item.actorName ? <p className="mt-1 text-xs text-muted-foreground">Por {item.actorName}</p> : null}
-                        {item.summary ? <p className="mt-2 whitespace-pre-wrap">{item.summary}</p> : null}
-                        {item.metadata?.length ? <p className="mt-2 text-xs text-muted-foreground">{item.metadata.join(" · ")}</p> : null}
-                      </li>
-                    ))}
-                  </ol>
-                ) : <p className="text-sm text-muted-foreground">Sin actividad comercial registrada todavía.</p>}
-              </CardContent>
-            </Card>
-          </section>
-
-          <section className="grid gap-4 lg:grid-cols-3">
-            <Card><CardHeader><CardTitle>Pagos</CardTitle></CardHeader><CardContent>{payments.length ? <ul className="space-y-2 text-sm">{payments.map((payment) => <li key={payment.id} className="flex justify-between border-b pb-2"><span>{payment.payment_type} · {payment.status}</span><span>{money(payment.currency === "MXN" ? payment.amount : null, payment.currency === "USD" ? payment.amount : null)}</span></li>)}</ul> : <p className="text-sm text-muted-foreground">Sin pagos visibles.</p>}</CardContent></Card>
-            <Card><CardHeader><CardTitle>Reservas</CardTitle></CardHeader><CardContent>{bookings.length ? <ul className="space-y-2 text-sm">{bookings.map((booking) => <li key={booking.id} className="border-b pb-2"><p className="font-medium">{booking.booking_code ?? booking.id.slice(0, 8)}</p><p className="text-muted-foreground">{booking.status} · {booking.starts_on ?? "—"}</p></li>)}</ul> : <p className="text-sm text-muted-foreground">Sin reservas visibles.</p>}</CardContent></Card>
-            <Card><CardHeader><CardTitle>Documentos</CardTitle></CardHeader><CardContent>{documents.length ? <ul className="space-y-2 text-sm">{documents.map((document) => <li key={document.id} className="border-b pb-2"><p className="font-medium">{document.title}</p><p className="text-muted-foreground">{document.document_type} · {document.status}</p></li>)}</ul> : <p className="text-sm text-muted-foreground">Sin documentos visibles.</p>}</CardContent></Card>
-          </section>
-        </>
+            <SectionCard title="Atajos operativos" description="Accesos existentes para continuar el flujo sin duplicar lógica ni permisos.">
+              <div className="grid gap-2">
+                <QuietActionButton asChild><Link href="/admin/payments">Módulo de pagos</Link></QuietActionButton>
+                <QuietActionButton asChild><Link href="/admin/operations/bookings">Módulo de reservas</Link></QuietActionButton>
+                <QuietActionButton asChild><Link href="/admin/operations/documents">Módulo de documentos</Link></QuietActionButton>
+                <QuietActionButton asChild><Link href="/admin/templates">Plantillas activas</Link></QuietActionButton>
+              </div>
+            </SectionCard>
+          </aside>
+        </div>
       )}
-    </main>
+    </PageContainer>
   );
 }

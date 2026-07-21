@@ -1,5 +1,6 @@
 import "server-only";
 
+import { formatAdminCurrency, formatAdminDate, formatAdminFollowUpLabel, formatAdminModuleLabelFromPath } from "@/lib/admin/format";
 import { createClient } from "@/lib/supabase/server";
 import { getAdvisorCapableStaff } from "@/lib/admin/staff";
 
@@ -91,20 +92,35 @@ function compact(values: Array<string | undefined | null | false>) {
 
 export function formatLeadSourceLabel(source: string | null | undefined) {
   const labels: Record<string, string> = {
-    website: "Website",
-    website_quote: "Website Quote",
-    whatsapp_inbound_ad: "WhatsApp Ad Lead",
-    whatsapp_inbound_facebook: "WhatsApp Facebook Lead",
-    whatsapp_inbound_instagram: "WhatsApp Instagram Lead",
-    manual_admin: "Manual Admin",
-    manual_asesor: "Manual Advisor",
-    phone_call: "Phone Call",
-    whatsapp_manual: "WhatsApp Manual",
-    instagram_dm: "Instagram DM",
-    referral: "Referral",
-    walk_in: "Walk-in",
+    website: "Sitio web",
+    website_quote: "Cotización web",
+    whatsapp: "WhatsApp",
+    whatsapp_inbound_ad: "WhatsApp anuncio",
+    whatsapp_inbound_facebook: "WhatsApp Facebook",
+    whatsapp_inbound_instagram: "WhatsApp Instagram",
+    manual_admin: "Captura manual interna",
+    manual_asesor: "Captura manual de asesor",
+    phone_call: "Llamada telefónica",
+    whatsapp_manual: "WhatsApp manual",
+    instagram_dm: "Mensaje de Instagram",
+    referral: "Referido",
+    walk_in: "Visita directa",
+    sin_canal: "Canal no identificado",
   };
-  return labels[source ?? ""] ?? source ?? "—";
+  if (!source) return labels.sin_canal;
+  return labels[source] ?? labels.sin_canal;
+}
+
+export function formatLeadPriorityLabel(priority?: string | null) {
+  const labels: Record<string, string> = {
+    low: "Baja",
+    normal: "Media",
+    medium: "Media",
+    high: "Alta",
+    urgent: "Urgente",
+  };
+  if (!priority) return "Sin prioridad";
+  return labels[priority] ?? "Prioridad no identificada";
 }
 
 export async function getLeadStatuses() {
@@ -266,27 +282,112 @@ export async function getLeads(filters: LeadFilters) {
 
 function eventLabel(type: string) {
   const labels: Record<string, string> = { status_changed: "Estado actualizado", assigned: "Asesor asignado", note_added: "Nota agregada", follow_up_registered: "Seguimiento registrado", quote_received: "Cotización recibida", quote_submitted: "Cotización recibida", contact_identity_ambiguous: "Identidad ambigua", whatsapp_inbound_received: "WhatsApp recibido", manual_lead_created: "Lead manual creado" };
-  return labels[type] ?? type.replaceAll("_", " ");
+  return labels[type] ?? "Evento operativo";
 }
 
 function statusLabel(status: string) {
   const labels: Record<string, string> = { queued: "En cola", processing: "Procesando", sent: "Enviado", success: "Sincronizado", failed: "Fallido", skipped: "Omitido", ambiguous: "Ambiguo" };
-  return labels[status] ?? status;
+  return labels[status] ?? "Estado no identificado";
+}
+
+function sheetStatusLabel(status: string) {
+  const labels: Record<string, string> = { queued: "en cola", processing: "en proceso", success: "completada", failed: "con error", skipped: "omitida", ambiguous: "ambigua" };
+  return labels[status] ?? "con estado no identificado";
 }
 
 function eventSummary(eventType: string, payload: JsonRecord) {
   if (eventType === "whatsapp_inbound_received") return payloadString(payload, "messageText");
-  if (eventType === "manual_lead_created") return payloadString(payload, "source") ? `Origen: ${payloadString(payload, "source")}` : undefined;
+  if (eventType === "manual_lead_created") return payloadString(payload, "source") ? `Origen: ${formatLeadSourceLabel(payloadString(payload, "source"))}` : undefined;
   return undefined;
+}
+
+export function formatCurrencyAmount(amount: number, currency: string) {
+  return formatAdminCurrency(amount, currency);
+}
+
+export function templateDisplayLabel(name?: string | null) {
+  const labels: Record<string, string> = {
+    client_quote_request_confirmation: "Confirmación de solicitud de cotización",
+    admin_quote_request_received: "Nueva solicitud de cotización",
+    quote_received_email: "Confirmación de cotización recibida",
+    payment_received_email: "Confirmación de pago recibido",
+    whatsapp_followup: "Seguimiento por WhatsApp",
+  };
+  if (!name) return undefined;
+  return labels[name] ?? "Plantilla operativa";
+}
+
+function notificationLabel(channel: string, status: string) {
+  const normalized = channel.toLowerCase();
+  if (normalized === "email") return status === "success" ? "Correo enviado" : `Correo ${statusLabel(status).toLowerCase()}`;
+  if (normalized === "whatsapp") return status === "success" ? "WhatsApp preparado" : `WhatsApp ${statusLabel(status).toLowerCase()}`;
+  return `Notificación operativa ${statusLabel(status).toLowerCase()}`;
+}
+
+function paymentStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    pending: "pendiente",
+    received: "recibido",
+    verified: "verificado",
+    rejected: "rechazado",
+    refunded: "reembolsado",
+  };
+  return labels[status] ?? "Estado no identificado";
+}
+
+function paymentTypeLabel(type: string) {
+  const labels: Record<string, string> = {
+    deposit: "Anticipo",
+    partial: "Parcial",
+    balance: "Liquidación",
+    full: "Pago total",
+    refund: "Reembolso",
+  };
+  return labels[type] ?? "Pago operativo";
+}
+
+function bookingStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    draft: "borrador",
+    confirmed: "confirmada",
+    in_progress: "en viaje",
+    completed: "completada",
+    cancelled: "cancelada",
+  };
+  return labels[status] ?? "Estado no identificado";
+}
+
+function documentTypeLabel(type: string) {
+  const labels: Record<string, string> = {
+    passport: "Pasaporte",
+    visa: "Visa",
+    itinerary: "Itinerario",
+    voucher: "Voucher",
+    ticket: "Boleto",
+    invoice: "Factura",
+    receipt: "Comprobante",
+  };
+  return labels[type] ?? "Documento operativo";
+}
+
+function documentStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    pending: "pendiente",
+    requested: "solicitado",
+    received: "recibido",
+    approved: "aprobado",
+    rejected: "rechazado",
+    archived: "archivado",
+  };
+  return labels[status] ?? "Estado no identificado";
 }
 
 function eventMetadata(eventType: string, payload: JsonRecord) {
   const referral = jsonObject(payload.referral);
   const base = compact([
     payloadString(payload, "statusLabel"),
-    payloadString(payload, "statusId") ? `Estado: ${payloadString(payload, "statusId")}` : undefined,
-    payloadString(payload, "assignedTo") ? `Asignado a: ${payloadString(payload, "assignedTo")}` : undefined,
-    payloadString(payload, "followUpAt") ? `Próximo: ${payloadString(payload, "followUpAt")}` : undefined,
+    payloadString(payload, "statusId") ? "Estado actualizado" : undefined,
+    formatAdminFollowUpLabel(payloadString(payload, "followUpAt")),
   ]);
   if (eventType === "whatsapp_inbound_received") {
     return compact([
@@ -295,7 +396,6 @@ function eventMetadata(eventType: string, payload: JsonRecord) {
       payloadString(payload, "source") ? `Canal: ${formatLeadSourceLabel(payloadString(payload, "source"))}` : undefined,
       payloadString(referral, "headline") ? `Anuncio: ${payloadString(referral, "headline")}` : undefined,
       payloadString(referral, "source_type") ? `Red: ${payloadString(referral, "source_type")}` : undefined,
-      payloadString(referral, "ctwa_clid") ? `CTWA: ${payloadString(referral, "ctwa_clid")}` : undefined,
     ]);
   }
   if (eventType === "manual_lead_created") {
@@ -308,8 +408,28 @@ function eventMetadata(eventType: string, payload: JsonRecord) {
   return base;
 }
 
-function buildTimeline(input: { events: unknown[]; notes: unknown[]; whatsappClicks: unknown[]; notifications: unknown[]; sheetLogs: unknown[] }) {
+function buildTimeline(input: {
+  lead?: { id: string; created_at: string; summary: string | null } | null;
+  events: unknown[];
+  notes: unknown[];
+  whatsappClicks: unknown[];
+  notifications: unknown[];
+  sheetLogs: unknown[];
+  payments: unknown[];
+  bookings: unknown[];
+  documents: unknown[];
+}) {
   const items: LeadTimelineItem[] = [];
+
+  if (input.lead) {
+    items.push({
+      id: `lead-created-${input.lead.id}`,
+      at: input.lead.created_at,
+      kind: "event",
+      label: "Lead creado",
+      summary: input.lead.summary ?? undefined,
+    });
+  }
 
   for (const raw of input.events) {
     const event = raw as { id: string; created_at: string; event_type: string; payload: unknown; profiles?: { full_name: string | null } | null };
@@ -332,17 +452,56 @@ function buildTimeline(input: { events: unknown[]; notes: unknown[]; whatsappCli
 
   for (const raw of input.whatsappClicks) {
     const click = raw as { id: string; created_at: string; phone: string | null; page_path: string | null; message: string | null };
-    items.push({ id: `whatsapp-${click.id}`, at: click.created_at, kind: "whatsapp", label: "WhatsApp abierto", summary: click.message ?? undefined, metadata: compact([click.phone ? `Tel: ${click.phone}` : undefined, click.page_path ? `Origen: ${click.page_path}` : undefined]) });
+    items.push({ id: `whatsapp-${click.id}`, at: click.created_at, kind: "whatsapp", label: "WhatsApp preparado", summary: click.message ?? undefined, metadata: compact([click.phone ? `Tel: ${click.phone}` : undefined, click.page_path ? `Origen: ${formatAdminModuleLabelFromPath(click.page_path)}` : undefined]) });
   }
 
   for (const raw of input.notifications) {
     const log = raw as { id: string; created_at: string; channel: string; provider: string | null; template_name: string | null; status: string; error_message: string | null; recipient: string | null };
-    items.push({ id: `notification-${log.id}`, at: log.created_at, kind: "notification", label: `${log.channel} ${statusLabel(log.status)}`, summary: log.error_message ?? undefined, metadata: compact([log.template_name ? `Template: ${log.template_name}` : undefined, log.provider ? `Provider: ${log.provider}` : undefined, log.recipient ? `Para: ${log.recipient}` : undefined]) });
+    items.push({
+      id: `notification-${log.id}`,
+      at: log.created_at,
+      kind: "notification",
+      label: notificationLabel(log.channel, log.status),
+      metadata: compact([templateDisplayLabel(log.template_name) ? `Plantilla: ${templateDisplayLabel(log.template_name)}` : undefined, log.recipient ? `Para: ${log.recipient}` : undefined]),
+    });
   }
 
   for (const raw of input.sheetLogs) {
     const log = raw as { id: string; created_at: string; sheet_name: string | null; row_id: string | null; status: string; error_message: string | null };
-    items.push({ id: `sheet-${log.id}`, at: log.created_at, kind: "sheet", label: `Google Sheets ${statusLabel(log.status)}`, summary: log.error_message ?? undefined, metadata: compact([log.sheet_name ? `Hoja: ${log.sheet_name}` : undefined, log.row_id ? `Fila: ${log.row_id}` : undefined]) });
+    items.push({ id: `sheet-${log.id}`, at: log.created_at, kind: "sheet", label: `Sincronización operativa ${sheetStatusLabel(log.status)}` });
+  }
+
+  for (const raw of input.payments) {
+    const payment = raw as { id: string; created_at: string; amount: number; currency: string; status: string; payment_type: string };
+    items.push({
+      id: `payment-${payment.id}`,
+      at: payment.created_at,
+      kind: "event",
+      label: `Pago ${paymentStatusLabel(payment.status)}`,
+      metadata: [paymentTypeLabel(payment.payment_type), formatCurrencyAmount(payment.amount, payment.currency)],
+    });
+  }
+
+  for (const raw of input.bookings) {
+    const booking = raw as { id: string; created_at: string; booking_code: string | null; status: string; starts_on: string | null };
+    items.push({
+      id: `booking-${booking.id}`,
+      at: booking.created_at,
+      kind: "event",
+      label: `Reserva ${bookingStatusLabel(booking.status)}`,
+        metadata: compact([booking.booking_code ? `Código: ${booking.booking_code}` : undefined, booking.starts_on ? `Inicio: ${formatAdminDate(booking.starts_on)}` : undefined]),
+      });
+    }
+
+  for (const raw of input.documents) {
+    const document = raw as { id: string; created_at: string; title: string; document_type: string; status: string };
+    items.push({
+      id: `document-${document.id}`,
+      at: document.created_at,
+      kind: "event",
+      label: `Documento ${documentStatusLabel(document.status)}`,
+      metadata: [documentTypeLabel(document.document_type), document.title],
+    });
   }
 
   return items.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
@@ -368,8 +527,8 @@ export async function getLeadDetail(id: string) {
     supabase.from("documents").select("id, created_at, title, document_type, status").eq("lead_id", id).order("created_at", { ascending: false }).limit(10),
   ]);
 
-  const timeline = buildTimeline({ events: events ?? [], notes: notes ?? [], whatsappClicks: whatsappClicks ?? [], notifications: notifications ?? [], sheetLogs: sheetLogs ?? [] });
+  const timeline = buildTimeline({ lead: lead ? { id: lead.id, created_at: lead.created_at, summary: lead.summary } : null, events: events ?? [], notes: notes ?? [], whatsappClicks: whatsappClicks ?? [], notifications: notifications ?? [], sheetLogs: sheetLogs ?? [], payments: payments ?? [], bookings: bookings ?? [], documents: documents ?? [] });
   return { lead: (lead ?? null) as unknown as LeadDetail | null, notes: notes ?? [], events: events ?? [], timeline, payments: payments ?? [], bookings: bookings ?? [], documents: documents ?? [], error: error?.message ?? null };
 }
 
-export const leadSearchInternals = { splitSearchTerms, buildLeadSearchPlan, buildLeadSearchClauses, buildQuoteRequestSearchClauses, buildLeadEventSearchClauses, validDate, resolveCreatedAtRange, formatLeadSourceLabel };
+export const leadSearchInternals = { splitSearchTerms, buildLeadSearchPlan, buildLeadSearchClauses, buildQuoteRequestSearchClauses, buildLeadEventSearchClauses, validDate, resolveCreatedAtRange, formatLeadSourceLabel, formatLeadPriorityLabel, formatCurrencyAmount, buildTimeline, templateDisplayLabel, paymentTypeLabel, paymentStatusLabel, bookingStatusLabel, documentTypeLabel, documentStatusLabel };

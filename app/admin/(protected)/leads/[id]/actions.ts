@@ -26,6 +26,7 @@ export async function updateLeadStatusAction(formData: FormData) {
   await insertLeadEvent(leadId, session.user.id, "status_changed", { statusId });
   revalidatePath(`/admin/leads/${leadId}`);
   revalidatePath("/admin/leads");
+  revalidatePath("/admin/dashboard");
 }
 
 export async function assignLeadAction(formData: FormData) {
@@ -39,6 +40,7 @@ export async function assignLeadAction(formData: FormData) {
   await insertLeadEvent(leadId, session.user.id, "assigned", { assignedTo });
   revalidatePath(`/admin/leads/${leadId}`);
   revalidatePath("/admin/leads");
+  revalidatePath("/admin/dashboard");
 }
 
 export async function addLeadNoteAction(formData: FormData) {
@@ -50,6 +52,8 @@ export async function addLeadNoteAction(formData: FormData) {
   if (error) throw new Error(error.message);
   await insertLeadEvent(leadId, session.user.id, "note_added", { internal: true });
   revalidatePath(`/admin/leads/${leadId}`);
+  revalidatePath("/admin/leads");
+  revalidatePath("/admin/dashboard");
 }
 
 export async function registerFollowUpAction(formData: FormData) {
@@ -71,4 +75,5 @@ export async function registerFollowUpAction(formData: FormData) {
   await insertLeadEvent(leadId, session.user.id, "follow_up_registered", { followUpAt, hasNote: true });
   revalidatePath(`/admin/leads/${leadId}`);
   revalidatePath("/admin/leads");
+  revalidatePath("/admin/dashboard");
 }

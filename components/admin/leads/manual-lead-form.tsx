@@ -6,8 +6,25 @@ import { manualLeadPriorityValues, manualLeadSourceValues } from "@/lib/validati
 
 const initialState: ManualLeadActionState = { ok: false, message: null, fieldErrors: {} };
 
+const priorityLabels: Record<(typeof manualLeadPriorityValues)[number], string> = {
+  low: "Baja",
+  normal: "Normal",
+  high: "Alta",
+  urgent: "Urgente",
+};
+
+const sourceLabels: Record<(typeof manualLeadSourceValues)[number], string> = {
+  manual_admin: "Captura administrativa",
+  manual_asesor: "Captura de asesor",
+  phone_call: "Llamada telefónica",
+  whatsapp_manual: "WhatsApp manual",
+  instagram_dm: "Mensaje directo de Instagram",
+  referral: "Referido",
+  walk_in: "Visita en sucursal",
+};
+
 function SubmitButton() {
-  return <button className="rounded-md bg-[var(--ac-blue)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90" type="submit">Crear lead</button>;
+  return <button className="rounded-md bg-[var(--ac-blue)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90" type="submit">Crear prospecto</button>;
 }
 
 function fieldError(state: ManualLeadActionState, key: string) {
@@ -27,7 +44,7 @@ export function ManualLeadForm({ advisors, allowAssignment, defaultSource }: { a
       <div>
         <label className="text-sm font-medium" htmlFor="source">Origen</label>
         <select className="mt-1 w-full rounded-md border px-3 py-2 text-sm" defaultValue={defaultSource} id="source" name="source">
-          {manualLeadSourceValues.map((source) => <option key={source} value={source}>{source}</option>)}
+          {manualLeadSourceValues.map((source) => <option key={source} value={source}>{sourceLabels[source]}</option>)}
         </select>
       </div>
       <div>
@@ -36,14 +53,14 @@ export function ManualLeadForm({ advisors, allowAssignment, defaultSource }: { a
         {fieldError(state, "phone") ? <p className="mt-1 text-xs text-red-700">{fieldError(state, "phone")}</p> : null}
       </div>
       <div>
-        <label className="text-sm font-medium" htmlFor="email">Email</label>
+        <label className="text-sm font-medium" htmlFor="email">Correo electrónico</label>
         <input className="mt-1 w-full rounded-md border px-3 py-2 text-sm" id="email" name="email" type="email" />
         {fieldError(state, "email") ? <p className="mt-1 text-xs text-red-700">{fieldError(state, "email")}</p> : null}
       </div>
       <div>
         <label className="text-sm font-medium" htmlFor="priority">Prioridad</label>
         <select className="mt-1 w-full rounded-md border px-3 py-2 text-sm" defaultValue="normal" id="priority" name="priority">
-          {manualLeadPriorityValues.map((priority) => <option key={priority} value={priority}>{priority}</option>)}
+          {manualLeadPriorityValues.map((priority) => <option key={priority} value={priority}>{priorityLabels[priority]}</option>)}
         </select>
       </div>
       {allowAssignment ? (
@@ -77,7 +94,7 @@ export function ManualLeadForm({ advisors, allowAssignment, defaultSource }: { a
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-sm font-medium" htmlFor="budgetAmount">Budget</label>
+          <label className="text-sm font-medium" htmlFor="budgetAmount">Presupuesto</label>
           <input className="mt-1 w-full rounded-md border px-3 py-2 text-sm" id="budgetAmount" min={0} name="budgetAmount" type="number" />
         </div>
         <div>
