@@ -45,7 +45,7 @@ export function AdminLoginForm() {
   }
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit}>
       <div className="space-y-2.5">
         <label className="text-sm font-medium text-[#211816]" htmlFor="admin-email">
           Correo electrónico
@@ -70,7 +70,7 @@ export function AdminLoginForm() {
           />
         </div>
       </div>
-      <div className="space-y-2.5">
+      <div className="mt-5 space-y-2.5">
         <label className="text-sm font-medium text-[#211816]" htmlFor="admin-password">
           Contraseña
         </label>
@@ -95,7 +95,7 @@ export function AdminLoginForm() {
             type="button"
             onClick={() => setShowPassword((current) => !current)}
             disabled={!configured || isSubmitting}
-            className="absolute right-1.5 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-[#6d5f5a] outline-none transition hover:bg-[#f8eef7] hover:text-[#211816] focus-visible:ring-2 focus-visible:ring-[#1b8bad] disabled:cursor-not-allowed disabled:opacity-50"
+            className="absolute right-1.5 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-transparent bg-white/80 text-[#6d5f5a] outline-none transition hover:border-[#eadfd9] hover:bg-[#f8eef7] hover:text-[#211816] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-[#1b8bad] disabled:cursor-not-allowed disabled:opacity-50"
             aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
             aria-pressed={showPassword}
           >
@@ -104,7 +104,7 @@ export function AdminLoginForm() {
         </div>
       </div>
 
-      <div id="admin-login-status" aria-live="polite" className="min-h-5">
+      <div id="admin-login-status" aria-live="polite" className="mt-5 min-h-[1.5rem]">
         {message ? (
           <div className="flex h-full items-start gap-3 rounded-2xl border border-[#eb0816]/15 bg-[#fff3f3] px-4 py-3 text-sm text-[#8b2730]">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
@@ -114,7 +114,7 @@ export function AdminLoginForm() {
       </div>
 
       <Button
-        className="h-12 w-full rounded-2xl bg-[linear-gradient(135deg,#c94722_0%,#a80d16_100%)] text-sm font-semibold text-white shadow-[0_14px_30px_rgba(168,13,22,0.24)] hover:opacity-100 hover:shadow-[0_18px_38px_rgba(168,13,22,0.3)] focus-visible:ring-[#1b8bad] disabled:shadow-none"
+        className="mt-4 h-12 w-full rounded-2xl bg-[linear-gradient(135deg,#c94722_0%,#a80d16_100%)] text-sm font-semibold text-white shadow-[0_14px_30px_rgba(168,13,22,0.24)] hover:opacity-100 hover:shadow-[0_18px_38px_rgba(168,13,22,0.3)] focus-visible:ring-[#1b8bad] disabled:shadow-none"
         type="submit"
         disabled={!configured || isSubmitting}
       >
@@ -128,7 +128,7 @@ export function AdminLoginForm() {
         )}
       </Button>
 
-      <p className="text-center text-xs leading-5 text-[#7a6e69]">
+      <p className="mt-5 text-center text-xs leading-5 text-[#7a6e69]">
         Acceso exclusivo para personal autorizado.
       </p>
     </form>
