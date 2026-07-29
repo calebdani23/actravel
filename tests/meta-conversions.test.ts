@@ -48,8 +48,8 @@ test("meta conversions payload includes dedup id, attribution, and hashed identi
   assert.equal(event.event_source_url, "https://www.actravel.com/en/quote");
   assert.equal(event.user_data.client_ip_address, "203.0.113.10");
   assert.equal(event.user_data.client_user_agent, "Mozilla/5.0");
-  assert.equal(event.user_data.fbp, undefined);
-  assert.equal(event.user_data.fbc, undefined);
+  assert.equal(Reflect.get(event.user_data, "fbp"), undefined);
+  assert.equal(Reflect.get(event.user_data, "fbc"), undefined);
   assert.equal(event.custom_data.client_utm_campaign, "summer");
   assert.match(event.user_data.em ?? "", /^[a-f0-9]{64}$/);
   assert.match(event.user_data.ph ?? "", /^[a-f0-9]{64}$/);

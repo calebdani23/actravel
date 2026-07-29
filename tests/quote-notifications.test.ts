@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { renderQuoteEmail } from "@/lib/email/templates/quote-request";
 import { buildQuoteNotificationPlans, deliverQuoteNotification } from "@/lib/leads/quote-notification-core";
+import { quoteNotificationInternals } from "@/lib/leads/quote-notifications";
 import { retryNotificationLog } from "@/lib/leads/quote-notification-retry";
 import type { Json } from "@/lib/supabase/database.types";
 import type { QuoteRequestInput } from "@/lib/validations/quote-request";
@@ -26,6 +27,7 @@ const input: QuoteRequestInput = {
   sourceChannel: "website_quote",
   contactConsent: true,
   notes: "Need <vegan> options",
+  metaLeadEventId: undefined,
 };
 
 test("client quote email renders branded confirmation shell, signature, CTA, placeholders, and escaped HTML", () => {
@@ -158,6 +160,27 @@ test("notification lifecycle records queued then sent with provider metadata", a
   assert.equal(updated[0].status, "sent");
   assert.equal(updated[0].providerMessageId, "msg_123");
   assert.deepEqual((updated[0].payload as Record<string, unknown>).provider, { name: "resend", messageId: "msg_123", raw: { id: "msg_123" } });
+});
+
+test("notification idempotency is scoped to quote request id so reused opportunities can notify again", () => {
+  const row = quoteNotificationInternals.buildQuoteNotificationLogRow({
+    leadId: "lead-1",
+    contactId: "contact-1",
+    quoteRequestId: "quote-1",
+    recipient: "ada@example.com",
+    templateName: "admin_quote_request_received",
+    status: "queued",
+    payload: { quoteRequestId: "quote-1" },
+  });
+  const lookup = quoteNotificationInternals.buildQuoteNotificationLookup({
+    quoteRequestId: "quote-2",
+    recipient: "ada@example.com",
+    templateName: "admin_quote_request_received",
+  });
+
+  assert.equal(row.quote_request_id, "quote-1");
+  assert.equal(lookup.quoteRequestId, "quote-2");
+  assert.equal(lookup.templateName, "admin_quote_request_received");
 });
 
 test("notification lifecycle skips absent client email and fails provider errors without throwing", async () => {

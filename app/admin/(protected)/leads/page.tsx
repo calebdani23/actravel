@@ -1,278 +1,46 @@
 import Link from "next/link";
-import { ChevronDown, Search } from "lucide-react";
-import { EmptyState, ErrorState, MetricCard, PageContainer, PageHeader, QuietActionButton, SectionCard, StatusBadge, adminFieldHintClassName, adminInputClassName, adminSelectClassName } from "@/components/admin/admin-primitives";
-import { cn } from "@/lib/utils/cn";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ContactSelection, SelectableRow } from "@/components/admin/contacts/contact-selection";
+import { ContactBulkToolbar } from "@/components/admin/contacts/bulk-toolbar";
+import { EmptyState, ErrorState, MetricCard, PageContainer, PageHeader, SectionCard, StatusBadge, adminInputClassName, adminSelectClassName } from "@/components/admin/admin-primitives";
 import { requireAdminRole } from "@/lib/admin/auth";
-import { formatLeadSourceLabel, getAdvisors, getDestinations, getLeads, getLeadSources, getLeadStatuses, type LeadFilters } from "@/lib/admin/leads";
-import { formatAdminCurrency, formatAdminDate, formatAdminDateTime, formatAdminInteger, formatAdminLeadChipStructuredValue, formatAdminTravelerCount } from "@/lib/admin/format";
-import { appendAdminSearchParams, buildAdminSearchQueryString } from "@/lib/admin/navigation";
+import { getAdvisors, getDestinations, getLeadSources, getServices } from "@/lib/admin/leads";
+import { getContacts, type ContactFilters } from "@/lib/admin/contacts";
+import { blockContacts, deleteRestoreContacts } from "../contacts/actions";
+import { formatAdminCurrency, formatAdminDate, formatAdminDateTime, formatAdminInteger } from "@/lib/admin/format";
 
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+const value = (params: Record<string, string | string[] | undefined>, key: string) => Array.isArray(params[key]) ? params[key]?.[0] : params[key];
+const lifecycleLabel: Record<string, string> = { active: "Activo", follow_up: "Seguimiento", customer: "Cliente", inactive: "Inactivo", blocked: "Bloqueado", deleted: "Eliminado" };
+const lifecycleTone = (value?: string) => value === "blocked" || value === "deleted" ? "warning" as const : value === "customer" ? "success" as const : "info" as const;
 
-function value(params: Record<string, string | string[] | undefined>, key: string) {
-  const raw = params[key];
-  return Array.isArray(raw) ? raw[0] : raw;
-}
-
-function money(mxn: number | null, usd: number | null) {
-  if (mxn !== null) return formatAdminCurrency(mxn, "MXN");
-  if (usd !== null) return formatAdminCurrency(usd, "USD");
-  return "—";
-}
-
-function leadStatusTone(status?: string | null) {
-  if (!status) return "neutral" as const;
-  if (["won", "booked", "converted", "paid"].includes(status)) return "success" as const;
-  if (["new", "contacted", "qualified", "proposal_sent"].includes(status)) return "info" as const;
-  if (["lost", "cancelled", "archived"].includes(status)) return "neutral" as const;
-  return "brand" as const;
-}
-
-function formatDateTime(value: string) {
-  return formatAdminDateTime(value);
-}
-
-function formatDate(value?: string | null) {
-  return formatAdminDate(value);
-}
-
-function tripLabel(start?: string | null, end?: string | null, travelersCount?: number) {
-  const range = start || end ? `${formatDate(start)} → ${formatDate(end)}` : "Sin fechas de viaje";
-  return `${range} · ${formatAdminTravelerCount(travelersCount)}`;
-}
-
-function activeFilterLabels(filters: LeadFilters, options: {
-  statuses: Array<{ name: string; label_es: string }>;
-  destinations: Array<{ id: string; name_es: string }>;
-  advisors: Array<{ id: string; full_name: string }>;
-}) {
-  const statusOptions = options.statuses.map((item) => ({ value: item.name, label: item.label_es }));
-  const destinationOptions = options.destinations.map((item) => ({ value: item.id, label: item.name_es }));
-  const advisorOptions = options.advisors.map((item) => ({ value: item.id, label: item.full_name }));
-
-  return [
-    filters.q ? `Búsqueda: ${filters.q}` : null,
-    filters.status ? `Estado: ${formatAdminLeadChipStructuredValue("status", filters.status, statusOptions)}` : null,
-    filters.destination ? `Destino: ${formatAdminLeadChipStructuredValue("destination", filters.destination, destinationOptions)}` : null,
-    filters.advisor ? `Asesor: ${formatAdminLeadChipStructuredValue("advisor", filters.advisor, advisorOptions)}` : null,
-    filters.channel ? `Canal: ${formatLeadSourceLabel(filters.channel)}` : null,
-    filters.currency ? `Moneda: ${filters.currency}` : null,
-    filters.from ? `Desde: ${formatAdminDate(filters.from)}` : null,
-    filters.to ? `Hasta: ${formatAdminDate(filters.to)}` : null,
-  ].filter(Boolean) as string[];
-}
+function money(value: number, currency: "MXN" | "USD") { return value ? formatAdminCurrency(value, currency) : "—"; }
 
 export default async function LeadsPage({ searchParams }: PageProps) {
-  const [params] = await Promise.all([searchParams, requireAdminRole(["admin", "asesor"])]);
-  const filters: LeadFilters = {
-    q: value(params, "q"),
-    status: value(params, "status"),
-    destination: value(params, "destination"),
-    channel: value(params, "channel"),
-    advisor: value(params, "advisor"),
-    currency: value(params, "currency"),
-    from: value(params, "from"),
-    to: value(params, "to"),
-  };
-  const [{ leads, error }, statuses, advisors, destinations, channels] = await Promise.all([getLeads(filters), getLeadStatuses(), getAdvisors(), getDestinations(), getLeadSources()]);
-  const activeFilters = Object.entries(filters).filter(([, filterValue]) => filterValue).length;
-  const chips = activeFilterLabels(filters, { statuses, destinations, advisors });
-  const currentQuery = buildAdminSearchQueryString(params);
-  const crmBaseHref = `/admin/leads${currentQuery}`;
+  const [params, session] = await Promise.all([searchParams, requireAdminRole(["admin", "asesor"])]);
+  const isAdmin = session.roles.includes("admin");
+  const filters: ContactFilters = { page: Number(value(params, "page")) || 1, q: value(params, "q"), lifecycle: value(params, "lifecycle"), blocked: value(params, "blocked") as ContactFilters["blocked"], advisor: value(params, "advisor"), open: value(params, "open") as "yes" | undefined, overdue: value(params, "overdue") as "yes" | undefined, duplicate: value(params, "duplicate") as "yes" | undefined, destination: value(params, "destination"), service: value(params, "service"), source: value(params, "source"), deleted: value(params, "deleted") as "yes" | undefined, deletedOpportunities: value(params, "deletedOpportunities") as "yes" | undefined, quickView: value(params, "quickView") as ContactFilters["quickView"] };
+  const currentPage = filters.page ?? 1;
+  const [{ contacts, error, totalCount, partial }, advisors, destinations, services, sources] = await Promise.all([getContacts(filters), getAdvisors(), getDestinations(), getServices(), getLeadSources()]);
+  const query = (changes: Record<string, string | undefined>) => { const next = new URLSearchParams(); Object.entries(params).forEach(([key, raw]) => { const item = Array.isArray(raw) ? raw[0] : raw; if (item) next.set(key, item); }); Object.entries(changes).forEach(([key, item]) => item ? next.set(key, item) : next.delete(key)); const value = next.toString(); return `/admin/leads${value ? `?${value}` : ""}`; };
+  const openCount = contacts.reduce((sum, contact) => sum + contact.openOpportunityCount, 0);
+  const followUpCount = contacts.filter((contact) => contact.overdueCount > 0).length;
+  const totalMxn = contacts.reduce((sum, contact) => sum + contact.pipelineMxn, 0);
+  const totalUsd = contacts.reduce((sum, contact) => sum + contact.pipelineUsd, 0);
 
-  if (error) console.error("Leads list dashboard-safe error", { filters, error });
-
-  return (
-    <PageContainer>
-      <PageHeader
-        actions={<Button asChild><Link href="/admin/leads/new">Nuevo prospecto</Link></Button>}
-        breadcrumbs={[{ label: "Comercial", href: crmBaseHref }, { label: "Prospectos" }]}
-        description="Mantiene la misma consulta, filtros y visibilidad actual; la vista solo mejora lectura, priorización y acceso al detalle."
-        eyebrow="CRM"
-        title="Prospectos"
-      />
-
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard detail="Resultado actual según tus filtros y permisos." label="Prospectos visibles" tone="brand" value={formatAdminInteger(leads.length)} />
-        <MetricCard detail="Se cuentan únicamente los filtros con valor." label="Filtros activos" tone={activeFilters ? "info" : "neutral"} value={formatAdminInteger(activeFilters)} />
-        <MetricCard detail="Cargados desde perfiles con capacidad comercial." label="Asesores disponibles" tone="neutral" value={formatAdminInteger(advisors.length)} />
-        <MetricCard detail="Catálogo disponible para refinar el CRM." label="Destinos disponibles" tone="neutral" value={formatAdminInteger(destinations.length)} />
-      </section>
-
-      <SectionCard title="Filtros del CRM" description="La búsqueda mantiene exactamente los mismos parámetros de consulta actuales." actions={activeFilters ? <QuietActionButton asChild><Link href="/admin/leads">Limpiar filtros</Link></QuietActionButton> : null}>
-        <form className="space-y-4">
-          <div className="grid gap-3 xl:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto]">
-            <label className="space-y-2 xl:col-span-1" htmlFor="lead-search">
-              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Buscar</span>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--admin-muted-foreground)]" aria-hidden="true" />
-                <input className={cn(adminInputClassName, "pl-9")} defaultValue={filters.q ?? ""} id="lead-search" name="q" placeholder="Nombre, correo, WhatsApp o destino" />
-              </div>
-            </label>
-
-            <label className="space-y-2" htmlFor="lead-status">
-              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Estado</span>
-              <select className={adminSelectClassName} defaultValue={filters.status ?? ""} id="lead-status" name="status">
-                <option value="">Todos los estados</option>
-                {statuses.map((status) => <option key={status.id} value={status.name}>{status.label_es}</option>)}
-              </select>
-            </label>
-
-            <label className="space-y-2" htmlFor="lead-from">
-              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Desde</span>
-              <input className={adminInputClassName} defaultValue={filters.from ?? ""} id="lead-from" name="from" type="date" />
-            </label>
-
-            <label className="space-y-2" htmlFor="lead-to">
-              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Hasta</span>
-              <input className={adminInputClassName} defaultValue={filters.to ?? ""} id="lead-to" name="to" type="date" />
-            </label>
-
-            <div className="flex flex-wrap items-end gap-2">
-              <Button type="submit">Aplicar</Button>
-              <Button asChild variant="outline"><Link href="/admin/leads">Limpiar</Link></Button>
-            </div>
-          </div>
-
-          <details className="group rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] px-4 py-3">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-[color:var(--admin-foreground)]">
-              <span>Más filtros</span>
-              <ChevronDown className="h-4 w-4 transition group-open:rotate-180" aria-hidden="true" />
-            </summary>
-            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <label className="space-y-2" htmlFor="lead-destination">
-                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Destino</span>
-                <select className={adminSelectClassName} defaultValue={filters.destination ?? ""} id="lead-destination" name="destination">
-                  <option value="">Todos los destinos</option>
-                  {destinations.map((destination) => <option key={destination.id} value={destination.id}>{destination.name_es}</option>)}
-                </select>
-              </label>
-              <label className="space-y-2" htmlFor="lead-advisor">
-                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Asesor</span>
-                <select className={adminSelectClassName} defaultValue={filters.advisor ?? ""} id="lead-advisor" name="advisor">
-                  <option value="">Todos los asesores</option>
-                  <option value="unassigned">Sin asignar</option>
-                  {advisors.map((advisor) => <option key={advisor.id} value={advisor.id}>{advisor.full_name}</option>)}
-                </select>
-              </label>
-              <label className="space-y-2" htmlFor="lead-currency">
-                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Moneda</span>
-                <select className={adminSelectClassName} defaultValue={filters.currency ?? ""} id="lead-currency" name="currency">
-                  <option value="">Cualquier moneda</option>
-                  <option value="MXN">MXN</option>
-                  <option value="USD">USD</option>
-                </select>
-              </label>
-              <label className="space-y-2" htmlFor="lead-channel">
-                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Canal</span>
-                <input className={adminInputClassName} defaultValue={filters.channel ?? ""} id="lead-channel" name="channel" placeholder="Origen o canal" list="lead-channels" />
-              </label>
-            </div>
-          </details>
-
-          <datalist id="lead-channels">{channels.map((channel) => <option key={channel} value={channel} />)}</datalist>
-
-          {chips.length ? (
-            <div className="flex flex-wrap gap-2" aria-label="Filtros activos">
-              {chips.map((chip) => <StatusBadge className="font-medium" key={chip} tone="neutral">{chip}</StatusBadge>)}
-            </div>
-          ) : null}
-
-          <p className={adminFieldHintClassName}>La visibilidad del listado sigue limitada por sesión, rol y RLS.</p>
-        </form>
-      </SectionCard>
-
-       {error ? <ErrorState description="No se pudo cargar por completo el listado del CRM. Intenta actualizar la vista o revisa los logs autorizados si el problema continúa." title="Carga incompleta" /> : null}
-
-      <SectionCard description="Se preservan los enlaces al detalle, los mismos campos y el comportamiento actual del CRM." title={`${formatAdminInteger(leads.length)} prospectos visibles`}>
-        {leads.length ? (
-          <div className="space-y-4">
-            <div className="grid gap-3 lg:hidden">
-              {leads.map((lead) => {
-                const contactName = [lead.contacts?.first_name, lead.contacts?.last_name].filter(Boolean).join(" ") || "Contacto";
-
-                return (
-                  <article className="rounded-[var(--admin-radius-card)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4" key={lead.id}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <Link className="font-semibold text-[color:var(--admin-accent)] hover:underline" href={appendAdminSearchParams(`/admin/leads/${lead.id}`, params)}>{contactName}</Link>
-                        <p className="text-sm text-[color:var(--admin-muted-foreground)]">{lead.contacts?.email ?? "Sin correo"}</p>
-                      </div>
-                      <StatusBadge tone={leadStatusTone(lead.lead_statuses?.name)}>{lead.lead_statuses?.label_es ?? "—"}</StatusBadge>
-                    </div>
-
-                    <dl className="mt-4 space-y-3 text-sm">
-                      <div>
-                        <dt className="text-xs uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Destino y viaje</dt>
-                        <dd className="mt-1 text-[color:var(--admin-foreground)]">{lead.destinations?.name_es ?? "Sin destino"}</dd>
-                        <dd className="text-xs text-[color:var(--admin-muted-foreground)]">{tripLabel(lead.travel_start_date, lead.travel_end_date, lead.travelers_count)}</dd>
-                      </div>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div><dt className="text-xs uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Asesor</dt><dd className="mt-1 text-[color:var(--admin-foreground)]">{lead.profiles?.full_name ?? "Sin asignar"}</dd></div>
-                        <div><dt className="text-xs uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Canal</dt><dd className="mt-1 text-[color:var(--admin-foreground)]">{formatLeadSourceLabel(lead.source)}</dd></div>
-                        <div><dt className="text-xs uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Presupuesto</dt><dd className="mt-1 text-[color:var(--admin-foreground)]">{money(lead.budget_mxn, lead.budget_usd)}</dd></div>
-                        <div><dt className="text-xs uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Última actividad</dt><dd className="mt-1 text-[color:var(--admin-foreground)]">{formatDateTime(lead.updated_at)}</dd></div>
-                      </div>
-                    </dl>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                       <Button asChild size="sm" variant="outline"><Link href={appendAdminSearchParams(`/admin/leads/${lead.id}`, params)}>Abrir detalle</Link></Button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-
-            <div className="hidden lg:block">
-              <div className="overflow-x-auto rounded-[var(--admin-radius-card)] border border-[color:var(--admin-border-subtle)]">
-                <table className="w-full text-left text-sm">
-                  <caption className="sr-only">Listado de prospectos del CRM</caption>
-                  <thead className="bg-[color:var(--admin-surface-muted)] text-xs uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">
-                    <tr>
-                      <th className="px-4 py-3" scope="col">Contacto</th>
-                      <th className="px-4 py-3" scope="col">Destino y viaje</th>
-                      <th className="px-4 py-3" scope="col">Estado</th>
-                      <th className="px-4 py-3" scope="col">Asesor</th>
-                      <th className="px-4 py-3" scope="col">Canal</th>
-                      <th className="px-4 py-3" scope="col">Presupuesto</th>
-                      <th className="px-4 py-3" scope="col">Última actividad</th>
-                      <th className="px-4 py-3" scope="col">Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leads.map((lead) => {
-                      const contactName = [lead.contacts?.first_name, lead.contacts?.last_name].filter(Boolean).join(" ") || "Contacto";
-
-                      return (
-                        <tr className="border-t border-[color:var(--admin-border-subtle)] align-top" key={lead.id}>
-                          <td className="px-4 py-4">
-                            <Link className="font-semibold text-[color:var(--admin-accent)] hover:underline focus:outline-none focus:ring-2 focus:ring-[color:var(--admin-ring)]" href={appendAdminSearchParams(`/admin/leads/${lead.id}`, params)}>{contactName}</Link>
-                            <div className="mt-1 text-xs text-[color:var(--admin-muted-foreground)]">{lead.contacts?.email ?? "Sin correo"}</div>
-                            <div className="text-xs text-[color:var(--admin-muted-foreground)]">{lead.contacts?.phone ?? "Sin WhatsApp"}</div>
-                          </td>
-                          <td className="px-4 py-4 text-[color:var(--admin-foreground)]">
-                            <div>{lead.destinations?.name_es ?? "Sin destino"}</div>
-                            <div className="mt-1 text-xs text-[color:var(--admin-muted-foreground)]">{tripLabel(lead.travel_start_date, lead.travel_end_date, lead.travelers_count)}</div>
-                          </td>
-                          <td className="px-4 py-4"><StatusBadge tone={leadStatusTone(lead.lead_statuses?.name)}>{lead.lead_statuses?.label_es ?? "—"}</StatusBadge></td>
-                          <td className="px-4 py-4 text-[color:var(--admin-foreground)]">{lead.profiles?.full_name ?? "Sin asignar"}</td>
-                          <td className="px-4 py-4 text-[color:var(--admin-foreground)]">{formatLeadSourceLabel(lead.source)}</td>
-                          <td className="px-4 py-4 text-[color:var(--admin-foreground)]">{money(lead.budget_mxn, lead.budget_usd)}</td>
-                           <td className="whitespace-nowrap px-4 py-4 text-[color:var(--admin-foreground)]">{formatDateTime(lead.updated_at)}</td>
-                           <td className="px-4 py-4"><QuietActionButton asChild><Link href={appendAdminSearchParams(`/admin/leads/${lead.id}`, params)}>Abrir</Link></QuietActionButton></td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <EmptyState action={<Button asChild variant="outline"><Link href="/admin/leads">Resetear búsqueda</Link></Button>} description="No hay prospectos visibles con estos filtros. La visibilidad sigue limitada por rol y RLS." title="Sin resultados" />
-        )}
-      </SectionCard>
-    </PageContainer>
-  );
+  return <PageContainer>
+    <PageHeader eyebrow="CRM" title="Contactos CRM" description="Vista canónica de contactos, oportunidades y seguimiento. La ruta /admin/leads se conserva para compatibilidad." breadcrumbs={[{ label: "Comercial" }, { label: "Contactos CRM" }]} actions={<Button asChild><Link href="/admin/leads/new">Nuevo prospecto</Link></Button>} />
+    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5"><MetricCard label="Contactos visibles" value={formatAdminInteger(contacts.length)} /><MetricCard label="Oportunidades abiertas" value={formatAdminInteger(openCount)} tone="brand" /><MetricCard label="Seguimientos vencidos" value={formatAdminInteger(followUpCount)} tone={followUpCount ? "warning" : "neutral"} /><MetricCard label="Pipeline MXN" value={money(totalMxn, "MXN")} detail="Separado de USD" /><MetricCard label="Pipeline USD" value={money(totalUsd, "USD")} detail="Separado de MXN" /></section>
+    <SectionCard title="Filtros y vistas rápidas" description="Los resultados siguen sujetos a sesión, rol y RLS." actions={<Button asChild variant="outline"><Link href="/admin/leads">Limpiar</Link></Button>}>
+      <form className="space-y-4"><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4"><label className="space-y-2 xl:col-span-2"><span className="text-xs font-semibold uppercase tracking-[0.14em]">Buscar contacto</span><div className="relative"><Search aria-hidden="true" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" /><input className={`${adminInputClassName} pl-9`} defaultValue={filters.q ?? ""} name="q" placeholder="Nombre, correo, WhatsApp o destino" /></div></label><label className="space-y-2"><span className="text-xs font-semibold uppercase tracking-[0.14em]">Ciclo de vida</span><select className={adminSelectClassName} defaultValue={filters.lifecycle ?? ""} name="lifecycle"><option value="">Todos</option>{Object.entries(lifecycleLabel).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label className="space-y-2"><span className="text-xs font-semibold uppercase tracking-[0.14em]">Asesor</span><select className={adminSelectClassName} defaultValue={filters.advisor ?? ""} name="advisor"><option value="">Todos</option><option value="unassigned">Sin asignar</option>{advisors.map((advisor) => <option key={advisor.id} value={advisor.id}>{advisor.full_name}</option>)}</select></label><label className="space-y-2"><span className="text-xs font-semibold uppercase tracking-[0.14em]">Destino</span><select className={adminSelectClassName} defaultValue={filters.destination ?? ""} name="destination"><option value="">Todos</option>{destinations.map((item) => <option key={item.id} value={item.id}>{item.name_es}</option>)}</select></label><label className="space-y-2"><span className="text-xs font-semibold uppercase tracking-[0.14em]">Origen</span><select className={adminSelectClassName} defaultValue={filters.source ?? ""} name="source"><option value="">Todos</option>{sources.map((item) => <option key={item} value={item}>{item}</option>)}</select></label><label className="inline-flex items-center gap-2 pt-7 text-sm"><input defaultChecked={filters.open === "yes"} name="open" type="checkbox" value="yes" /> Con oportunidades abiertas</label><label className="inline-flex items-center gap-2 pt-7 text-sm"><input defaultChecked={filters.overdue === "yes"} name="overdue" type="checkbox" value="yes" /> Seguimiento vencido</label><label className="inline-flex items-center gap-2 pt-7 text-sm"><input defaultChecked={filters.duplicate === "yes"} name="duplicate" type="checkbox" value="yes" /> Revisión duplicada</label><label className="inline-flex items-center gap-2 pt-7 text-sm"><input defaultChecked={filters.deleted === "yes"} name="deleted" type="checkbox" value="yes" /> Ver eliminados</label></div><Button type="submit">Aplicar filtros</Button></form>
+     <div className="mt-4 flex flex-wrap gap-2" aria-label="Vistas rápidas">{[["follow_up", "Seguimiento pendiente"], ["unassigned", "Sin asignar"], ["duplicates", "Duplicados · Revisión de duplicados"], ["blocked", "Bloqueados"], ["recurring", "Recurrentes"], ["high_value", "Alto valor"], ["multiple_requests", "Múltiples solicitudes"]].map(([key, label]) => <Button asChild key={key} size="sm" variant={filters.quickView === key ? "default" : "outline"}><Link href={query({ quickView: filters.quickView === key ? undefined : key })}>{label}</Link></Button>)}<Button asChild size="sm" variant={filters.deletedOpportunities === "yes" ? "default" : "outline"}><Link href={query({ deletedOpportunities: filters.deletedOpportunities === "yes" ? undefined : "yes" })}>Oportunidades eliminadas</Link></Button></div>
+    </SectionCard>
+    <form className="flex flex-wrap items-end gap-3 rounded-[var(--admin-radius-card)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4"><label className="space-y-2 text-sm"><span className="block text-xs font-semibold uppercase tracking-[0.14em]">Servicio</span><select className={adminSelectClassName} defaultValue={filters.service ?? ""} name="service"><option value="">Todos los servicios</option>{services.map((service) => <option key={service.id} value={service.id}>{service.name_es}</option>)}</select></label><Button type="submit" variant="outline">Filtrar servicio</Button></form>
+    {error ? <ErrorState title="Carga incompleta" description="No se pudo cargar todo el contexto del CRM. Los datos visibles respetan los permisos actuales." /> : null}
+     <SectionCard title={`${formatAdminInteger(totalCount)} contactos`} description={partial ? `Mostrando ${formatAdminInteger(contacts.length)} de ${formatAdminInteger(totalCount)} contactos visibles. Ajusta filtros para reducir el conjunto.` : "Selecciona contactos para acciones administrativas auditadas."}>
+      {contacts.length ? <ContactSelection ids={contacts.map((contact) => contact.id)}><ContactBulkToolbar isAdmin={isAdmin} blockAction={blockContacts} deleteAction={deleteRestoreContacts} /><div className="grid gap-3 lg:hidden">{contacts.map((contact) => <article className="rounded-[var(--admin-radius-card)] border border-[color:var(--admin-border-subtle)] p-4" key={contact.id}><div className="flex gap-3"><SelectableRow id={contact.id} label={`Seleccionar a ${contact.firstName} ${contact.lastName}`.trim()} /><div className="min-w-0 flex-1"><div className="flex flex-wrap justify-between gap-2"><Link className="font-semibold text-[color:var(--admin-accent)] hover:underline" href={contact.href}>{contact.firstName} {contact.lastName}</Link><StatusBadge tone={lifecycleTone(contact.lifecycleStatus)}>{lifecycleLabel[contact.lifecycleStatus] ?? "Sin estado"}</StatusBadge></div><p className="text-sm text-[color:var(--admin-muted-foreground)]">{contact.email ?? contact.phone ?? "Sin datos de contacto"}</p><div className="mt-3 flex flex-wrap gap-2"><StatusBadge tone="neutral">{contact.openOpportunityCount} abiertas / {contact.totalOpportunityCount} totales</StatusBadge>{contact.featuredOpportunityCount ? <StatusBadge tone="brand">{contact.featuredOpportunityCount} destacada(s)</StatusBadge> : null}{contact.duplicateRisk ? <StatusBadge tone="warning">Duplicado</StatusBadge> : null}{contact.overdueCount ? <StatusBadge tone="warning">{contact.overdueCount} vencido(s)</StatusBadge> : null}</div><p className="mt-3 text-sm">{contact.destinations.slice(0, 2).join(" · ") || "Sin destino"} · {contact.owners.join(", ") || "Sin asignar"}</p><p className="mt-1 text-xs text-[color:var(--admin-muted-foreground)]">Solicitudes {contact.requestCount} · Cotizaciones {contact.quoteCount} · Actividad {contact.lastActivityAt ? formatAdminDateTime(contact.lastActivityAt) : "Sin actividad"}</p></div></div></article>)}</div><div className="hidden overflow-x-auto lg:block"><table className="w-full text-left text-sm"><caption className="sr-only">Contactos CRM visibles</caption><thead className="bg-[color:var(--admin-surface-muted)] text-xs uppercase tracking-[0.12em]"><tr>{["", "Identidad", "Ciclo", "Oportunidades", "Propósito y responsables", "Seguimiento", "Solicitudes", "Pipeline", "Actividad"].map((head, index) => <th className="px-3 py-3" key={head || index}>{head}</th>)}</tr></thead><tbody>{contacts.map((contact) => <tr className="border-t border-[color:var(--admin-border-subtle)] align-top" key={contact.id}><td className="px-3 py-4"><SelectableRow id={contact.id} label={`Seleccionar a ${contact.firstName} ${contact.lastName}`.trim()} /></td><td className="px-3 py-4"><Link className="font-semibold text-[color:var(--admin-accent)] hover:underline" href={contact.href}>{contact.firstName} {contact.lastName}</Link><p className="text-xs text-[color:var(--admin-muted-foreground)]">{contact.email ?? contact.phone ?? "Sin contacto"}</p></td><td className="px-3 py-4"><StatusBadge tone={lifecycleTone(contact.lifecycleStatus)}>{lifecycleLabel[contact.lifecycleStatus] ?? "Sin estado"}</StatusBadge>{contact.blockedReason ? <p className="mt-1 max-w-32 text-xs">{contact.blockedReason}</p> : null}</td><td className="px-3 py-4"><strong>{contact.openOpportunityCount}</strong> abiertas<br /><span className="text-xs text-[color:var(--admin-muted-foreground)]">{contact.totalOpportunityCount} totales · {contact.featuredOpportunityCount} destacadas</span></td><td className="px-3 py-4"><p>{contact.destinations.slice(0, 2).join(" · ") || "Sin destino"}</p><p className="text-xs text-[color:var(--admin-muted-foreground)]">{contact.owners.join(", ") || "Sin asignar"}</p>{contact.duplicateRisk ? <StatusBadge className="mt-2" tone="warning">Riesgo duplicado</StatusBadge> : null}</td><td className="px-3 py-4">{contact.overdueCount ? <StatusBadge tone="warning">{contact.overdueCount} vencido(s)</StatusBadge> : contact.nextActionAt ? formatAdminDate(contact.nextActionAt) : "Sin acción"}</td><td className="px-3 py-4">{contact.requestCount} solicitudes<br />{contact.quoteCount} cotizaciones</td><td className="px-3 py-4"><div>{money(contact.pipelineMxn, "MXN")}</div><div>{money(contact.pipelineUsd, "USD")}</div></td><td className="px-3 py-4 whitespace-nowrap">{contact.lastActivityAt ? formatAdminDateTime(contact.lastActivityAt) : "Sin actividad"}</td></tr>)}</tbody></table></div></ContactSelection> : <EmptyState title="Sin contactos" description="No hay contactos que coincidan con los filtros actuales." action={<Button asChild variant="outline"><Link href="/admin/leads">Limpiar filtros</Link></Button>} />}
+     </SectionCard>
+      {totalCount > 50 || currentPage > 1 ? <nav aria-label="Paginación de contactos" className="flex items-center justify-between gap-3"><span className="text-sm">Página {currentPage} · {formatAdminInteger(totalCount)} contactos</span><div className="flex gap-2">{currentPage > 1 ? <Button asChild variant="outline"><Link href={query({ page: String(currentPage - 1) })}>Anterior</Link></Button> : null}{partial ? <Button asChild variant="outline"><Link href={query({ page: String(currentPage + 1) })}>Siguiente</Link></Button> : null}</div></nav> : null}
+   </PageContainer>;
 }

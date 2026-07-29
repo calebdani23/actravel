@@ -59,6 +59,76 @@ export type Database = {
           },
         ]
       }
+      admin_lead_deletion_audit: {
+        Row: {
+          actor_id: string | null
+          blocked_reasons: Json
+          blocker_counts: Json
+          contact_blocked_reasons: Json
+          contact_blocker_counts: Json
+          contact_deleted: boolean
+          deleted_at: string
+          deleted_contact_id: string | null
+          deleted_lead_id: string
+          id: string
+          metadata: Json
+        }
+        Insert: {
+          actor_id?: string | null
+          blocked_reasons?: Json
+          blocker_counts?: Json
+          contact_blocked_reasons?: Json
+          contact_blocker_counts?: Json
+          contact_deleted?: boolean
+          deleted_at?: string
+          deleted_contact_id?: string | null
+          deleted_lead_id: string
+          id?: string
+          metadata?: Json
+        }
+        Update: {
+          actor_id?: string | null
+          blocked_reasons?: Json
+          blocker_counts?: Json
+          contact_blocked_reasons?: Json
+          contact_blocker_counts?: Json
+          contact_deleted?: boolean
+          deleted_at?: string
+          deleted_contact_id?: string | null
+          deleted_lead_id?: string
+          id?: string
+          metadata?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_lead_deletion_audit_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_bulk_mutation_jobs: {
+        Row: { actor_id: string | null; completed_at: string | null; created_at: string; failure_count: number; id: string; metadata: Json; operation: string; requested_count: number; success_count: number }
+        Insert: { actor_id?: string | null; completed_at?: string | null; created_at?: string; failure_count?: number; id?: string; metadata?: Json; operation: string; requested_count?: number; success_count?: number }
+        Update: { actor_id?: string | null; completed_at?: string | null; created_at?: string; failure_count?: number; id?: string; metadata?: Json; operation?: string; requested_count?: number; success_count?: number }
+        Relationships: [
+          {
+            foreignKeyName: "crm_bulk_mutation_jobs_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_bulk_mutation_items: {
+        Row: { after_state: Json | null; before_state: Json | null; created_at: string; entity_id: string; entity_type: string; error_code: string | null; error_message: string | null; id: string; job_id: string; outcome: string }
+        Insert: { after_state?: Json | null; before_state?: Json | null; created_at?: string; entity_id: string; entity_type: string; error_code?: string | null; error_message?: string | null; id?: string; job_id: string; outcome: string }
+        Update: { after_state?: Json | null; before_state?: Json | null; created_at?: string; entity_id?: string; entity_type?: string; error_code?: string | null; error_message?: string | null; id?: string; job_id?: string; outcome?: string }
+        Relationships: []
+      }
       bookings: {
         Row: {
           assigned_to: string | null
@@ -157,12 +227,22 @@ export type Database = {
       }
       contacts: {
         Row: {
+          blocked_at: string | null
+          blocked_by: string | null
+          blocked_reason: string | null
           consent_marketing: boolean
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_reason: string | null
           email: string | null
           first_name: string
           id: string
+          is_test_data: boolean
+          lifecycle_status: string
           last_name: string | null
+          normalized_email: string | null
+          normalized_phone: string | null
           notes: string | null
           phone: string | null
           preferred_locale: string
@@ -170,12 +250,22 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          blocked_at?: string | null
+          blocked_by?: string | null
+          blocked_reason?: string | null
           consent_marketing?: boolean
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           email?: string | null
           first_name: string
           id?: string
+          is_test_data?: boolean
+          lifecycle_status?: string
           last_name?: string | null
+          normalized_email?: string | null
+          normalized_phone?: string | null
           notes?: string | null
           phone?: string | null
           preferred_locale?: string
@@ -183,19 +273,44 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          blocked_at?: string | null
+          blocked_by?: string | null
+          blocked_reason?: string | null
           consent_marketing?: boolean
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           email?: string | null
           first_name?: string
           id?: string
+          is_test_data?: boolean
+          lifecycle_status?: string
           last_name?: string | null
+          normalized_email?: string | null
+          normalized_phone?: string | null
           notes?: string | null
           phone?: string | null
           preferred_locale?: string
           source?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contacts_blocked_by_fkey"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       destinations: {
         Row: {
@@ -459,13 +574,23 @@ export type Database = {
       }
       leads: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
           assigned_to: string | null
           budget_mxn: number | null
           budget_usd: number | null
           contact_id: string
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_reason: string | null
           destination_id: string | null
           id: string
+          is_test_data: boolean
+          is_featured: boolean
+          opportunity_basis: Json
+          opportunity_signature: string | null
+          opportunity_signature_version: number
           priority: string
           service_id: string | null
           source: string
@@ -477,13 +602,23 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
           assigned_to?: string | null
           budget_mxn?: number | null
           budget_usd?: number | null
           contact_id: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           destination_id?: string | null
           id?: string
+          is_test_data?: boolean
+          is_featured?: boolean
+          opportunity_basis?: Json
+          opportunity_signature?: string | null
+          opportunity_signature_version?: number
           priority?: string
           service_id?: string | null
           source?: string
@@ -495,13 +630,23 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
           assigned_to?: string | null
           budget_mxn?: number | null
           budget_usd?: number | null
           contact_id?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           destination_id?: string | null
           id?: string
+          is_test_data?: boolean
+          is_featured?: boolean
+          opportunity_basis?: Json
+          opportunity_signature?: string | null
+          opportunity_signature_version?: number
           priority?: string
           service_id?: string | null
           source?: string
@@ -514,6 +659,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "leads_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "leads_assigned_to_fkey"
             columns: ["assigned_to"]
             isOneToOne: false
@@ -525,6 +677,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -619,6 +778,7 @@ export type Database = {
           payload: Json
           provider: string | null
           provider_message_id: string | null
+          quote_request_id: string | null
           recipient: string | null
           sent_at: string | null
           status: string
@@ -642,6 +802,7 @@ export type Database = {
           payload?: Json
           provider?: string | null
           provider_message_id?: string | null
+          quote_request_id?: string | null
           recipient?: string | null
           sent_at?: string | null
           status?: string
@@ -665,6 +826,7 @@ export type Database = {
           payload?: Json
           provider?: string | null
           provider_message_id?: string | null
+          quote_request_id?: string | null
           recipient?: string | null
           sent_at?: string | null
           status?: string
@@ -684,6 +846,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_quote_request_id_fkey"
+            columns: ["quote_request_id"]
+            isOneToOne: false
+            referencedRelation: "quote_requests"
             referencedColumns: ["id"]
           },
         ]
@@ -1251,6 +1420,100 @@ export type Database = {
           },
         ]
       }
+      quote_versions: {
+        Row: {
+          accepted_at: string | null
+          contact_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          deposit_amount: number | null
+          expired_at: string | null
+          id: string
+          idempotency_key: string | null
+          lead_id: string
+          notes: string | null
+          quote_request_id: string | null
+          rejected_at: string | null
+          sent_at: string | null
+          status: string
+          summary: string | null
+          title: string
+          total_amount: number | null
+          updated_at: string
+          valid_until: string | null
+          version_number: number
+        }
+        Insert: {
+          accepted_at?: string | null
+          contact_id: string
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          deposit_amount?: number | null
+          expired_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          lead_id: string
+          notes?: string | null
+          quote_request_id?: string | null
+          rejected_at?: string | null
+          sent_at?: string | null
+          status?: string
+          summary?: string | null
+          title: string
+          total_amount?: number | null
+          updated_at?: string
+          valid_until?: string | null
+          version_number: number
+        }
+        Update: {
+          accepted_at?: string | null
+          contact_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          deposit_amount?: number | null
+          expired_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          lead_id?: string
+          notes?: string | null
+          quote_request_id?: string | null
+          rejected_at?: string | null
+          sent_at?: string | null
+          status?: string
+          summary?: string | null
+          title?: string
+          total_amount?: number | null
+          updated_at?: string
+          valid_until?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_versions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_versions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_versions_quote_request_id_fkey"
+            columns: ["quote_request_id"]
+            isOneToOne: false
+            referencedRelation: "quote_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       roles: {
         Row: {
           created_at: string
@@ -1568,6 +1831,183 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      crm_resolve_opportunity_lead: {
+        Args: {
+          p_assigned_to?: string | null
+          p_budget_mxn?: number | null
+          p_budget_usd?: number | null
+          p_contact_id: string
+          p_destination_id?: string | null
+          p_opportunity_basis?: Json
+          p_opportunity_signature: string
+          p_opportunity_signature_version?: number
+          p_priority?: string | null
+          p_service_id?: string | null
+          p_source: string
+          p_status_id?: string | null
+          p_summary?: string | null
+          p_travel_end_date?: string | null
+          p_travel_start_date?: string | null
+          p_travelers_count?: number | null
+        }
+        Returns: {
+          basis: Json
+          created_new: boolean
+          lead_id: string
+          reliable_purpose: boolean
+          resolution_status: string
+          review_required: boolean
+          signature: string | null
+          signature_version: number
+        }[]
+      }
+      crm_bulk_block_contacts: { Args: { p_contact_ids: string[] }; Returns: { failure_count: number; job_id: string; requested_count: number; success_count: number }[] }
+      crm_bulk_unblock_contacts: { Args: { p_contact_ids: string[] }; Returns: { failure_count: number; job_id: string; requested_count: number; success_count: number }[] }
+      crm_bulk_update_contact_lifecycle: { Args: { p_contact_ids: string[]; p_lifecycle_status: string }; Returns: { failure_count: number; job_id: string; requested_count: number; success_count: number }[] }
+      crm_bulk_delete_restore_contacts: { Args: { p_contact_ids: string[]; p_confirmation: string; p_restore: boolean }; Returns: { failure_count: number; job_id: string; requested_count: number; success_count: number }[] }
+      crm_bulk_feature_opportunities: { Args: { p_featured: boolean; p_opportunity_ids: string[] }; Returns: { failure_count: number; job_id: string; requested_count: number; success_count: number }[] }
+      crm_bulk_update_opportunity_status: { Args: { p_opportunity_ids: string[]; p_status_id: string }; Returns: { failure_count: number; job_id: string; requested_count: number; success_count: number }[] }
+      crm_bulk_delete_restore_opportunities: { Args: { p_confirmation: string; p_opportunity_ids: string[]; p_restore: boolean }; Returns: { failure_count: number; job_id: string; requested_count: number; success_count: number }[] }
+      crm_bulk_archive_opportunities: { Args: { p_archived: boolean; p_opportunity_ids: string[] }; Returns: { failure_count: number; job_id: string; requested_count: number; success_count: number }[] }
+      crm_contact_count: { Args: { p_include_deleted?: boolean }; Returns: number }
+      crm_contact_aggregate_page: { Args: { p_advisor?: string | null; p_blocked?: boolean | null; p_contact_id?: string | null; p_destination?: string | null; p_deleted_only?: boolean; p_deleted_opportunity_only?: boolean; p_duplicate?: boolean; p_include_deleted?: boolean; p_lifecycle?: string | null; p_limit?: number; p_offset?: number; p_open_only?: boolean; p_overdue?: boolean; p_quick_view?: string | null; p_search?: string | null; p_service?: string | null; p_source?: string | null; p_unassigned?: boolean }; Returns: { blocked_at: string | null; blocked_reason: string | null; contact_id: string; deleted_at: string | null; deleted_opportunity_count: number; destinations: string[]; duplicate_risk: boolean; email: string | null; featured_opportunity_count: number; first_name: string; last_activity_at: string | null; last_name: string | null; lifecycle_status: string; next_follow_up_at: string | null; open_opportunity_count: number; owners: string[]; phone: string | null; pipeline_mxn: number; pipeline_usd: number; quote_count: number; request_count: number; services: string[]; total_count: number; total_opportunity_count: number; overdue_count: number }[] }
+      crm_contact_360_summary: {
+        Args: { p_contact_id: string }
+        Returns: {
+          accepted_quote_count: number
+          accepted_quote_value_mxn: number
+          accepted_quote_value_usd: number
+          active_opportunity_count: number
+          archived_opportunity_count: number
+          blocked_at: string | null
+          blocked_by: string | null
+          blocked_by_name: string | null
+          blocked_reason: string | null
+          booking_count: number
+          consent_marketing: boolean
+          contact_id: string
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_by_name: string | null
+          deleted_opportunity_count: number
+          deleted_reason: string | null
+          document_count: number
+          duplicate_email_count: number
+          duplicate_phone_count: number
+          duplicate_risk: boolean
+          email: string | null
+          first_name: string
+          is_test_data: boolean
+          last_activity_at: string | null
+          last_name: string | null
+          lifecycle_status: string
+          next_follow_up_at: string | null
+          normalized_email: string | null
+          normalized_phone: string | null
+          notes: string | null
+          open_opportunity_count: number
+          overdue_follow_up_count: number
+          payment_count: number
+          phone: string | null
+          pipeline_mxn: number
+          pipeline_usd: number
+          preferred_locale: string
+          quote_version_count: number
+          request_count: number
+          source: string | null
+          total_opportunity_count: number
+          unassigned_request_count: number
+          updated_at: string
+        }[]
+      }
+      crm_contact_opportunity_page: {
+        Args: {
+          p_after_id?: string | null
+          p_after_updated_at?: string | null
+          p_contact_id: string
+          p_limit?: number
+          p_state?: string
+        }
+        Returns: {
+          accepted_quote_accepted_at: string | null
+          accepted_quote_amount: number | null
+          accepted_quote_currency: string | null
+          accepted_quote_id: string | null
+          accepted_quote_version_number: number | null
+          active_quote_version_count: number
+          archived_at: string | null
+          archived_by: string | null
+          archived_by_name: string | null
+          assigned_to: string | null
+          budget_mxn: number | null
+          budget_usd: number | null
+          contact_id: string
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_by_name: string | null
+          deleted_reason: string | null
+          destination_id: string | null
+          destination_name: string | null
+          follow_up_overdue: boolean
+          is_featured: boolean
+          is_test_data: boolean
+          last_activity_at: string
+          latest_follow_up_at: string | null
+          latest_follow_up_created_at: string | null
+          latest_quote_amount: number | null
+          latest_quote_currency: string | null
+          latest_quote_id: string | null
+          latest_quote_status: string | null
+          latest_quote_title: string | null
+          latest_quote_updated_at: string | null
+          latest_quote_version_number: number | null
+          latest_request_created_at: string | null
+          latest_request_id: string | null
+          latest_request_locale: string | null
+          latest_request_source: string | null
+          latest_request_status: string | null
+          open_request_count: number
+          opportunity_id: string
+          opportunity_state: string
+          owner_name: string | null
+          page_has_more: boolean
+          priority: string
+          quote_version_count: number
+          request_count: number
+          service_id: string | null
+          service_name: string | null
+          source: string
+          status_id: string
+          status_is_terminal: boolean
+          status_label: string
+          status_name: string
+          summary: string | null
+          travel_end_date: string | null
+          travel_start_date: string | null
+          travelers_count: number
+          updated_at: string
+        }[]
+      }
+      crm_advisor_can_access_live_opportunity: { Args: { p_lead_id: string }; Returns: boolean }
+      crm_accept_quote_version: {
+        Args: { p_lead_id: string; p_quote_version_id: string }
+        Returns: { accepted_version_id: string; rejected_version_count: number }[]
+      }
+      crm_delete_lead_guarded: {
+        Args: { p_confirmation: string; p_delete_orphan_contact: boolean; p_lead_id: string }
+        Returns: {
+          blocked: boolean
+          blocked_reasons: Json
+          blocker_counts: Json
+          contact_id: string
+          contact_deleted: boolean
+          deleted: boolean
+          deleted_at: string | null
+          lead_id: string
+        }[]
+      }
       has_role: { Args: { role_name: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_assigned_lead: { Args: { lead_uuid: string }; Returns: boolean }

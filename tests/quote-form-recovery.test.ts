@@ -22,6 +22,7 @@ const defaults: QuoteRequestInput = {
   contactConsent: false,
   notes: "",
   campaignContext: undefined,
+  metaLeadEventId: undefined,
   website: "",
 };
 

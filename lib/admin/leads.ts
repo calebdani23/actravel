@@ -1,7 +1,10 @@
 import "server-only";
 
 import { formatAdminCurrency, formatAdminDate, formatAdminFollowUpLabel, formatAdminModuleLabelFromPath } from "@/lib/admin/format";
+import { blockedContactDeletionItems, blockedLeadDeletionItems, contactDeletionCountsFromJson, countMeaningfulLeadNotes, type ContactDeletionDependencyCounts, type LeadDeletionDependencyCounts } from "@/lib/admin/lead-delete";
+import { quoteVersionStatusLabel, type QuoteVersionStatus } from "@/lib/admin/quote-versions";
 import { createClient } from "@/lib/supabase/server";
+import { hasRole, isRoleName, type RoleName } from "@/lib/supabase/roles";
 import { getAdvisorCapableStaff } from "@/lib/admin/staff";
 
 export type LeadFilters = {
@@ -13,12 +16,22 @@ export type LeadFilters = {
   currency?: string;
   from?: string;
   to?: string;
+  quickView?: "unassigned" | "overdue_follow_up" | "multiple_requests" | "duplicate_review";
 };
 
+export const TEST_DATA_PURGE_CONFIRMATION = "PURGAR DATOS DE PRUEBA" as const;
+
 export type LeadListRow = {
+  archived_at: string | null;
+  archived_by: string | null;
   id: string;
+  is_test_data: boolean;
+  is_featured: boolean;
   contact_id: string;
   created_at: string;
+  deleted_at: string | null;
+  deleted_by: string | null;
+  deleted_reason: string | null;
   updated_at: string;
   travel_start_date: string | null;
   travel_end_date: string | null;
@@ -34,9 +47,88 @@ export type LeadListRow = {
   profiles: { id: string; full_name: string } | null;
 };
 
+export type LeadListItem = LeadListRow & {
+  contactOpportunityCount: number;
+  followUpOverdue: boolean;
+  hasDuplicateRisk: boolean;
+  hasIdentityReview: boolean;
+  nextFollowUpAt: string | null;
+  quoteRequestCount: number;
+  repeatContact: boolean;
+};
+
 export type LeadDetail = LeadListRow & {
-  contacts: (LeadListRow["contacts"] & { preferred_locale: string; source: string | null; notes: string | null }) | null;
+  contacts: (LeadListRow["contacts"] & { preferred_locale: string; source: string | null; notes: string | null; lifecycle_status: string; blocked_at: string | null; deleted_at: string | null }) | null;
   services: { id: string; name_es: string } | null;
+};
+
+export type LeadQuoteRequestHistoryItem = {
+  channelLabel: string;
+  createdAt: string;
+  href: string;
+  id: string;
+  locale: string;
+  status: string;
+  statusLabel: string;
+};
+
+export type RelatedOpportunityItem = {
+  advisorName: string;
+  destinationName: string;
+  followUpOverdue: boolean;
+  href: string;
+  id: string;
+  nextFollowUpAt: string | null;
+  quoteRequestCount: number;
+  statusLabel: string;
+  summary: string | null;
+  updatedAt: string;
+};
+
+export type LeadQuoteVersionItem = {
+  acceptedAt: string | null;
+  createdAt: string;
+  createdByName: string | null;
+  currency: string;
+  depositAmount: number | null;
+  expiredAt: string | null;
+  id: string;
+  notes: string | null;
+  quoteRequestId: string | null;
+  rejectedAt: string | null;
+  sentAt: string | null;
+  status: QuoteVersionStatus;
+  statusLabel: string;
+  summary: string | null;
+  title: string;
+  totalAmount: number | null;
+  updatedAt: string;
+  validUntil: string | null;
+  versionNumber: number;
+};
+
+export type Contact360Summary = {
+  ambiguousIdentityEvents: number;
+  duplicateEmailMatches: number;
+  duplicatePhoneMatches: number;
+  hasDuplicateRisk: boolean;
+  hasIdentityReview: boolean;
+  opportunityCount: number;
+  overdueFollowUps: number;
+  requestCount: number;
+  upcomingFollowUps: number;
+};
+
+export type LeadDeletionSummary = {
+  blocked: boolean;
+  canDeleteOrphanContact: boolean;
+  contactId: string;
+  contactCounts: ContactDeletionDependencyCounts;
+  counts: LeadDeletionDependencyCounts;
+  error: string | null;
+  leadId: string;
+  isTestData: boolean;
+  contactIsTestData: boolean;
 };
 
 export type LeadTimelineItem = {
@@ -86,8 +178,61 @@ function payloadString(payload: unknown, key: string) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
+function payloadObject(payload: unknown, key: string) {
+  const value = jsonObject(payload)[key];
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : null;
+}
+
+function safeDateTime(value?: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function followUpAtFromPayload(payload: unknown) {
+  return safeDateTime(payloadString(payload, "followUpAt"));
+}
+
+function quoteRequestChannelLabel(payload: unknown) {
+  const trustedAttribution = payloadObject(payload, "trustedAttribution");
+  const canonicalSource = payloadString(payload, "canonicalSource") ?? payloadString(trustedAttribution, "canonicalSource") ?? payloadString(payload, "sourceChannel");
+  return formatLeadSourceLabel(canonicalSource);
+}
+
 function compact(values: Array<string | undefined | null | false>) {
   return values.filter((value): value is string => Boolean(value));
+}
+
+type AuxiliaryActivityQueryScope =
+  | { mode: "lead_only"; leadIds: string[] }
+  | { mode: "lead_or_contact"; orClause: string };
+
+type RoleRow = { roles?: { name?: string | null } | { name?: string | null }[] | null };
+
+function firstRelation<T>(value: T | T[] | null | undefined) {
+  return Array.isArray(value) ? value[0] ?? null : value ?? null;
+}
+
+async function getLeadActorRoles(supabase: Awaited<ReturnType<typeof createClient>>): Promise<RoleName[]> {
+  const { data: userResult, error: userError } = await supabase.auth.getUser();
+  const userId = userResult.user?.id;
+  if (userError || !userId) return [];
+
+  const { data, error } = await supabase.from("profile_roles").select("roles(name)").eq("profile_id", userId);
+  if (error) return [];
+
+  return ((data ?? []) as RoleRow[])
+    .flatMap((row) => Array.isArray(row.roles) ? row.roles : row.roles ? [row.roles] : [])
+    .map((role) => role.name ?? "")
+    .filter(isRoleName);
+}
+
+function buildAuxiliaryActivityQueryScope(input: { contactId?: string; leadId: string; visibleLeadIds: string[]; restrictToVisibleLeadIds: boolean }): AuxiliaryActivityQueryScope {
+  const leadIds = unique([input.leadId, ...input.visibleLeadIds.filter(Boolean)]);
+  if (input.restrictToVisibleLeadIds || !input.contactId) {
+    return { mode: "lead_only", leadIds };
+  }
+  return { mode: "lead_or_contact", orClause: `lead_id.eq.${input.leadId},contact_id.eq.${input.contactId}` };
 }
 
 export function formatLeadSourceLabel(source: string | null | undefined) {
@@ -123,6 +268,17 @@ export function formatLeadPriorityLabel(priority?: string | null) {
   return labels[priority] ?? "Prioridad no identificada";
 }
 
+export function formatQuoteRequestStatusLabel(status?: string | null) {
+  const labels: Record<string, string> = {
+    received: "Recibida",
+    processing: "En proceso",
+    converted: "Convertida",
+    closed: "Cerrada",
+  };
+  if (!status) return "Sin estado";
+  return labels[status] ?? "Estado no identificado";
+}
+
 export async function getLeadStatuses() {
   const supabase = await createClient();
   const { data } = await supabase.from("lead_statuses").select("id, name, label_es").order("sort_order");
@@ -133,9 +289,132 @@ export async function getAdvisors() {
   return getAdvisorCapableStaff();
 }
 
+async function exactCount(query: PromiseLike<{ count: number | null; error: { message: string } | null }>) {
+  const { count, error } = await query;
+  return { count: count ?? 0, error: error?.message ?? null };
+}
+
+export async function getLeadDeletionSummary(id: string): Promise<LeadDeletionSummary | null> {
+  const supabase = await createClient();
+  const { data: lead, error } = await supabase.from("leads").select("id, contact_id, is_test_data, contacts(is_test_data)").eq("id", id).maybeSingle();
+  if (error || !lead?.contact_id) return null;
+
+  const [
+    quoteVersions,
+    quoteRequests,
+    payments,
+    bookings,
+    documents,
+    leadNotes,
+    notificationLogs,
+    whatsappClicks,
+    whatsappInboundMessages,
+    sheetSyncLogs,
+    leadEvents,
+    siblingLeads,
+    contactQuoteVersions,
+    contactQuoteRequests,
+    contactBookings,
+    contactPayments,
+    contactDocuments,
+    contactNotificationLogs,
+    contactWhatsappClicks,
+    contactWhatsappInboundMessages,
+  ] = await Promise.all([
+    exactCount(supabase.from("quote_versions").select("id", { count: "exact", head: true }).eq("lead_id", id)),
+    exactCount(supabase.from("quote_requests").select("id", { count: "exact", head: true }).eq("lead_id", id)),
+    exactCount(supabase.from("payments").select("id", { count: "exact", head: true }).eq("lead_id", id)),
+    exactCount(supabase.from("bookings").select("id", { count: "exact", head: true }).eq("lead_id", id)),
+    exactCount(supabase.from("documents").select("id", { count: "exact", head: true }).eq("lead_id", id)),
+    supabase.from("lead_notes").select("body").eq("lead_id", id),
+    exactCount(supabase.from("notification_logs").select("id", { count: "exact", head: true }).eq("lead_id", id)),
+    exactCount(supabase.from("whatsapp_clicks").select("id", { count: "exact", head: true }).eq("lead_id", id)),
+    exactCount(supabase.from("whatsapp_inbound_messages").select("id", { count: "exact", head: true }).eq("lead_id", id)),
+    exactCount(supabase.from("sheet_sync_logs").select("id", { count: "exact", head: true }).eq("lead_id", id)),
+    exactCount(supabase.from("lead_events").select("id", { count: "exact", head: true }).eq("lead_id", id).neq("event_type", "manual_lead_created")),
+    exactCount(supabase.from("leads").select("id", { count: "exact", head: true }).eq("contact_id", lead.contact_id).neq("id", id)),
+    exactCount(supabase.from("quote_versions").select("id", { count: "exact", head: true }).eq("contact_id", lead.contact_id)),
+    exactCount(supabase.from("quote_requests").select("id", { count: "exact", head: true }).eq("contact_id", lead.contact_id)),
+    exactCount(supabase.from("bookings").select("id", { count: "exact", head: true }).eq("contact_id", lead.contact_id)),
+    exactCount(supabase.from("payments").select("id", { count: "exact", head: true }).eq("contact_id", lead.contact_id)),
+    exactCount(supabase.from("documents").select("id", { count: "exact", head: true }).eq("contact_id", lead.contact_id)),
+    exactCount(supabase.from("notification_logs").select("id", { count: "exact", head: true }).eq("contact_id", lead.contact_id)),
+    exactCount(supabase.from("whatsapp_clicks").select("id", { count: "exact", head: true }).eq("contact_id", lead.contact_id)),
+    exactCount(supabase.from("whatsapp_inbound_messages").select("id", { count: "exact", head: true }).eq("contact_id", lead.contact_id)),
+  ]);
+  const leadNoteRows = (leadNotes.data ?? []) as Array<{ body: string | null }>;
+  const leadNotesError = leadNotes.error?.message ?? null;
+
+  const counts: LeadDeletionDependencyCounts = {
+    quoteVersions: quoteVersions.count,
+    quoteRequests: quoteRequests.count,
+    payments: payments.count,
+    bookings: bookings.count,
+    documents: documents.count,
+    leadNotes: countMeaningfulLeadNotes(leadNoteRows),
+    notificationLogs: notificationLogs.count,
+    whatsappClicks: whatsappClicks.count,
+    whatsappInboundMessages: whatsappInboundMessages.count,
+    sheetSyncLogs: sheetSyncLogs.count,
+    leadEvents: leadEvents.count,
+  };
+
+  const contactCounts = contactDeletionCountsFromJson({
+    otherLeads: siblingLeads.count,
+    quoteVersions: contactQuoteVersions.count,
+    quoteRequests: contactQuoteRequests.count,
+    bookings: contactBookings.count,
+    payments: contactPayments.count,
+    documents: contactDocuments.count,
+    notificationLogs: contactNotificationLogs.count,
+    whatsappClicks: contactWhatsappClicks.count,
+    whatsappInboundMessages: contactWhatsappInboundMessages.count,
+  });
+
+  const leadTestData = lead as unknown as { is_test_data: boolean; contacts?: { is_test_data: boolean } | Array<{ is_test_data: boolean }> | null };
+  return {
+    blocked: blockedLeadDeletionItems(counts).length > 0,
+    canDeleteOrphanContact: blockedContactDeletionItems(contactCounts).length === 0,
+    contactId: lead.contact_id,
+    contactCounts,
+    counts,
+    error: [
+      quoteVersions.error,
+      quoteRequests.error,
+      payments.error,
+      bookings.error,
+      documents.error,
+      leadNotesError,
+      notificationLogs.error,
+      whatsappClicks.error,
+      whatsappInboundMessages.error,
+      sheetSyncLogs.error,
+      leadEvents.error,
+      siblingLeads.error,
+      contactQuoteVersions.error,
+      contactQuoteRequests.error,
+      contactBookings.error,
+      contactPayments.error,
+      contactDocuments.error,
+      contactNotificationLogs.error,
+      contactWhatsappClicks.error,
+      contactWhatsappInboundMessages.error,
+    ].filter(Boolean).join(" | ") || null,
+    leadId: lead.id,
+    isTestData: leadTestData.is_test_data === true,
+    contactIsTestData: (Array.isArray(leadTestData.contacts) ? leadTestData.contacts[0]?.is_test_data : leadTestData.contacts?.is_test_data) === true,
+  };
+}
+
 export async function getDestinations() {
   const supabase = await createClient();
   const { data } = await supabase.from("destinations").select("id, name_es").order("name_es");
+  return data ?? [];
+}
+
+export async function getServices() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("services").select("id, name_es").order("name_es");
   return data ?? [];
 }
 
@@ -252,12 +531,71 @@ async function findSearchMatches(supabase: Awaited<ReturnType<typeof createClien
   };
 }
 
+function buildLatestFollowUpIndex(rows: Array<{ lead_id: string; created_at: string; payload: unknown }>, reference = new Date()) {
+  const latestByLead = new Map<string, { createdAt: string; nextFollowUpAt: string | null; followUpOverdue: boolean }>();
+
+  for (const row of rows) {
+    const nextFollowUpAt = followUpAtFromPayload(row.payload);
+    if (!nextFollowUpAt) continue;
+    const previous = latestByLead.get(row.lead_id);
+    if (!previous || new Date(row.created_at).getTime() > new Date(previous.createdAt).getTime()) {
+      latestByLead.set(row.lead_id, {
+        createdAt: row.created_at,
+        nextFollowUpAt,
+        followUpOverdue: new Date(nextFollowUpAt).getTime() < reference.getTime(),
+      });
+    }
+  }
+
+  return new Map(Array.from(latestByLead.entries()).map(([leadId, value]) => [leadId, { nextFollowUpAt: value.nextFollowUpAt, followUpOverdue: value.followUpOverdue }]));
+}
+
+function countByLeadId(rows: Array<{ lead_id: string | null }>) {
+  return rows.reduce((map, row) => {
+    if (!row.lead_id) return map;
+    map.set(row.lead_id, (map.get(row.lead_id) ?? 0) + 1);
+    return map;
+  }, new Map<string, number>());
+}
+
+function countByContactId(rows: Array<{ contact_id: string }>) {
+  return rows.reduce((map, row) => {
+    map.set(row.contact_id, (map.get(row.contact_id) ?? 0) + 1);
+    return map;
+  }, new Map<string, number>());
+}
+
+function duplicateRiskIndex(rows: Array<{ id: string; normalized_email: string | null; normalized_phone: string | null }>) {
+  const emailCounts = new Map<string, number>();
+  const phoneCounts = new Map<string, number>();
+
+  for (const row of rows) {
+    if (row.normalized_email) emailCounts.set(row.normalized_email, (emailCounts.get(row.normalized_email) ?? 0) + 1);
+    if (row.normalized_phone) phoneCounts.set(row.normalized_phone, (phoneCounts.get(row.normalized_phone) ?? 0) + 1);
+  }
+
+  return rows.reduce((map, row) => {
+    map.set(row.id, Boolean((row.normalized_email && (emailCounts.get(row.normalized_email) ?? 0) > 1) || (row.normalized_phone && (phoneCounts.get(row.normalized_phone) ?? 0) > 1)));
+    return map;
+  }, new Map<string, boolean>());
+}
+
+function applyQuickViewFilter(leads: LeadListItem[], quickView?: LeadFilters["quickView"]) {
+  if (!quickView) return leads;
+  if (quickView === "unassigned") return leads.filter((lead) => !lead.profiles?.id);
+  if (quickView === "overdue_follow_up") return leads.filter((lead) => lead.followUpOverdue);
+  if (quickView === "multiple_requests") return leads.filter((lead) => lead.quoteRequestCount > 1);
+  if (quickView === "duplicate_review") return leads.filter((lead) => lead.hasDuplicateRisk || lead.hasIdentityReview);
+  return leads;
+}
+
 export async function getLeads(filters: LeadFilters) {
   const supabase = await createClient();
   const search = await findSearchMatches(supabase, filters.q);
+  const errors: string[] = [];
   let query = supabase
     .from("leads")
-    .select("id, contact_id, created_at, updated_at, travel_start_date, travel_end_date, travelers_count, budget_mxn, budget_usd, source, priority, summary, contacts(first_name, last_name, email, phone), lead_statuses!inner(id, name, label_es), destinations(id, name_es), profiles!leads_assigned_to_fkey(id, full_name)")
+    .select("id, contact_id, created_at, updated_at, travel_start_date, travel_end_date, travelers_count, budget_mxn, budget_usd, source, priority, summary, is_featured, archived_at, archived_by, deleted_at, deleted_by, deleted_reason, is_test_data, contacts(first_name, last_name, email, phone), lead_statuses!inner(id, name, label_es), destinations(id, name_es), profiles!leads_assigned_to_fkey(id, full_name)")
     .order("updated_at", { ascending: false })
     .limit(100);
 
@@ -277,11 +615,63 @@ export async function getLeads(filters: LeadFilters) {
   }
 
   const { data, error } = await query;
-  return { leads: (data ?? []) as unknown as LeadListRow[], error: error?.message ?? null };
+  if (error) return { leads: [] as LeadListItem[], error: error.message };
+
+  const baseLeads = (data ?? []) as unknown as LeadListRow[];
+  if (!baseLeads.length) return { leads: [] as LeadListItem[], error: null };
+
+  const leadIds = baseLeads.map((lead) => lead.id);
+  const contactIds = unique(baseLeads.map((lead) => lead.contact_id));
+  const [{ data: relatedLeads, error: relatedLeadsError }, { data: quoteRequests, error: quoteRequestsError }, { data: followUps, error: followUpsError }, { data: ambiguousEvents, error: ambiguousEventsError }, { data: visibleContacts, error: visibleContactsError }] = await Promise.all([
+    supabase.from("leads").select("id, contact_id").in("contact_id", contactIds),
+    supabase.from("quote_requests").select("id, lead_id").in("lead_id", leadIds),
+    supabase.from("lead_events").select("lead_id, created_at, payload").in("lead_id", leadIds).eq("event_type", "follow_up_registered"),
+    supabase.from("lead_events").select("lead_id").in("lead_id", leadIds).eq("event_type", "contact_identity_ambiguous"),
+    supabase.from("contacts").select("id, normalized_email, normalized_phone").in("id", contactIds),
+  ]);
+
+  if (relatedLeadsError) errors.push(relatedLeadsError.message);
+  if (quoteRequestsError) errors.push(quoteRequestsError.message);
+  if (followUpsError) errors.push(followUpsError.message);
+  if (ambiguousEventsError) errors.push(ambiguousEventsError.message);
+  if (visibleContactsError) errors.push(visibleContactsError.message);
+
+  const visibleContactRows = (visibleContacts ?? []) as Array<{ id: string; normalized_email: string | null; normalized_phone: string | null }>;
+  const emailValues = unique(visibleContactRows.map((contact) => contact.normalized_email).filter(Boolean) as string[]);
+  const phoneValues = unique(visibleContactRows.map((contact) => contact.normalized_phone).filter(Boolean) as string[]);
+  const duplicateEmailQuery = emailValues.length ? supabase.from("contacts").select("id, normalized_email, normalized_phone").in("normalized_email", emailValues) : Promise.resolve({ data: [], error: null });
+  const duplicatePhoneQuery = phoneValues.length ? supabase.from("contacts").select("id, normalized_email, normalized_phone").in("normalized_phone", phoneValues) : Promise.resolve({ data: [], error: null });
+  const [{ data: duplicateEmailContacts, error: duplicateEmailError }, { data: duplicatePhoneContacts, error: duplicatePhoneError }] = await Promise.all([duplicateEmailQuery, duplicatePhoneQuery]);
+  if (duplicateEmailError) errors.push(duplicateEmailError.message);
+  if (duplicatePhoneError) errors.push(duplicatePhoneError.message);
+
+  const contactOpportunityCounts = countByContactId((relatedLeads ?? []) as Array<{ contact_id: string }>);
+  const quoteRequestCounts = countByLeadId((quoteRequests ?? []) as Array<{ lead_id: string | null }>);
+  const ambiguousLeadIds = new Set(((ambiguousEvents ?? []) as Array<{ lead_id: string }>).map((row) => row.lead_id));
+  const latestFollowUps = buildLatestFollowUpIndex((followUps ?? []) as Array<{ lead_id: string; created_at: string; payload: unknown }>);
+  const duplicateRisk = duplicateRiskIndex(unique([...(duplicateEmailContacts ?? []), ...(duplicatePhoneContacts ?? [])] as Array<{ id: string; normalized_email: string | null; normalized_phone: string | null }>));
+
+  const leads = applyQuickViewFilter(baseLeads.map((lead) => {
+    const followUp = latestFollowUps.get(lead.id);
+    const contactOpportunityCount = contactOpportunityCounts.get(lead.contact_id) ?? 1;
+    const quoteRequestCount = quoteRequestCounts.get(lead.id) ?? 0;
+    return {
+      ...lead,
+      contactOpportunityCount,
+      quoteRequestCount,
+      repeatContact: contactOpportunityCount > 1,
+      hasDuplicateRisk: duplicateRisk.get(lead.contact_id) ?? false,
+      hasIdentityReview: ambiguousLeadIds.has(lead.id),
+      nextFollowUpAt: followUp?.nextFollowUpAt ?? null,
+      followUpOverdue: followUp?.followUpOverdue ?? false,
+    } satisfies LeadListItem;
+  }), filters.quickView);
+
+  return { leads, error: errors.length ? errors.join(" | ") : null };
 }
 
 function eventLabel(type: string) {
-  const labels: Record<string, string> = { status_changed: "Estado actualizado", assigned: "Asesor asignado", note_added: "Nota agregada", follow_up_registered: "Seguimiento registrado", quote_received: "Cotización recibida", quote_submitted: "Cotización recibida", contact_identity_ambiguous: "Identidad ambigua", whatsapp_inbound_received: "WhatsApp recibido", manual_lead_created: "Lead manual creado" };
+  const labels: Record<string, string> = { status_changed: "Estado actualizado", assigned: "Asesor asignado", note_added: "Nota agregada", follow_up_registered: "Seguimiento registrado", quote_received: "Cotización recibida", quote_submitted: "Cotización recibida", quote_version_created: "Cotización creada", quote_version_sent: "Cotización marcada como enviada", quote_version_accepted: "Cotización aceptada", quote_version_rejected: "Cotización rechazada", quote_version_expired: "Cotización expirada", contact_identity_ambiguous: "Identidad ambigua", whatsapp_inbound_received: "WhatsApp recibido", manual_lead_created: "Lead manual creado" };
   return labels[type] ?? "Evento operativo";
 }
 
@@ -298,6 +688,8 @@ function sheetStatusLabel(status: string) {
 function eventSummary(eventType: string, payload: JsonRecord) {
   if (eventType === "whatsapp_inbound_received") return payloadString(payload, "messageText");
   if (eventType === "manual_lead_created") return payloadString(payload, "source") ? `Origen: ${formatLeadSourceLabel(payloadString(payload, "source"))}` : undefined;
+  if (eventType === "quote_submitted") return payloadString(payload, "destination") ? `Destino: ${payloadString(payload, "destination")}` : undefined;
+  if (eventType.startsWith("quote_version_")) return payloadString(payload, "title") || undefined;
   return undefined;
 }
 
@@ -405,6 +797,34 @@ function eventMetadata(eventType: string, payload: JsonRecord) {
       payload.hasNote === true ? "Con nota inicial" : undefined,
     ]);
   }
+  if (eventType === "quote_submitted") {
+    return compact([
+      ...base,
+      payloadString(payload, "opportunityResolution") === "reused_existing"
+        ? "Oportunidad reutilizada"
+        : payloadString(payload, "opportunityResolution") === "created_new"
+          ? "Oportunidad nueva"
+          : payloadString(payload, "opportunityResolution") === "created_duplicate_review"
+            ? "Revisión de duplicado requerida"
+            : payloadString(payload, "opportunityResolution") === "resolution_unavailable"
+              ? "Revisión manual por resolución no disponible"
+              : undefined,
+      typeof payload.quoteRequestId === "string" ? "Solicitud registrada" : undefined,
+    ]);
+  }
+  if (eventType.startsWith("quote_version_")) {
+    const amount = typeof payload.totalAmount === "number" && payloadString(payload, "currency")
+      ? formatAdminCurrency(payload.totalAmount as number, payloadString(payload, "currency")!)
+      : undefined;
+    return compact([
+      ...base,
+      typeof payload.versionNumber === "number" ? `Versión ${payload.versionNumber}` : undefined,
+      amount,
+      typeof payload.rejectedAlternatives === "number" && payload.rejectedAlternatives > 0
+        ? `${payload.rejectedAlternatives} alternativa(s) activa(s) rechazada(s)`
+        : undefined,
+    ]);
+  }
   return base;
 }
 
@@ -507,28 +927,201 @@ function buildTimeline(input: {
   return items.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
 }
 
+function buildContact360Summary(input: {
+  ambiguousIdentityEvents: number;
+  duplicateEmailMatches: number;
+  duplicatePhoneMatches: number;
+  followUps: Map<string, { nextFollowUpAt: string | null; followUpOverdue: boolean }>;
+  opportunities: Array<{ id: string }>;
+  quoteRequests: Array<{ lead_id: string | null }>;
+}) {
+  const followUpValues = Array.from(input.followUps.values());
+  return {
+    opportunityCount: input.opportunities.length,
+    requestCount: input.quoteRequests.length,
+    duplicateEmailMatches: input.duplicateEmailMatches,
+    duplicatePhoneMatches: input.duplicatePhoneMatches,
+    ambiguousIdentityEvents: input.ambiguousIdentityEvents,
+    hasDuplicateRisk: input.duplicateEmailMatches > 0 || input.duplicatePhoneMatches > 0,
+    hasIdentityReview: input.ambiguousIdentityEvents > 0,
+    overdueFollowUps: followUpValues.filter((item) => item.followUpOverdue).length,
+    upcomingFollowUps: followUpValues.filter((item) => item.nextFollowUpAt && !item.followUpOverdue).length,
+  } satisfies Contact360Summary;
+}
+
+function buildQuoteRequestHistory(items: Array<{ id: string; lead_id: string | null; created_at: string; locale: string; status: string; payload: unknown }>): LeadQuoteRequestHistoryItem[] {
+  return items
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .map((item) => ({
+      id: item.id,
+      createdAt: item.created_at,
+      locale: item.locale,
+      status: item.status,
+      statusLabel: formatQuoteRequestStatusLabel(item.status),
+      channelLabel: quoteRequestChannelLabel(item.payload),
+      href: item.lead_id ? `/admin/leads/${item.lead_id}` : "/admin/leads",
+    }));
+}
+
+function buildRelatedOpportunities(items: Array<{ id: string; updated_at: string; summary: string | null; destinations: { name_es: string | null } | null; profiles: { full_name: string | null } | null; lead_statuses: { label_es: string | null } | null }>, followUps: Map<string, { nextFollowUpAt: string | null; followUpOverdue: boolean }>, requestCounts: Map<string, number>): RelatedOpportunityItem[] {
+  return items
+    .map((item) => ({
+      id: item.id,
+      href: `/admin/leads/${item.id}`,
+      updatedAt: item.updated_at,
+      summary: item.summary,
+      destinationName: item.destinations?.name_es ?? "Sin destino",
+      advisorName: item.profiles?.full_name ?? "Sin asignar",
+      statusLabel: item.lead_statuses?.label_es ?? "Sin estado",
+      quoteRequestCount: requestCounts.get(item.id) ?? 0,
+      nextFollowUpAt: followUps.get(item.id)?.nextFollowUpAt ?? null,
+      followUpOverdue: followUps.get(item.id)?.followUpOverdue ?? false,
+    }))
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+}
+
+function buildQuoteVersionHistory(
+  items: Array<{
+    accepted_at: string | null;
+    created_at: string;
+    created_by: string | null;
+    currency: string;
+    deposit_amount: number | null;
+    expired_at: string | null;
+    id: string;
+    notes: string | null;
+    quote_request_id: string | null;
+    rejected_at: string | null;
+    sent_at: string | null;
+    status: string;
+    summary: string | null;
+    title: string;
+    total_amount: number | null;
+    updated_at: string;
+    valid_until: string | null;
+    version_number: number;
+  }>,
+  creatorNames: Map<string, string>,
+): LeadQuoteVersionItem[] {
+  return items
+    .map((item) => ({
+      acceptedAt: item.accepted_at,
+      createdAt: item.created_at,
+      createdByName: item.created_by ? creatorNames.get(item.created_by) ?? null : null,
+      currency: item.currency,
+      depositAmount: item.deposit_amount,
+      expiredAt: item.expired_at,
+      id: item.id,
+      notes: item.notes,
+      quoteRequestId: item.quote_request_id,
+      rejectedAt: item.rejected_at,
+      sentAt: item.sent_at,
+      status: item.status as QuoteVersionStatus,
+      statusLabel: quoteVersionStatusLabel(item.status),
+      summary: item.summary,
+      title: item.title,
+      totalAmount: item.total_amount,
+      updatedAt: item.updated_at,
+      validUntil: item.valid_until,
+      versionNumber: item.version_number,
+    }))
+    .sort((a, b) => {
+      if (a.status === "accepted" && b.status !== "accepted") return -1;
+      if (a.status !== "accepted" && b.status === "accepted") return 1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+}
+
 export async function getLeadDetail(id: string) {
   const supabase = await createClient();
+  const actorRoles = await getLeadActorRoles(supabase);
   const { data: lead, error } = await supabase
     .from("leads")
-    .select("id, contact_id, created_at, updated_at, travel_start_date, travel_end_date, travelers_count, budget_mxn, budget_usd, source, priority, summary, contacts(first_name, last_name, email, phone, preferred_locale, source, notes), lead_statuses(id, name, label_es), destinations(id, name_es), services(id, name_es), profiles!leads_assigned_to_fkey(id, full_name)")
+    .select("id, contact_id, created_at, updated_at, travel_start_date, travel_end_date, travelers_count, budget_mxn, budget_usd, source, priority, summary, is_featured, archived_at, archived_by, deleted_at, deleted_by, deleted_reason, is_test_data, contacts(first_name, last_name, email, phone, preferred_locale, source, notes, lifecycle_status, blocked_at, deleted_at), lead_statuses(id, name, label_es), destinations(id, name_es), services(id, name_es), profiles!leads_assigned_to_fkey(id, full_name)")
     .eq("id", id)
     .maybeSingle();
 
   const contactId = lead?.contact_id as string | undefined;
-  const [{ data: notes }, { data: events }, { data: whatsappClicks }, { data: notifications }, { data: sheetLogs }, { data: payments }, { data: bookings }, { data: documents }] = await Promise.all([
+  const relatedLeadIds = contactId
+    ? (((await supabase.from("leads").select("id").eq("contact_id", contactId)).data ?? []) as Array<{ id: string }>).map((row) => row.id)
+    : [id];
+  const auxiliaryActivityScope = buildAuxiliaryActivityQueryScope({
+    leadId: id,
+    contactId,
+    visibleLeadIds: relatedLeadIds,
+    restrictToVisibleLeadIds: hasRole(actorRoles, "asesor") && !hasRole(actorRoles, "admin"),
+  });
+  const whatsappClicksQuery = supabase.from("whatsapp_clicks").select("id, created_at, phone, page_path, message");
+  const notificationsQuery = supabase.from("notification_logs").select("id, created_at, channel, provider, recipient, template_name, status, error_message");
+  const [{ data: notes }, { data: events }, { data: whatsappClicks }, { data: notifications }, { data: sheetLogs }, { data: payments }, { data: bookings }, { data: documents }, { data: quoteRequests }, { data: quoteVersions }, { data: relatedOpportunities }, { data: contactRows }, { data: crossOpportunityFollowUps }, { data: ambiguousEvents }] = await Promise.all([
     supabase.from("lead_notes").select("id, created_at, body, is_internal, profiles!lead_notes_author_id_fkey(full_name)").eq("lead_id", id).order("created_at", { ascending: false }).limit(20),
     supabase.from("lead_events").select("id, created_at, event_type, payload, profiles!lead_events_actor_id_fkey(full_name)").eq("lead_id", id).order("created_at", { ascending: false }).limit(20),
-    supabase.from("whatsapp_clicks").select("id, created_at, phone, page_path, message").or(`lead_id.eq.${id}${contactId ? `,contact_id.eq.${contactId}` : ""}`).order("created_at", { ascending: false }).limit(20),
-    supabase.from("notification_logs").select("id, created_at, channel, provider, recipient, template_name, status, error_message").or(`lead_id.eq.${id}${contactId ? `,contact_id.eq.${contactId}` : ""}`).order("created_at", { ascending: false }).limit(20),
+    auxiliaryActivityScope.mode === "lead_only"
+      ? whatsappClicksQuery.in("lead_id", auxiliaryActivityScope.leadIds).order("created_at", { ascending: false }).limit(20)
+      : whatsappClicksQuery.or(auxiliaryActivityScope.orClause).order("created_at", { ascending: false }).limit(20),
+    auxiliaryActivityScope.mode === "lead_only"
+      ? notificationsQuery.in("lead_id", auxiliaryActivityScope.leadIds).order("created_at", { ascending: false }).limit(20)
+      : notificationsQuery.or(auxiliaryActivityScope.orClause).order("created_at", { ascending: false }).limit(20),
     supabase.from("sheet_sync_logs").select("id, created_at, sheet_name, row_id, status, error_message").eq("lead_id", id).order("created_at", { ascending: false }).limit(20),
     supabase.from("payments").select("id, created_at, amount, currency, status, payment_type").eq("lead_id", id).order("created_at", { ascending: false }).limit(10),
     supabase.from("bookings").select("id, created_at, booking_code, status, starts_on, ends_on, currency, total_mxn, total_usd").eq("lead_id", id).order("created_at", { ascending: false }).limit(10),
     supabase.from("documents").select("id, created_at, title, document_type, status").eq("lead_id", id).order("created_at", { ascending: false }).limit(10),
+    supabase.from("quote_requests").select("id, lead_id, created_at, locale, status, payload").eq("lead_id", id).order("created_at", { ascending: false }).limit(20),
+    supabase.from("quote_versions").select("id, quote_request_id, version_number, title, summary, currency, total_amount, deposit_amount, notes, status, valid_until, created_by, created_at, updated_at, sent_at, accepted_at, rejected_at, expired_at").eq("lead_id", id).order("created_at", { ascending: false }).limit(20),
+    contactId ? supabase.from("leads").select("id, contact_id, updated_at, summary, destinations(name_es), profiles!leads_assigned_to_fkey(full_name), lead_statuses(label_es)").eq("contact_id", contactId).order("updated_at", { ascending: false }).limit(20) : Promise.resolve({ data: [], error: null }),
+    contactId ? supabase.from("contacts").select("id, normalized_email, normalized_phone").eq("id", contactId).limit(1) : Promise.resolve({ data: [], error: null }),
+    supabase.from("lead_events").select("lead_id, created_at, payload").eq("event_type", "follow_up_registered").in("lead_id", relatedLeadIds),
+    supabase.from("lead_events").select("lead_id").eq("event_type", "contact_identity_ambiguous").in("lead_id", relatedLeadIds),
   ]);
 
   const timeline = buildTimeline({ lead: lead ? { id: lead.id, created_at: lead.created_at, summary: lead.summary } : null, events: events ?? [], notes: notes ?? [], whatsappClicks: whatsappClicks ?? [], notifications: notifications ?? [], sheetLogs: sheetLogs ?? [], payments: payments ?? [], bookings: bookings ?? [], documents: documents ?? [] });
-  return { lead: (lead ?? null) as unknown as LeadDetail | null, notes: notes ?? [], events: events ?? [], timeline, payments: payments ?? [], bookings: bookings ?? [], documents: documents ?? [], error: error?.message ?? null };
+  const relatedLeadRows = ((relatedOpportunities ?? []) as Array<{ id: string; contact_id: string; updated_at: string; summary: string | null; destinations: Array<{ name_es: string | null }> | { name_es: string | null } | null; profiles: Array<{ full_name: string | null }> | { full_name: string | null } | null; lead_statuses: Array<{ label_es: string | null }> | { label_es: string | null } | null }>).map((item) => ({
+    id: item.id,
+    contact_id: item.contact_id,
+    updated_at: item.updated_at,
+    summary: item.summary,
+    destinations: firstRelation(item.destinations),
+    profiles: firstRelation(item.profiles),
+    lead_statuses: firstRelation(item.lead_statuses),
+  }));
+  const allLeadIds = unique(relatedLeadRows.map((item) => item.id));
+  const quoteRequestRows = (quoteRequests ?? []) as Array<{ id: string; lead_id: string | null; created_at: string; locale: string; status: string; payload: unknown }>;
+  const quoteVersionRows = (quoteVersions ?? []) as Array<{ accepted_at: string | null; created_at: string; created_by: string | null; currency: string; deposit_amount: number | null; expired_at: string | null; id: string; notes: string | null; quote_request_id: string | null; rejected_at: string | null; sent_at: string | null; status: string; summary: string | null; title: string; total_amount: number | null; updated_at: string; valid_until: string | null; version_number: number }>;
+  const allQuoteRequests = contactId && allLeadIds.length ? ((await supabase.from("quote_requests").select("id, lead_id, created_at, locale, status, payload").in("lead_id", allLeadIds)).data ?? []) as Array<{ id: string; lead_id: string | null; created_at: string; locale: string; status: string; payload: unknown }> : quoteRequestRows;
+  const latestFollowUps = buildLatestFollowUpIndex((crossOpportunityFollowUps ?? []) as Array<{ lead_id: string; created_at: string; payload: unknown }>);
+  const quoteRequestCountByLead = countByLeadId(allQuoteRequests);
+  const duplicateContact = ((contactRows ?? []) as Array<{ id: string; normalized_email: string | null; normalized_phone: string | null }>)[0] ?? null;
+  const creatorIds = unique(quoteVersionRows.map((item) => item.created_by).filter(Boolean) as string[]);
+  const creatorProfiles = creatorIds.length
+    ? (((await supabase.from("profiles").select("id, full_name").in("id", creatorIds)).data ?? []) as Array<{ id: string; full_name: string | null }>)
+    : [];
+  const creatorNames = new Map(creatorProfiles.map((profile) => [profile.id, profile.full_name ?? "Equipo interno"]));
+  const [duplicateEmailMatches, duplicatePhoneMatches] = await Promise.all([
+    duplicateContact?.normalized_email ? supabase.from("contacts").select("id", { count: "exact", head: true }).eq("normalized_email", duplicateContact.normalized_email).neq("id", duplicateContact.id) : Promise.resolve({ count: 0, error: null }),
+    duplicateContact?.normalized_phone ? supabase.from("contacts").select("id", { count: "exact", head: true }).eq("normalized_phone", duplicateContact.normalized_phone).neq("id", duplicateContact.id) : Promise.resolve({ count: 0, error: null }),
+  ]);
+  const contact360 = buildContact360Summary({
+    opportunities: relatedLeadRows,
+    quoteRequests: allQuoteRequests,
+    followUps: latestFollowUps,
+    duplicateEmailMatches: duplicateEmailMatches.count ?? 0,
+    duplicatePhoneMatches: duplicatePhoneMatches.count ?? 0,
+    ambiguousIdentityEvents: (ambiguousEvents ?? []).length,
+  });
+  return {
+    lead: (lead ?? null) as unknown as LeadDetail | null,
+    notes: notes ?? [],
+    events: events ?? [],
+    timeline,
+    payments: payments ?? [],
+    bookings: bookings ?? [],
+    documents: documents ?? [],
+    quoteVersions: buildQuoteVersionHistory(quoteVersionRows, creatorNames),
+    quoteRequests: buildQuoteRequestHistory(quoteRequestRows),
+    relatedOpportunities: buildRelatedOpportunities(relatedLeadRows.filter((item) => item.id !== id), latestFollowUps, quoteRequestCountByLead),
+    contact360,
+    error: [error?.message ?? null, duplicateEmailMatches.error?.message ?? null, duplicatePhoneMatches.error?.message ?? null].filter(Boolean).join(" | ") || null,
+  };
 }
 
-export const leadSearchInternals = { splitSearchTerms, buildLeadSearchPlan, buildLeadSearchClauses, buildQuoteRequestSearchClauses, buildLeadEventSearchClauses, validDate, resolveCreatedAtRange, formatLeadSourceLabel, formatLeadPriorityLabel, formatCurrencyAmount, buildTimeline, templateDisplayLabel, paymentTypeLabel, paymentStatusLabel, bookingStatusLabel, documentTypeLabel, documentStatusLabel };
+export const leadSearchInternals = { splitSearchTerms, buildLeadSearchPlan, buildLeadSearchClauses, buildQuoteRequestSearchClauses, buildLeadEventSearchClauses, validDate, resolveCreatedAtRange, formatLeadSourceLabel, formatLeadPriorityLabel, formatCurrencyAmount, buildTimeline, templateDisplayLabel, paymentTypeLabel, paymentStatusLabel, bookingStatusLabel, documentTypeLabel, documentStatusLabel, buildAuxiliaryActivityQueryScope, buildQuoteVersionHistory };

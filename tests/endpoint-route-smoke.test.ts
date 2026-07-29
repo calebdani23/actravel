@@ -20,6 +20,7 @@ const validQuotePayload = {
   sourceChannel: "website_quote",
   contactConsent: true,
   notes: "Need vegan options",
+  metaLeadEventId: undefined,
   website: "",
 };
 

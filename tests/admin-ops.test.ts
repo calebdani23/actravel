@@ -70,19 +70,24 @@ test("dashboard aggregations keep full lead and advisor counts beyond prior samp
 
 test("lead detail actions revalidate dashboard only after successful lead mutations", () => {
   const source = readFileSync("app/admin/(protected)/leads/[id]/actions.ts", "utf8");
+  const helperStart = source.indexOf("function revalidateLeadWorkspace");
+  const helperEnd = source.indexOf("async function insertLeadEvent", helperStart);
+  const helperSource = source.slice(helperStart, helperEnd);
+  assert.match(helperSource, /revalidatePath\("\/admin\/dashboard"\)/);
+  assert.match(helperSource, /revalidatePath\(`\/admin\/contacts\/\$\{contactId\}`\)/);
 
   for (const actionName of ["updateLeadStatusAction", "assignLeadAction", "addLeadNoteAction", "registerFollowUpAction"]) {
     const actionStart = source.indexOf(`export async function ${actionName}`);
     const actionEnd = source.indexOf("export async function", actionStart + 1);
     const actionSource = source.slice(actionStart, actionEnd === -1 ? undefined : actionEnd);
-    const guardIndex = actionSource.indexOf("if (error)");
+    const guardIndex = Math.max(actionSource.indexOf("if (error)"), actionSource.indexOf("if (error || !data)"));
     const noteGuardIndex = actionSource.indexOf("if (noteError)");
     const failureIndex = Math.max(guardIndex, noteGuardIndex);
-    const dashboardIndex = actionSource.indexOf('revalidatePath("/admin/dashboard")');
+    const revalidateIndex = actionSource.indexOf("revalidateLeadWorkspace(");
 
     assert.notEqual(actionStart, -1);
-    assert.notEqual(dashboardIndex, -1);
-    assert.ok(failureIndex < dashboardIndex, `${actionName} should revalidate dashboard only after success guards`);
+    assert.notEqual(revalidateIndex, -1);
+    assert.ok(failureIndex < revalidateIndex, `${actionName} should revalidate dashboard only after success guards`);
   }
 });
 
@@ -104,6 +109,7 @@ test("admin log incident helpers normalize recent notification rows", () => {
     payload: {},
     provider: "resend",
     provider_message_id: null,
+    quote_request_id: null,
     recipient: "ada@example.com",
     sent_at: null,
     status: "failed",
@@ -175,6 +181,7 @@ test("admin log incident presentation stays Spanish-safe for unknown templates a
     payload: {},
     provider: "resend",
     provider_message_id: "msg_123",
+    quote_request_id: null,
     recipient: "ada@example.com",
     sent_at: null,
     status: "ambiguous",
@@ -210,15 +217,18 @@ test("phase 2 admin surfaces route visible admin dates and traveler counts throu
   assert.match(dashboardPageSource, /formatAdminDateWindowLabel\(today, "próximos 7 días"\)/);
   assert.match(dashboardSource, /formatAdminUtcWindowStartLabel\(utcDayStart\)/);
   assert.match(leadsSource, /formatAdminFollowUpLabel\(payloadString\(payload, "followUpAt"\)\)/);
-  assert.match(leadsPageSource, /appendAdminSearchParams\(`\/admin\/leads\/\$\{lead\.id\}`, params\)/);
-  assert.match(leadsPageSource, /const crmBaseHref = `\/admin\/leads\$\{currentQuery\}`/);
+  assert.match(leadsPageSource, /title="Contactos CRM"|title="Contactos CRM"/);
+  assert.match(leadsPageSource, /getContacts\(filters\)/);
+  assert.match(leadsPageSource, /ContactBulkToolbar isAdmin=\{isAdmin\}/);
+  assert.match(leadsPageSource, /Paginación de contactos/);
   assert.match(leadDetailSource, /const crmBaseHref = `\/admin\/leads\$\{buildAdminSearchQueryString\(currentSearchParams\)\}`/);
   assert.match(leadDetailSource, /<Link href=\{crmBaseHref\}>Volver al CRM<\/Link>/);
   assert.match(leadsSource, /formatAdminModuleLabelFromPath\(click\.page_path\)/);
+  assert.match(leadDetailSource, /Las demás alternativas activas quedarán rechazadas\./);
 
-  assert.match(leadsPageSource, /return `\$\{range\} · \$\{formatAdminTravelerCount\(travelersCount\)\}`/);
-  assert.match(leadsPageSource, /filters\.from \? `Desde: \$\{formatAdminDate\(filters\.from\)\}` : null/);
-  assert.match(leadsPageSource, /filters\.to \? `Hasta: \$\{formatAdminDate\(filters\.to\)\}` : null/);
+  assert.match(leadsPageSource, /Oportunidades abiertas/);
+  assert.match(leadsPageSource, /Pipeline MXN/);
+  assert.match(leadsPageSource, /Pipeline USD/);
   assert.match(leadDetailSource, /\{ label: "Viajeros", value: formatAdminTravelerCount\(lead\.travelers_count\) \}/);
 
   assert.doesNotMatch(dashboardSource, /lead\(s\)/i);

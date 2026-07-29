@@ -7,14 +7,15 @@ import { adminQuoteFollowUpWhatsAppMessage, quoteConfirmationMessage, quoteWhats
 import {
   buildPhoneIdentityVariants,
   buildSafeContactUpdate as buildSafeCoreContactUpdate,
-  createCrmLead,
   findCatalogId,
   getInitialStatusId,
   recordLeadEvent,
   resolveContactIdentity,
   resolveOrCreateContact,
+  resolveOrCreateOpportunityLead,
   slugify,
   type ContactIdentityResolution,
+  type OpportunityResolution,
 } from "@/lib/leads/lead-intake-core";
 import { processQuoteNotifications } from "@/lib/leads/quote-notifications";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -68,6 +69,7 @@ function quotePayload(
   normalizedWhatsapp: string,
   consentAt: string,
   identityResolution: ContactIdentityResolution,
+  opportunityResolution: OpportunityResolution,
   runtimeContext: QuoteRequestRuntimeContext,
   boundaryLogs?: { notifications: BoundaryLogSummary[]; metaConversions: BoundaryLogSummary | null },
 ): Json {
@@ -99,6 +101,16 @@ function quotePayload(
     consentAt,
     notes: input.notes ?? null,
     identityResolution,
+    opportunityResolution: {
+      status: opportunityResolution.status,
+      reason: opportunityResolution.reason,
+      reviewRequired: opportunityResolution.reviewRequired,
+      serialized: opportunityResolution.serialized,
+      signature: opportunityResolution.signature,
+      signatureVersion: opportunityResolution.signatureVersion,
+      reliablePurpose: opportunityResolution.reliablePurpose,
+      basis: opportunityResolution.basis,
+    },
     boundaryLogs: boundaryLogs ?? null,
   };
 }
@@ -131,11 +143,13 @@ export async function createQuoteRequest(input: QuoteRequestInput, runtimeContex
   const serviceSlug = slugify(input.serviceInterest);
   const summary = `${input.holderName} · ${input.mainDestination} · ${input.departureDate} to ${input.returnDate} · ${travelersCount} travelers`;
 
-  const lead = await createCrmLead(supabase, {
+  const opportunityResolution = await resolveOrCreateOpportunityLead(supabase, {
     contactId,
     statusId,
     destinationId,
+    destinationLabel: input.mainDestination,
     serviceId,
+    serviceLabel: input.serviceInterest,
     travelStartDate: input.departureDate,
     travelEndDate: input.returnDate,
     travelersCount,
@@ -144,55 +158,70 @@ export async function createQuoteRequest(input: QuoteRequestInput, runtimeContex
     source: PUBLIC_QUOTE_CANONICAL_SOURCE,
     priority: "normal",
     summary,
+    contactReviewRequired: identityResolution.blocked || identityResolution.deleted,
   });
 
   const { data: quoteRequest, error: quoteError } = await supabase
     .from("quote_requests")
-    .insert({ lead_id: lead.id, contact_id: contactId, locale: input.locale, destination_slug: destinationSlug, service_slug: serviceSlug, payload: quotePayload(input, normalizedEmail, normalizedWhatsapp, consentAt, identityResolution, runtimeContext), status: "received" })
+    .insert({ lead_id: opportunityResolution.leadId, contact_id: contactId, locale: input.locale, destination_slug: destinationSlug, service_slug: serviceSlug, payload: quotePayload(input, normalizedEmail, normalizedWhatsapp, consentAt, identityResolution, opportunityResolution, runtimeContext), status: "received" })
     .select("id")
     .single();
   if (quoteError) throw quoteError;
 
-  const eventPayload: Json = { source: PUBLIC_QUOTE_CANONICAL_SOURCE, sourceChannel: input.sourceChannel, campaignContext: input.campaignContext ?? null, trustedAttribution: buildTrustedQuoteAttribution(input, runtimeContext), advisoryMarketingContext: buildAdvisoryMarketingContext(input), metaLeadEventId: input.metaLeadEventId ?? null, locale: input.locale, destination: input.mainDestination, service: input.serviceInterest, travelers: { adults: input.adults, children: input.children, total: travelersCount }, quoteRequestId: quoteRequest.id, identityResolution };
-  await recordLeadEvent(supabase, { leadId: lead.id, actorId: null, eventType: "quote_submitted", payload: eventPayload });
+  const eventPayload: Json = { source: PUBLIC_QUOTE_CANONICAL_SOURCE, sourceChannel: input.sourceChannel, campaignContext: input.campaignContext ?? null, trustedAttribution: buildTrustedQuoteAttribution(input, runtimeContext), advisoryMarketingContext: buildAdvisoryMarketingContext(input), metaLeadEventId: input.metaLeadEventId ?? null, locale: input.locale, destination: input.mainDestination, service: input.serviceInterest, travelers: { adults: input.adults, children: input.children, total: travelersCount }, quoteRequestId: quoteRequest.id, identityResolution, opportunityResolution: opportunityResolution.status, opportunityResolutionReason: opportunityResolution.reason, opportunityReviewRequired: opportunityResolution.reviewRequired, opportunitySerialized: opportunityResolution.serialized, opportunitySignature: opportunityResolution.signature, opportunitySignatureVersion: opportunityResolution.signatureVersion, opportunityReliablePurpose: opportunityResolution.reliablePurpose };
+  await recordLeadEvent(supabase, { leadId: opportunityResolution.leadId, actorId: null, eventType: "quote_submitted", payload: eventPayload });
 
   if (identityResolution.ambiguous) {
-    await recordLeadEvent(supabase, { leadId: lead.id, actorId: null, eventType: "contact_identity_ambiguous", payload: { quoteRequestId: quoteRequest.id, identityResolution } satisfies Json });
+    await recordLeadEvent(supabase, { leadId: opportunityResolution.leadId, actorId: null, eventType: "contact_identity_ambiguous", payload: { quoteRequestId: quoteRequest.id, identityResolution } satisfies Json });
   }
 
-  const whatsappText = quoteWhatsAppMessage(input.locale, input.holderName, input.mainDestination);
-  const clientWhatsAppHref = buildAbsoluteTrackedWhatsAppUrl({ message: whatsappText, phone: WHATSAPP_PHONE, locale: input.locale, pagePath: "quote-confirmation", leadId: lead.id, contactId });
-  const adminWhatsAppHref = buildWhatsAppUrl(adminQuoteFollowUpWhatsAppMessage(input.locale, input.holderName, input.mainDestination), normalizedWhatsapp);
-  const onsiteWhatsappHref = buildTrackedWhatsAppUrl({ message: whatsappText, phone: WHATSAPP_PHONE, locale: input.locale, pagePath: "quote-confirmation", leadId: lead.id, contactId });
-  let notifications: BoundaryLogSummary[] = [];
-  try {
-    notifications = await processQuoteNotifications({ supabase, leadId: lead.id, contactId, quoteRequestId: quoteRequest.id, input, normalizedEmail, adminWhatsAppHref, clientWhatsAppHref });
-  } catch (error) {
-    notifications = [{ kind: "quote_email_notifications", status: "failed", reason: error instanceof Error ? error.message : "Email notification boundary failed" }];
+  if (opportunityResolution.reviewRequired) {
+    await recordLeadEvent(supabase, { leadId: opportunityResolution.leadId, actorId: null, eventType: "opportunity_duplicate_review_required", payload: { quoteRequestId: quoteRequest.id, opportunitySignature: opportunityResolution.signature, opportunitySignatureVersion: opportunityResolution.signatureVersion, opportunityBasis: opportunityResolution.basis, reason: opportunityResolution.reason ?? "canonical_reuse_hidden_by_scope" } satisfies Json });
   }
 
-  let metaConversions: BoundaryLogSummary | null = null;
-  try {
-    metaConversions = await sendMetaLeadEvent(input, {
-      createdAt: consentAt,
-      eventId: input.metaLeadEventId,
-      eventSourceUrl: process.env.NEXT_PUBLIC_SITE_URL ? `${process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "")}/${input.locale === "es" ? "es/cotizar" : "en/quote"}` : undefined,
-      leadId: lead.id,
-      requestIp: runtimeContext.requestIp,
-      userAgent: runtimeContext.userAgent,
-    });
-  } catch (error) {
-    metaConversions = { kind: "meta_conversions_api", status: "failed", reason: error instanceof Error ? error.message : "Meta CAPI boundary failed" };
+  if (identityResolution.blocked || identityResolution.deleted) {
+    await recordLeadEvent(supabase, { leadId: opportunityResolution.leadId, actorId: null, eventType: "blocked_contact_review_required", payload: { quoteRequestId: quoteRequest.id, contactId, reason: identityResolution.deleted ? "contact_deleted" : "contact_blocked" } satisfies Json });
+  }
+
+  const outboundSuppressed = identityResolution.blocked || identityResolution.deleted;
+  const outboundSuppressionReason = identityResolution.deleted ? "contact_deleted_review" : "blocked_contact_review";
+  const whatsappText = outboundSuppressed ? "" : quoteWhatsAppMessage(input.locale, input.holderName, input.mainDestination);
+  const clientWhatsAppHref = outboundSuppressed ? "" : buildAbsoluteTrackedWhatsAppUrl({ message: whatsappText, phone: WHATSAPP_PHONE, locale: input.locale, pagePath: "quote-confirmation", leadId: opportunityResolution.leadId, contactId });
+  const adminWhatsAppHref = outboundSuppressed ? "" : buildWhatsAppUrl(adminQuoteFollowUpWhatsAppMessage(input.locale, input.holderName, input.mainDestination), normalizedWhatsapp);
+  const onsiteWhatsappHref = outboundSuppressed ? "" : buildTrackedWhatsAppUrl({ message: whatsappText, phone: WHATSAPP_PHONE, locale: input.locale, pagePath: "quote-confirmation", leadId: opportunityResolution.leadId, contactId });
+  let notifications: BoundaryLogSummary[] = outboundSuppressed ? [{ kind: "quote_email_notifications", status: "skipped", reason: outboundSuppressionReason }] : [];
+  if (!outboundSuppressed) {
+    try {
+      notifications = await processQuoteNotifications({ supabase, leadId: opportunityResolution.leadId, contactId, quoteRequestId: quoteRequest.id, input, normalizedEmail, adminWhatsAppHref, clientWhatsAppHref });
+    } catch (error) {
+      notifications = [{ kind: "quote_email_notifications", status: "failed", reason: error instanceof Error ? error.message : "Email notification boundary failed" }];
+    }
+  }
+
+  let metaConversions: BoundaryLogSummary | null = outboundSuppressed ? { kind: "meta_conversions_api", status: "skipped", reason: outboundSuppressionReason } : null;
+  if (!outboundSuppressed) {
+    try {
+      metaConversions = await sendMetaLeadEvent(input, {
+        createdAt: consentAt,
+        eventId: input.metaLeadEventId,
+        eventSourceUrl: process.env.NEXT_PUBLIC_SITE_URL ? `${process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "")}/${input.locale === "es" ? "es/cotizar" : "en/quote"}` : undefined,
+        leadId: opportunityResolution.leadId,
+        requestIp: runtimeContext.requestIp,
+        userAgent: runtimeContext.userAgent,
+      });
+    } catch (error) {
+      metaConversions = { kind: "meta_conversions_api", status: "failed", reason: error instanceof Error ? error.message : "Meta CAPI boundary failed" };
+    }
   }
 
   await supabase
     .from("quote_requests")
-    .update({ payload: quotePayload(input, normalizedEmail, normalizedWhatsapp, consentAt, identityResolution, runtimeContext, { notifications, metaConversions }) })
+    .update({ payload: quotePayload(input, normalizedEmail, normalizedWhatsapp, consentAt, identityResolution, opportunityResolution, runtimeContext, { notifications, metaConversions }) })
     .eq("id", quoteRequest.id);
 
   return {
     ok: true,
-    leadReference: lead.id.slice(0, 8).toUpperCase(),
+    leadReference: opportunityResolution.leadId.slice(0, 8).toUpperCase(),
     message: quoteConfirmationMessage(input.locale, input.holderName, input.mainDestination),
     whatsapp: {
       phone: WHATSAPP_PHONE,

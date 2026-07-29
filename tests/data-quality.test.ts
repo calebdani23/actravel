@@ -3,21 +3,32 @@ import test from "node:test";
 
 import { dataQualityInternals } from "@/lib/admin/data-quality";
 import type { Database } from "@/lib/supabase/database.types";
+import { normalizeEmail, normalizeWhatsApp } from "@/lib/validations/quote-request";
 
 type ContactRow = Database["public"]["Tables"]["contacts"]["Row"];
 
 function contact(overrides: Partial<ContactRow>): ContactRow {
   return {
     id: overrides.id ?? "contact-1",
+    is_test_data: overrides.is_test_data ?? false,
+    blocked_at: overrides.blocked_at ?? null,
+    blocked_by: overrides.blocked_by ?? null,
+    blocked_reason: overrides.blocked_reason ?? null,
     first_name: overrides.first_name ?? "Ada",
     last_name: overrides.last_name ?? "Lovelace",
     email: overrides.email ?? null,
     phone: overrides.phone ?? null,
+    normalized_email: overrides.normalized_email ?? normalizeEmail(overrides.email ?? null),
+    normalized_phone: overrides.normalized_phone ?? (overrides.phone ? normalizeWhatsApp(overrides.phone) : null),
     preferred_locale: overrides.preferred_locale ?? "es",
     source: overrides.source ?? "website_quote",
     consent_marketing: overrides.consent_marketing ?? true,
     notes: overrides.notes ?? null,
     created_at: overrides.created_at ?? "2026-01-01T00:00:00.000Z",
+    deleted_at: overrides.deleted_at ?? null,
+    deleted_by: overrides.deleted_by ?? null,
+    deleted_reason: overrides.deleted_reason ?? null,
+    lifecycle_status: overrides.lifecycle_status ?? "active",
     updated_at: overrides.updated_at ?? "2026-01-01T00:00:00.000Z",
   };
 }

@@ -38,3 +38,18 @@ test("manual lead action keeps redirect outside the catch block", () => {
   assert.ok(catchIndex < fallbackIndex);
   assert.ok(fallbackIndex < redirectIndex);
 });
+
+test("manual lead flow reuses the shared opportunity-resolution path", () => {
+  const actionSource = readFileSync("app/admin/(protected)/leads/new/actions.ts", "utf8");
+  const intakeCoreSource = readFileSync("lib/leads/lead-intake-core.ts", "utf8");
+  const migrationSource = readFileSync("db/migrations/0031_crm_opportunity_resolution_rpc.sql", "utf8");
+
+  assert.match(actionSource, /createLeadIntake\(supabase as never/);
+  assert.match(actionSource, /destinationLabel: input\.destination/);
+  assert.match(actionSource, /serviceLabel: input\.service/);
+  assert.match(intakeCoreSource, /resolveOrCreateOpportunityLead/);
+  assert.match(intakeCoreSource, /crm_resolve_opportunity_lead/);
+  assert.match(migrationSource, /pg_advisory_xact_lock/);
+  assert.match(migrationSource, /created_duplicate_review/);
+  assert.match(migrationSource, /Advisors may only create self-assigned manual opportunities/);
+});

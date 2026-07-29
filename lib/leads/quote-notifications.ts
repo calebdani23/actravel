@@ -25,10 +25,11 @@ function incidentStatusForNotification(status: "queued" | "skipped" | "sent" | "
   return status === "sent" || status === "skipped" ? "resolved" : "open";
 }
 
-async function insertLog(supabase: SupabaseAdminClient, values: { leadId: string; contactId: string; recipient: string | null; templateName: string; status: "queued" | "skipped"; reason?: string; payload: Json }): Promise<InsertLogResult> {
-  const row = {
+export function buildQuoteNotificationLogRow(values: { leadId: string; contactId: string; quoteRequestId: string; recipient: string | null; templateName: string; status: "queued" | "skipped"; reason?: string; payload: Json }) {
+  return {
     lead_id: values.leadId,
     contact_id: values.contactId,
+    quote_request_id: values.quoteRequestId,
     channel: "email",
     provider: "resend",
     recipient: values.recipient,
@@ -39,15 +40,29 @@ async function insertLog(supabase: SupabaseAdminClient, values: { leadId: string
     incident_status: incidentStatusForNotification(values.status),
     incident_updated_at: new Date().toISOString(),
   };
+}
+
+export function buildQuoteNotificationLookup(values: { quoteRequestId: string; recipient: string | null; templateName: string }) {
+  return {
+    quoteRequestId: values.quoteRequestId,
+    channel: "email" as const,
+    recipient: values.recipient ?? "",
+    templateName: values.templateName,
+  };
+}
+
+async function insertLog(supabase: SupabaseAdminClient, values: { leadId: string; contactId: string; quoteRequestId: string; recipient: string | null; templateName: string; status: "queued" | "skipped"; reason?: string; payload: Json }): Promise<InsertLogResult> {
+  const row = buildQuoteNotificationLogRow(values);
   const inserted = await supabase.from("notification_logs").insert(row).select("id").single();
   if (!inserted.error && inserted.data?.id) return { id: inserted.data.id as string };
+  const lookup = buildQuoteNotificationLookup({ quoteRequestId: values.quoteRequestId, recipient: values.recipient, templateName: values.templateName });
   const existing = await supabase
     .from("notification_logs")
     .select("id,status,provider_message_id")
-    .eq("lead_id", values.leadId)
-    .eq("channel", "email")
-    .eq("recipient", values.recipient ?? "")
-    .eq("template_name", values.templateName)
+    .eq("quote_request_id", lookup.quoteRequestId)
+    .eq("channel", lookup.channel)
+    .eq("recipient", lookup.recipient)
+    .eq("template_name", lookup.templateName)
     .maybeSingle();
   if (existing.data?.id) {
     return {
@@ -77,6 +92,7 @@ export async function processQuoteNotifications(values: ProcessQuoteNotification
       await insertLog(values.supabase, {
         leadId: values.leadId,
         contactId: values.contactId,
+        quoteRequestId: values.quoteRequestId,
         recipient: plan.recipient,
         templateName: plan.templateName,
         status: "skipped",
@@ -91,9 +107,9 @@ export async function processQuoteNotifications(values: ProcessQuoteNotification
   for (const plan of plans) {
     const summary = await deliverQuoteNotification({
       plan,
-      context: { quoteRequestId: values.quoteRequestId, leadId: values.leadId, contactId: values.contactId, locale: values.input.locale, destination: values.input.mainDestination },
-      render: () => renderQuoteEmail({ templateName: plan.templateName, input: values.input, leadId: values.leadId, quoteRequestId: values.quoteRequestId, normalizedEmail: values.normalizedEmail, adminWhatsAppHref: values.adminWhatsAppHref, clientWhatsAppHref: values.clientWhatsAppHref }) as { subject: string; text: string; html: string; metadata: Json },
-      insertLog: ({ status, reason, payload }) => insertLog(values.supabase, { leadId: values.leadId, contactId: values.contactId, recipient: plan.recipient, templateName: plan.templateName, status, reason, payload }),
+       context: { quoteRequestId: values.quoteRequestId, leadId: values.leadId, contactId: values.contactId, locale: values.input.locale, destination: values.input.mainDestination },
+       render: () => renderQuoteEmail({ templateName: plan.templateName, input: values.input, leadId: values.leadId, quoteRequestId: values.quoteRequestId, normalizedEmail: values.normalizedEmail, adminWhatsAppHref: values.adminWhatsAppHref, clientWhatsAppHref: values.clientWhatsAppHref }) as { subject: string; text: string; html: string; metadata: Json },
+      insertLog: ({ status, reason, payload }) => insertLog(values.supabase, { leadId: values.leadId, contactId: values.contactId, quoteRequestId: values.quoteRequestId, recipient: plan.recipient, templateName: plan.templateName, status, reason, payload }),
       updateLog: (id, input) => updateLog(values.supabase, id, input),
       send: sendEmail,
     });
@@ -101,3 +117,8 @@ export async function processQuoteNotifications(values: ProcessQuoteNotification
   }
   return summaries;
 }
+
+export const quoteNotificationInternals = {
+  buildQuoteNotificationLogRow,
+  buildQuoteNotificationLookup,
+};

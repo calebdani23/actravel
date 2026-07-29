@@ -121,7 +121,7 @@ async function fetchContacts(supabase: SupabaseClient) {
   return paginate<ContactRow>((from, to) =>
     supabase
       .from("contacts")
-      .select("id, first_name, last_name, email, phone, source, preferred_locale, consent_marketing, notes, created_at, updated_at")
+      .select("id, first_name, last_name, email, phone, normalized_email, normalized_phone, source, preferred_locale, consent_marketing, notes, lifecycle_status, blocked_at, blocked_by, blocked_reason, deleted_at, deleted_by, deleted_reason, is_test_data, created_at, updated_at")
       .order("created_at", { ascending: true })
       .order("id", { ascending: true })
       .range(from, to),

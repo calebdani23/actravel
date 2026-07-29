@@ -106,6 +106,13 @@ export async function retryNotificationLog(logId: string, actorId: string, depen
 
   try {
     const quote = await loadQuoteRequest(supabase, claimed);
+    const { data: contact, error: contactError } = await supabase.from("contacts").select("lifecycle_status, blocked_at, deleted_at").eq("id", claimed.contact_id ?? "").maybeSingle();
+    if (contactError) throw new Error("Contact state was unavailable for notification retry");
+    if (contact?.lifecycle_status === "blocked" || contact?.blocked_at || contact?.deleted_at) {
+      const reason = contact.deleted_at ? "contact_deleted_review" : "contact_blocked_review";
+      await finishLog(supabase, logId, actorId, { status: "skipped", error_message: reason, payload: { quoteRequestId: quote.id, leadId: claimed.lead_id, contactId: claimed.contact_id, skipped: true, reason } satisfies Json });
+      return { kind: "notification_retry", status: "skipped", logId, recipient: claimed.recipient, reason };
+    }
     const normalizedEmail = normalizeEmail(quote.input.email);
     const adminWhatsAppHref = buildWhatsAppUrl(adminQuoteFollowUpWhatsAppMessage(quote.input.locale, quote.input.holderName, quote.input.mainDestination), quote.input.whatsapp);
     const clientWhatsAppHref = buildAbsoluteTrackedWhatsAppUrl({ message: quoteWhatsAppMessage(quote.input.locale, quote.input.holderName, quote.input.mainDestination), phone: WHATSAPP_PHONE, locale: quote.input.locale, pagePath: "admin-log-retry", leadId: claimed.lead_id ?? undefined, contactId: claimed.contact_id ?? undefined });

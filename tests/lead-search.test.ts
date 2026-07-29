@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { leadSearchInternals } from "@/lib/admin/leads";
@@ -281,4 +282,36 @@ test("lead timeline maps WhatsApp page paths to safe Spanish module labels", () 
   assert.deepEqual(unknownClick?.metadata, ["Tel: +5215555555555", "Origen: Sitio público"]);
   assert.doesNotMatch((adminClick?.metadata ?? []).join(" "), /\/admin\/leads\/lead-123|status=qualified/i);
   assert.doesNotMatch((unknownClick?.metadata ?? []).join(" "), /\/internal\/private\/debug\/route/i);
+});
+
+test("advisor auxiliary activity scope stays attached to visible lead ids only", () => {
+  const advisorScope = leadSearchInternals.buildAuxiliaryActivityQueryScope({
+    leadId: "lead-visible",
+    contactId: "contact-1",
+    visibleLeadIds: ["lead-visible", "lead-visible-2"],
+    restrictToVisibleLeadIds: true,
+  });
+  const adminScope = leadSearchInternals.buildAuxiliaryActivityQueryScope({
+    leadId: "lead-visible",
+    contactId: "contact-1",
+    visibleLeadIds: ["lead-visible", "lead-visible-2"],
+    restrictToVisibleLeadIds: false,
+  });
+
+  assert.deepEqual(advisorScope, { mode: "lead_only", leadIds: ["lead-visible", "lead-visible-2"] });
+  assert.deepEqual(adminScope, { mode: "lead_or_contact", orClause: "lead_id.eq.lead-visible,contact_id.eq.contact-1" });
+});
+
+test("crm lead surfaces keep enterprise labels in Spanish without implying quote versions", () => {
+  const leadsPageSource = readFileSync("app/admin/(protected)/leads/page.tsx", "utf8");
+  const leadDetailSource = readFileSync("app/admin/(protected)/leads/[id]/page.tsx", "utf8");
+
+  assert.match(leadsPageSource, /Sin asignar/);
+  assert.match(leadsPageSource, /Seguimiento vencido/);
+  assert.match(leadsPageSource, /Múltiples solicitudes/);
+  assert.match(leadsPageSource, /Revisión de duplicados/);
+  assert.match(leadDetailSource, /Contacto 360/);
+  assert.match(leadDetailSource, /title="Cotizaciones comerciales"/);
+  assert.match(leadDetailSource, /Solicitudes del cliente/);
+  assert.match(leadDetailSource, /no representan versiones de una cotización comercial/i);
 });

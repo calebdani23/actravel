@@ -23,6 +23,7 @@ const validQuotePayload = {
   sourceChannel: "website_quote",
   contactConsent: true,
   notes: "Need vegan options",
+  metaLeadEventId: undefined,
   website: "",
 } as const;
 
@@ -138,6 +139,7 @@ test("admin app keeps server-side role allowlists and avoids service-role import
     "app/admin/(protected)/leads/page.tsx",
     "app/admin/(protected)/leads/[id]/page.tsx",
     "app/admin/(protected)/leads/[id]/actions.ts",
+    "app/admin/(protected)/leads/[id]/quote-version-actions.ts",
     "app/admin/(protected)/catalog/[resource]/page.tsx",
     "app/admin/(protected)/catalog/actions.ts",
     "app/admin/(protected)/templates/page.tsx",
@@ -164,6 +166,7 @@ test("admin app keeps server-side role allowlists and avoids service-role import
 test("admin lead follow-up actions stay role gated and auditable", () => {
   const actions = readFileSync("app/admin/(protected)/leads/[id]/actions.ts", "utf8");
   const page = readFileSync("app/admin/(protected)/leads/[id]/page.tsx", "utf8");
+  const quoteVersionActions = readFileSync("app/admin/(protected)/leads/[id]/quote-version-actions.ts", "utf8");
 
   assert.match(actions, /export async function registerFollowUpAction/);
   assert.match(actions, /requireAdminRole\(\["admin", "asesor"\]\)/);
@@ -172,6 +175,32 @@ test("admin lead follow-up actions stay role gated and auditable", () => {
   assert.match(actions, /Number\.isNaN\(parsed\.getTime\(\)\)/);
   assert.match(page, /name="followUpBody"/);
   assert.match(page, /name="followUpAt"/);
+  assert.match(quoteVersionActions, /export async function createQuoteVersionAction/);
+  assert.match(quoteVersionActions, /export async function acceptQuoteVersionAction/);
+  assert.match(quoteVersionActions, /requireAdminRole\(\["admin", "asesor"\]\)/);
+  assert.match(quoteVersionActions, /crm_accept_quote_version/);
+  assert.match(quoteVersionActions, /idempotencyKey: formData\.get\("idempotencyKey"\)/);
+});
+
+test("lead deletion has no direct authenticated DELETE policy exposure", () => {
+  const baseRls = readFileSync("db/migrations/0008_rls.sql", "utf8");
+  const guardrails = readFileSync("db/migrations/0039_admin_lead_delete_guardrails.sql", "utf8");
+  const followup = readFileSync("db/migrations/0040_drop_direct_lead_delete_policy.sql", "utf8");
+  const orphanCleanup = readFileSync("db/migrations/0041_admin_orphan_contact_cleanup.sql", "utf8");
+
+  assert.match(baseRls, /create policy "lead write scoped" on public\.leads for all to authenticated/i);
+  assert.match(guardrails, /drop policy if exists "lead write scoped" on public\.leads;/);
+  assert.match(guardrails, /create policy "lead insert scoped"/);
+  assert.match(guardrails, /create policy "lead update scoped"/);
+  assert.doesNotMatch(guardrails, /for delete\s+to authenticated/i);
+  assert.doesNotMatch(guardrails, /create policy "lead delete admin only"/i);
+  assert.match(followup, /drop policy if exists "lead delete admin only" on public\.leads;/);
+  assert.match(baseRls, /create policy "crm contact write" on public\.contacts for all to authenticated/i);
+  assert.match(orphanCleanup, /drop policy if exists "crm contact write" on public\.contacts;/);
+  assert.match(orphanCleanup, /create policy "crm contact insert"[\s\S]*for insert/i);
+  assert.match(orphanCleanup, /create policy "crm contact update"[\s\S]*for update/i);
+  assert.doesNotMatch(orphanCleanup, /on public\.contacts[\s\S]*for delete\s+to authenticated/i);
+  assert.doesNotMatch(orphanCleanup, /create policy "crm contact write"[\s\S]*for all/i);
 });
 
 test("WhatsApp template renderer fills known variables and removes missing ones", () => {
