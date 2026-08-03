@@ -13,6 +13,7 @@ export type PaymentRow = Tables<"payments"> & {
   contacts: ContactSummary;
   leads: LeadSummary;
   bookings: BookingSummary;
+  accepted_quote_version: { id: string; quote_id: string } | null;
   proof_preview_url?: string | null;
   proof_download_url?: string | null;
 };
@@ -23,12 +24,14 @@ export type BookingRow = Tables<"bookings"> & {
   destinations: { id: string; name_es: string } | null;
   services: { id: string; name_es: string } | null;
   profiles: { id: string; full_name: string } | null;
+  accepted_quote_version: { id: string; quote_id: string } | null;
 };
 
 export type DocumentRow = Tables<"documents"> & {
   contacts: ContactSummary;
   leads: LeadSummary;
   bookings: BookingSummary;
+  quote_version: { id: string; quote_id: string } | null;
   document_preview_url?: string | null;
   document_download_url?: string | null;
 };
@@ -69,7 +72,7 @@ export async function getPayments() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("payments")
-    .select("*, payment_methods(id, label_es), contacts(id, first_name, last_name, email, phone), leads(id, summary, contacts(id, first_name, last_name, email, phone)), bookings(id, booking_code, status)")
+    .select("*, payment_methods(id, label_es), contacts(id, first_name, last_name, email, phone), leads(id, summary, contacts(id, first_name, last_name, email, phone)), bookings(id, booking_code, status), accepted_quote_version:quote_versions!payments_accepted_quote_version_id_fkey(id, quote_id)")
     .order("updated_at", { ascending: false })
     .limit(100);
   const rows: PaymentRow[] = ((data ?? []) as unknown as PaymentRow[]).map((row) => ({ ...row, proof_preview_url: null, proof_download_url: null }));
@@ -89,7 +92,7 @@ export async function getBookings() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("bookings")
-    .select("*, contacts(id, first_name, last_name, email, phone), leads(id, summary, contacts(id, first_name, last_name, email, phone)), destinations(id, name_es), services(id, name_es), profiles!bookings_assigned_to_fkey(id, full_name)")
+    .select("*, contacts(id, first_name, last_name, email, phone), leads(id, summary, contacts(id, first_name, last_name, email, phone)), destinations(id, name_es), services(id, name_es), profiles!bookings_assigned_to_fkey(id, full_name), accepted_quote_version:quote_versions!bookings_accepted_quote_version_id_fkey(id, quote_id)")
     .order("updated_at", { ascending: false })
     .limit(100);
   return { bookings: (data ?? []) as unknown as BookingRow[], error: error?.message ?? null };
@@ -99,7 +102,7 @@ export async function getDocuments() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("documents")
-    .select("*, contacts(id, first_name, last_name, email, phone), leads(id, summary, contacts(id, first_name, last_name, email, phone)), bookings(id, booking_code, status)")
+    .select("*, contacts(id, first_name, last_name, email, phone), leads(id, summary, contacts(id, first_name, last_name, email, phone)), bookings(id, booking_code, status), quote_version:quote_versions!documents_quote_version_id_fkey(id, quote_id)")
     .order("updated_at", { ascending: false })
     .limit(100);
   const rows: DocumentRow[] = ((data ?? []) as unknown as DocumentRow[]).map((row) => ({ ...row, document_preview_url: null, document_download_url: null }));

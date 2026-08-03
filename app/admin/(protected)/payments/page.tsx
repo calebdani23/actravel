@@ -20,6 +20,7 @@ import { requireAdminRole } from "@/lib/admin/auth";
 import { formatAdminDate, formatAdminDateTime, formatAdminInteger } from "@/lib/admin/format";
 import { buildAdminSearchQueryString } from "@/lib/admin/navigation";
 import { getOperationOptions, getPayments, type PaymentRow } from "@/lib/admin/operations";
+import { getAcceptedQuoteHandoffByVersion, type QuoteHandoffDto } from "@/lib/admin/quotes";
 import {
   bookingDisplayName,
   contactDisplayName,
@@ -81,12 +82,18 @@ function ProofLinks({ payment }: Readonly<{ payment: PaymentRow }>) {
   );
 }
 
-function PaymentForm({ options, payment }: Readonly<{ options: Options; payment?: PaymentRow }>) {
+function PaymentForm({ handoff, options, payment }: Readonly<{ handoff?: QuoteHandoffDto | null; options: Options; payment?: PaymentRow }>) {
   const prefix = payment?.id ?? "new-payment";
+  const acceptedVersionId = payment?.accepted_quote_version_id ?? handoff?.acceptedVersion.id ?? "";
+  const quoteId = payment?.accepted_quote_version?.quote_id ?? handoff?.quoteId ?? "";
 
   return (
     <form action={upsertPaymentAction} className="space-y-5">
       {payment ? <input name="id" type="hidden" value={payment.id} /> : null}
+      {acceptedVersionId ? <input name="accepted_quote_version_id" type="hidden" value={acceptedVersionId} /> : null}
+      {quoteId ? <input name="quote_id" type="hidden" value={quoteId} /> : null}
+
+      {handoff ? <section className="rounded-[var(--admin-radius-card)] border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-950"><p className="font-semibold">Origen: {handoff.quoteNumber} · V{handoff.acceptedVersion.number}</p><p>{handoff.acceptedVersion.title} · {handoff.contact.name}</p><p className="mt-1">El pago se registrará únicamente al enviar este formulario.</p></section> : null}
 
       <div className="grid gap-4 xl:grid-cols-2">
         <section className="space-y-4 rounded-[var(--admin-radius-card)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4">
@@ -98,16 +105,18 @@ function PaymentForm({ options, payment }: Readonly<{ options: Options; payment?
           <div className="grid gap-3 md:grid-cols-3">
             <label className="space-y-2" htmlFor={`${prefix}-contact`}>
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Contacto</span>
-              <select className={adminSelectClassName} defaultValue={payment?.contact_id ?? ""} id={`${prefix}-contact`} name="contact_id">
+              <select className={adminSelectClassName} defaultValue={payment?.contact_id ?? handoff?.contact.id ?? ""} id={`${prefix}-contact`} name="contact_id">
                 <option value="">Sin contacto</option>
+                {handoff && !options.contacts.some((contact) => contact.id === handoff.contact.id) ? <option value={handoff.contact.id}>{handoff.contact.name}</option> : null}
                 {options.contacts.map((contact) => <option key={contact.id} value={contact.id}>{contactDisplayName(contact)}</option>)}
               </select>
             </label>
 
             <label className="space-y-2" htmlFor={`${prefix}-lead`}>
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Prospecto</span>
-              <select className={adminSelectClassName} defaultValue={payment?.lead_id ?? ""} id={`${prefix}-lead`} name="lead_id">
+              <select className={adminSelectClassName} defaultValue={payment?.lead_id ?? handoff?.opportunity.id ?? ""} id={`${prefix}-lead`} name="lead_id">
                 <option value="">Sin prospecto</option>
+                {handoff && !options.leads.some((lead) => lead.id === handoff.opportunity.id) ? <option value={handoff.opportunity.id}>{handoff.opportunity.label}</option> : null}
                 {options.leads.map((lead) => <option key={lead.id} value={lead.id}>{leadDisplayName(lead)}</option>)}
               </select>
             </label>
@@ -131,12 +140,12 @@ function PaymentForm({ options, payment }: Readonly<{ options: Options; payment?
           <div className="grid gap-3 md:grid-cols-2">
             <label className="space-y-2" htmlFor={`${prefix}-amount`}>
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Monto</span>
-              <input className={adminInputClassName} defaultValue={payment?.amount ?? ""} id={`${prefix}-amount`} min="0" name="amount" required step="0.01" type="number" />
+              <input className={adminInputClassName} defaultValue={payment?.amount ?? handoff?.acceptedVersion.depositAmount ?? ""} id={`${prefix}-amount`} min="0" name="amount" required step="0.01" type="number" />
             </label>
 
             <label className="space-y-2" htmlFor={`${prefix}-currency`}>
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Moneda</span>
-              <select className={adminSelectClassName} defaultValue={payment?.currency ?? "MXN"} id={`${prefix}-currency`} name="currency">
+              <select className={adminSelectClassName} defaultValue={payment?.currency ?? handoff?.acceptedVersion.currency ?? "MXN"} id={`${prefix}-currency`} name="currency">
                 <option value="MXN">MXN</option>
                 <option value="USD">USD</option>
               </select>
@@ -245,6 +254,11 @@ function ActiveFilterChips({ filters, options }: Readonly<{ filters: PaymentFilt
 export default async function PaymentsPage({ searchParams }: PageProps) {
   await requireAdminRole(["admin", "finanzas"]);
   const [params, { payments, error }, options] = await Promise.all([searchParams, getPayments(), getOperationOptions()]);
+  const acceptedQuoteVersionId = value(params, "acceptedQuoteVersionId");
+  const handoffResult = acceptedQuoteVersionId
+    ? await getAcceptedQuoteHandoffByVersion(acceptedQuoteVersionId)
+    : { handoff: null, issues: [] };
+  const handoff = handoffResult.handoff?.operations.canManagePayment ? handoffResult.handoff : null;
 
   const filters: PaymentFilters = {
     q: value(params, "q"),
@@ -281,7 +295,7 @@ export default async function PaymentsPage({ searchParams }: PageProps) {
               <Link href={`/admin/payments${currentQuery}`}><RefreshCcw aria-hidden="true" className="mr-2 h-4 w-4" />Actualizar</Link>
             </QuietActionButton>
             <OperationDialog description="El flujo conserva la validación, la carga privada y el resguardo seguro de comprobantes." title="Registrar pago" triggerLabel="Registrar pago">
-              <PaymentForm options={options} />
+              <PaymentForm handoff={handoff} options={options} />
             </OperationDialog>
           </>
         }
@@ -290,6 +304,9 @@ export default async function PaymentsPage({ searchParams }: PageProps) {
         eyebrow="Operaciones"
         title="Pagos"
       />
+
+      {acceptedQuoteVersionId && !handoff ? <ErrorState description="La versión indicada no es una cotización aceptada visible y apta para registrar un pago." title="Contexto de cotización no disponible" /> : null}
+      {handoff ? <SectionCard title={`Registrar desde ${handoff.quoteNumber}`} description="El contexto aceptado solo prellena el formulario; no se crea ningún pago automáticamente."><div className="flex flex-wrap items-center gap-2"><StatusBadge tone="success">Aceptada V{handoff.acceptedVersion.number}</StatusBadge><span className="text-sm">{handoff.contact.name} · {handoff.opportunity.label}</span><Button asChild size="sm" variant="outline"><Link href={`/admin/quotes/${handoff.quoteId}`}>Abrir cotización</Link></Button></div></SectionCard> : null}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <MetricCard detail={paymentMetric(receivedThisMonth).detail} label="Recibidos este mes" tone={receivedThisMonth.length ? "success" : "neutral"} value={formatAdminInteger(receivedThisMonth.length)} />
@@ -447,7 +464,8 @@ export default async function PaymentsPage({ searchParams }: PageProps) {
 
                     <div className="mt-4 flex flex-wrap gap-2">
                       <Button asChild size="sm" variant="outline"><Link href={rowHref}>Editar</Link></Button>
-                      {payment.proof_preview_url ? <Button asChild size="sm" variant="outline"><a href={payment.proof_preview_url} rel="noreferrer" target="_blank">Ver comprobante</a></Button> : null}
+                       {payment.proof_preview_url ? <Button asChild size="sm" variant="outline"><a href={payment.proof_preview_url} rel="noreferrer" target="_blank">Ver comprobante</a></Button> : null}
+                       {payment.accepted_quote_version ? <Button asChild size="sm" variant="outline"><Link href={`/admin/quotes/${payment.accepted_quote_version.quote_id}`}>Cotización aceptada</Link></Button> : null}
                     </div>
                   </article>
                 );
@@ -494,7 +512,8 @@ export default async function PaymentsPage({ searchParams }: PageProps) {
                           <td className="px-4 py-4">
                             <div className="flex flex-wrap gap-2">
                               <Button asChild size="sm" variant="outline"><Link href={rowHref}>Editar</Link></Button>
-                              {payment.proof_preview_url ? <Button asChild size="sm" variant="outline"><a href={payment.proof_preview_url} rel="noreferrer" target="_blank">Vista previa</a></Button> : null}
+                               {payment.proof_preview_url ? <Button asChild size="sm" variant="outline"><a href={payment.proof_preview_url} rel="noreferrer" target="_blank">Vista previa</a></Button> : null}
+                               {payment.accepted_quote_version ? <Button asChild size="sm" variant="outline"><Link href={`/admin/quotes/${payment.accepted_quote_version.quote_id}`}>Cotización</Link></Button> : null}
                             </div>
                           </td>
                         </tr>

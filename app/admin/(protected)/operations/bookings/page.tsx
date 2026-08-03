@@ -19,6 +19,7 @@ import { requireAdminRole } from "@/lib/admin/auth";
 import { formatAdminDate, formatAdminDateTime, formatAdminInteger, formatAdminTravelerCount } from "@/lib/admin/format";
 import { buildAdminSearchQueryString } from "@/lib/admin/navigation";
 import { getBookings, getOperationOptions, type BookingRow } from "@/lib/admin/operations";
+import { getAcceptedQuoteHandoffByVersion, type QuoteHandoffDto } from "@/lib/admin/quotes";
 import {
   bookingAmountLabel,
   bookingDateRangeLabel,
@@ -54,12 +55,20 @@ function isUpcomingThisMonth(booking: BookingRow) {
   return start.getFullYear() === now.getFullYear() && start.getMonth() === now.getMonth() && start >= new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
-function BookingForm({ booking, options }: Readonly<{ booking?: BookingRow; options: Options }>) {
+function BookingForm({ booking, handoff, options }: Readonly<{ booking?: BookingRow; handoff?: QuoteHandoffDto | null; options: Options }>) {
   const prefix = booking?.id ?? "new-booking";
+  const acceptedVersionId = booking?.accepted_quote_version_id ?? handoff?.acceptedVersion.id ?? "";
+  const quoteId = booking?.accepted_quote_version?.quote_id ?? handoff?.quoteId ?? "";
+  const totalMxn = handoff?.acceptedVersion.currency === "MXN" ? handoff.acceptedVersion.totalAmount : null;
+  const totalUsd = handoff?.acceptedVersion.currency === "USD" ? handoff.acceptedVersion.totalAmount : null;
 
   return (
     <form action={upsertBookingAction} className="space-y-5">
       {booking ? <input name="id" type="hidden" value={booking.id} /> : null}
+      {acceptedVersionId ? <input name="accepted_quote_version_id" type="hidden" value={acceptedVersionId} /> : null}
+      {quoteId ? <input name="quote_id" type="hidden" value={quoteId} /> : null}
+
+      {handoff ? <section className="rounded-[var(--admin-radius-card)] border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-950"><p className="font-semibold">Origen: {handoff.quoteNumber} · V{handoff.acceptedVersion.number}</p><p>{handoff.acceptedVersion.title} · {handoff.contact.name}</p><p className="mt-1">La reserva se creará únicamente al enviar este formulario.</p></section> : null}
 
       <div className="grid gap-4 xl:grid-cols-2">
         <section className="space-y-4 rounded-[var(--admin-radius-card)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4">
@@ -71,24 +80,27 @@ function BookingForm({ booking, options }: Readonly<{ booking?: BookingRow; opti
           <div className="grid gap-3 md:grid-cols-3">
             <label className="space-y-2" htmlFor={`${prefix}-contact`}>
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Contacto</span>
-              <select className={adminSelectClassName} defaultValue={booking?.contact_id ?? ""} id={`${prefix}-contact`} name="contact_id" required>
+              <select className={adminSelectClassName} defaultValue={booking?.contact_id ?? handoff?.contact.id ?? ""} id={`${prefix}-contact`} name="contact_id" required>
                 <option value="">Selecciona</option>
+                {handoff && !options.contacts.some((contact) => contact.id === handoff.contact.id) ? <option value={handoff.contact.id}>{handoff.contact.name}</option> : null}
                 {options.contacts.map((contact) => <option key={contact.id} value={contact.id}>{contactDisplayName(contact)}</option>)}
               </select>
             </label>
 
             <label className="space-y-2" htmlFor={`${prefix}-lead`}>
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Prospecto</span>
-              <select className={adminSelectClassName} defaultValue={booking?.lead_id ?? ""} id={`${prefix}-lead`} name="lead_id">
+              <select className={adminSelectClassName} defaultValue={booking?.lead_id ?? handoff?.opportunity.id ?? ""} id={`${prefix}-lead`} name="lead_id">
                 <option value="">Sin prospecto</option>
+                {handoff && !options.leads.some((lead) => lead.id === handoff.opportunity.id) ? <option value={handoff.opportunity.id}>{handoff.opportunity.label}</option> : null}
                 {options.leads.map((lead) => <option key={lead.id} value={lead.id}>{leadDisplayName(lead)}</option>)}
               </select>
             </label>
 
             <label className="space-y-2" htmlFor={`${prefix}-assigned`}>
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Asesor</span>
-              <select className={adminSelectClassName} defaultValue={booking?.assigned_to ?? ""} id={`${prefix}-assigned`} name="assigned_to">
+              <select className={adminSelectClassName} defaultValue={booking?.assigned_to ?? handoff?.ownerId ?? ""} id={`${prefix}-assigned`} name="assigned_to">
                 <option value="">Sin asignar</option>
+                {handoff?.ownerId && !options.advisors.some((advisor) => advisor.id === handoff.ownerId) ? <option value={handoff.ownerId}>Asesor de la cotización</option> : null}
                 {options.advisors.map((advisor) => <option key={advisor.id} value={advisor.id}>{advisor.full_name}</option>)}
               </select>
             </label>
@@ -120,16 +132,18 @@ function BookingForm({ booking, options }: Readonly<{ booking?: BookingRow; opti
 
             <label className="space-y-2" htmlFor={`${prefix}-destination`}>
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Destino</span>
-              <select className={adminSelectClassName} defaultValue={booking?.destination_id ?? ""} id={`${prefix}-destination`} name="destination_id">
+              <select className={adminSelectClassName} defaultValue={booking?.destination_id ?? handoff?.opportunity.destinationId ?? ""} id={`${prefix}-destination`} name="destination_id">
                 <option value="">Sin destino</option>
+                {handoff?.opportunity.destinationId && !options.destinations.some((destination) => destination.id === handoff.opportunity.destinationId) ? <option value={handoff.opportunity.destinationId}>Destino de la cotización</option> : null}
                 {options.destinations.map((destination) => <option key={destination.id} value={destination.id}>{destination.name_es}</option>)}
               </select>
             </label>
 
             <label className="space-y-2" htmlFor={`${prefix}-service`}>
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Servicio</span>
-              <select className={adminSelectClassName} defaultValue={booking?.service_id ?? ""} id={`${prefix}-service`} name="service_id">
+              <select className={adminSelectClassName} defaultValue={booking?.service_id ?? handoff?.opportunity.serviceId ?? ""} id={`${prefix}-service`} name="service_id">
                 <option value="">Sin servicio</option>
+                {handoff?.opportunity.serviceId && !options.services.some((service) => service.id === handoff.opportunity.serviceId) ? <option value={handoff.opportunity.serviceId}>Servicio de la cotización</option> : null}
                 {options.services.map((service) => <option key={service.id} value={service.id}>{service.name_es}</option>)}
               </select>
             </label>
@@ -147,17 +161,17 @@ function BookingForm({ booking, options }: Readonly<{ booking?: BookingRow; opti
           <div className="grid gap-3 md:grid-cols-3">
             <label className="space-y-2" htmlFor={`${prefix}-starts`}>
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Salida</span>
-              <input className={adminInputClassName} defaultValue={booking?.starts_on ?? ""} id={`${prefix}-starts`} name="starts_on" type="date" />
+              <input className={adminInputClassName} defaultValue={booking?.starts_on ?? handoff?.opportunity.travelStartDate ?? ""} id={`${prefix}-starts`} name="starts_on" type="date" />
             </label>
 
             <label className="space-y-2" htmlFor={`${prefix}-ends`}>
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Regreso</span>
-              <input className={adminInputClassName} defaultValue={booking?.ends_on ?? ""} id={`${prefix}-ends`} name="ends_on" type="date" />
+              <input className={adminInputClassName} defaultValue={booking?.ends_on ?? handoff?.opportunity.travelEndDate ?? ""} id={`${prefix}-ends`} name="ends_on" type="date" />
             </label>
 
             <label className="space-y-2" htmlFor={`${prefix}-travelers`}>
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Viajeros</span>
-              <input className={adminInputClassName} defaultValue={booking?.travelers_count ?? 1} id={`${prefix}-travelers`} min="1" name="travelers_count" type="number" />
+              <input className={adminInputClassName} defaultValue={booking?.travelers_count ?? handoff?.opportunity.travelersCount ?? 1} id={`${prefix}-travelers`} min="1" name="travelers_count" type="number" />
             </label>
           </div>
         </section>
@@ -171,7 +185,7 @@ function BookingForm({ booking, options }: Readonly<{ booking?: BookingRow; opti
           <div className="grid gap-3 md:grid-cols-3">
             <label className="space-y-2" htmlFor={`${prefix}-currency`}>
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Moneda</span>
-              <select className={adminSelectClassName} defaultValue={booking?.currency ?? "MXN"} id={`${prefix}-currency`} name="currency">
+              <select className={adminSelectClassName} defaultValue={booking?.currency ?? handoff?.acceptedVersion.currency ?? "MXN"} id={`${prefix}-currency`} name="currency">
                 <option value="MXN">MXN</option>
                 <option value="USD">USD</option>
               </select>
@@ -179,12 +193,12 @@ function BookingForm({ booking, options }: Readonly<{ booking?: BookingRow; opti
 
             <label className="space-y-2" htmlFor={`${prefix}-total-mxn`}>
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Total MXN</span>
-              <input className={adminInputClassName} defaultValue={booking?.total_mxn ?? ""} id={`${prefix}-total-mxn`} min="0" name="total_mxn" step="0.01" type="number" />
+              <input className={adminInputClassName} defaultValue={booking?.total_mxn ?? totalMxn ?? ""} id={`${prefix}-total-mxn`} min="0" name="total_mxn" step="0.01" type="number" />
             </label>
 
             <label className="space-y-2" htmlFor={`${prefix}-total-usd`}>
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Total USD</span>
-              <input className={adminInputClassName} defaultValue={booking?.total_usd ?? ""} id={`${prefix}-total-usd`} min="0" name="total_usd" step="0.01" type="number" />
+              <input className={adminInputClassName} defaultValue={booking?.total_usd ?? totalUsd ?? ""} id={`${prefix}-total-usd`} min="0" name="total_usd" step="0.01" type="number" />
             </label>
           </div>
 
@@ -222,6 +236,11 @@ function ActiveFilterChips({ filters, options }: Readonly<{ filters: BookingFilt
 export default async function BookingsPage({ searchParams }: PageProps) {
   await requireAdminRole(["admin", "operaciones"]);
   const [params, { bookings, error }, options] = await Promise.all([searchParams, getBookings(), getOperationOptions()]);
+  const acceptedQuoteVersionId = value(params, "acceptedQuoteVersionId");
+  const handoffResult = acceptedQuoteVersionId
+    ? await getAcceptedQuoteHandoffByVersion(acceptedQuoteVersionId)
+    : { handoff: null, issues: [] };
+  const handoff = handoffResult.handoff?.operations.canManageBooking ? handoffResult.handoff : null;
 
   const filters: BookingFilters = {
     q: value(params, "q"),
@@ -252,7 +271,7 @@ export default async function BookingsPage({ searchParams }: PageProps) {
               <Link href={`/admin/operations/bookings${currentQuery}`}><RefreshCcw aria-hidden="true" className="mr-2 h-4 w-4" />Actualizar</Link>
             </QuietActionButton>
             <OperationDialog description="La captura conserva la validación, la actualización automática y el borrado con limpieza de documentos relacionados." title="Registrar reserva" triggerLabel="Registrar reserva">
-              <BookingForm options={options} />
+              <BookingForm handoff={handoff} options={options} />
             </OperationDialog>
           </>
         }
@@ -261,6 +280,9 @@ export default async function BookingsPage({ searchParams }: PageProps) {
         eyebrow="Operaciones"
         title="Reservas"
       />
+
+      {acceptedQuoteVersionId && !handoff ? <ErrorState description="La versión indicada no es una cotización aceptada visible y apta para crear una reserva." title="Contexto de cotización no disponible" /> : null}
+      {handoff ? <SectionCard title={`Crear desde ${handoff.quoteNumber}`} description="El contexto aceptado solo prellena el formulario; no se crea ninguna reserva automáticamente."><div className="flex flex-wrap items-center gap-2"><StatusBadge tone="success">Aceptada V{handoff.acceptedVersion.number}</StatusBadge><span className="text-sm">{handoff.contact.name} · {handoff.opportunity.label}</span><Button asChild size="sm" variant="outline"><Link href={`/admin/quotes/${handoff.quoteId}`}>Abrir cotización</Link></Button></div></SectionCard> : null}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard detail="Reservas visibles según tu sesión y filtros activos." label="Visibles" tone="brand" value={formatAdminInteger(filteredBookings.length)} />
@@ -381,7 +403,8 @@ export default async function BookingsPage({ searchParams }: PageProps) {
 
                     <div className="mt-4 flex flex-wrap gap-2">
                       <Button asChild size="sm" variant="outline"><Link href={rowHref}>Editar</Link></Button>
-                      {booking.lead_id ? <Button asChild size="sm" variant="outline"><Link href={`/admin/leads/${booking.lead_id}`}>Abrir prospecto</Link></Button> : null}
+                       {booking.lead_id ? <Button asChild size="sm" variant="outline"><Link href={`/admin/leads/${booking.lead_id}`}>Abrir prospecto</Link></Button> : null}
+                       {booking.accepted_quote_version ? <Button asChild size="sm" variant="outline"><Link href={`/admin/quotes/${booking.accepted_quote_version.quote_id}`}>Cotización aceptada</Link></Button> : null}
                     </div>
                   </article>
                 );
@@ -427,7 +450,8 @@ export default async function BookingsPage({ searchParams }: PageProps) {
                           <td className="px-4 py-4">
                             <div className="flex flex-wrap gap-2">
                               <Button asChild size="sm" variant="outline"><Link href={rowHref}>Editar</Link></Button>
-                              {booking.lead_id ? <Button asChild size="sm" variant="outline"><Link href={`/admin/leads/${booking.lead_id}`}>Prospecto</Link></Button> : null}
+                               {booking.lead_id ? <Button asChild size="sm" variant="outline"><Link href={`/admin/leads/${booking.lead_id}`}>Prospecto</Link></Button> : null}
+                               {booking.accepted_quote_version ? <Button asChild size="sm" variant="outline"><Link href={`/admin/quotes/${booking.accepted_quote_version.quote_id}`}>Cotización</Link></Button> : null}
                             </div>
                           </td>
                         </tr>

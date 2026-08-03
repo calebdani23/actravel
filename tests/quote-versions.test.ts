@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 import { leadSearchInternals } from "@/lib/admin/leads";
@@ -132,23 +132,17 @@ test("quote version history builder keeps accepted option first and creator disp
   assert.equal(history[1]?.createdByName, null);
 });
 
-test("quote version creation keeps idempotent retries stable and lead detail keeps request history distinct", () => {
-  const actionSource = readFileSync("app/admin/(protected)/leads/[id]/quote-version-actions.ts", "utf8");
-  const formSource = readFileSync("components/admin/leads/quote-version-forms.tsx", "utf8");
+test("lead detail routes quote mutations to standalone quotes without dormant writers", () => {
   const leadDetailSource = readFileSync("app/admin/(protected)/leads/[id]/page.tsx", "utf8");
 
-  assert.match(actionSource, /for \(let attempt = 0; attempt < 3; attempt \+= 1\)/);
-  assert.match(actionSource, /quote_versions_unique_per_lead_version/);
-  assert.match(actionSource, /loadQuoteVersionByIdempotencyKey/);
-  assert.match(actionSource, /idempotency_key: input\.idempotencyKey \?\? null/);
-  assert.match(actionSource, /isUniqueIdempotencyError/);
-  assert.match(formSource, /name="idempotencyKey"/);
-  assert.match(formSource, /createQuoteVersionSubmissionKey/);
-  assert.match(actionSource, /crm_accept_quote_version/);
   assert.match(leadDetailSource, /title="Cotizaciones comerciales"/);
   assert.match(leadDetailSource, /Solicitudes de viaje recibidas del cliente; no representan versiones de una cotización comercial de AC Travel\./);
-  assert.match(leadDetailSource, /Con solicitud del cliente vinculada/);
+  assert.match(leadDetailSource, /Nueva cotización/);
+  assert.match(leadDetailSource, /Ver portafolio de la oportunidad/);
+  assert.doesNotMatch(leadDetailSource, /QuoteVersionCreateDialog|QuoteVersionActionForm|quote-version-actions/);
   assert.doesNotMatch(leadDetailSource, /fake send email|provider_message_id|quote_request_id/i);
+  assert.equal(existsSync("app/admin/(protected)/leads/[id]/quote-version-actions.ts"), false);
+  assert.equal(existsSync("components/admin/leads/quote-version-forms.tsx"), false);
 });
 
 test("quote version acceptance contract rejects sibling active alternatives without destructive deletion", () => {
@@ -202,59 +196,10 @@ test("quote version migrations preserve history by blocking parent cascades and 
   assert.doesNotMatch(migrationSource, /quote_versions\([^\n]*on delete cascade/i);
 });
 
-test("quote version workflow actions keep successful writes even if lead event logging fails", () => {
-  const actionSource = readFileSync("app/admin/(protected)/leads/[id]/quote-version-actions.ts", "utf8");
-  const formSource = readFileSync("components/admin/leads/quote-version-forms.tsx", "utf8");
-
-  assert.match(actionSource, /async function insertLeadEventBestEffort/);
-  assert.match(actionSource, /console\.warn\("\[quote-version\] lead event logging failed after successful write"/);
-  assert.match(actionSource, /await insertLeadEventBestEffort\(parsed\.data\.leadId, session\.user\.id, "quote_version_created"/);
-  assert.match(actionSource, /await insertLeadEventBestEffort\(leadId, session\.user\.id, "quote_version_sent"/);
-  assert.match(actionSource, /await insertLeadEventBestEffort\(leadId, sessionUserId, nextStatus === "rejected" \? "quote_version_rejected" : "quote_version_expired"/);
-  assert.doesNotMatch(formSource, /window\.confirm/);
-  assert.match(formSource, /<OperationDialog[\s\S]*description=\{confirmMessage\}/i);
-});
-
-test("quote version action state lives outside the use server module", () => {
-  const actionSource = readFileSync("app/admin/(protected)/leads/[id]/quote-version-actions.ts", "utf8");
-  const stateSource = readFileSync("app/admin/(protected)/leads/[id]/quote-version-action-state.ts", "utf8");
-  const formSource = readFileSync("components/admin/leads/quote-version-forms.tsx", "utf8");
-
-  assert.doesNotMatch(actionSource, /export const initialQuoteVersionActionState/);
-  assert.doesNotMatch(actionSource, /export type QuoteVersionActionState/);
-  assert.doesNotMatch(actionSource, /quote-version-actions";[\s\S]*initialQuoteVersionActionState/);
-  assert.match(stateSource, /export type QuoteVersionActionState = \{/);
-  assert.match(stateSource, /export const initialQuoteVersionActionState: QuoteVersionActionState = \{/);
-  assert.match(stateSource, /fieldErrors: \{\}/);
-  assert.match(formSource, /from "@\/app\/admin\/\(protected\)\/leads\/\[id\]\/quote-version-action-state"/);
-});
-
-test("lead detail passes direct server action references and client forms avoid action maps", () => {
-  const leadDetailSource = readFileSync("app/admin/(protected)/leads/[id]/page.tsx", "utf8");
-  const formSource = readFileSync("components/admin/leads/quote-version-forms.tsx", "utf8");
-
-  assert.match(leadDetailSource, /import \{ acceptQuoteVersionAction, expireQuoteVersionAction, markQuoteVersionSentAction, rejectQuoteVersionAction \} from "\.\/quote-version-actions";/);
-  assert.match(leadDetailSource, /<QuoteVersionActionForm action=\{markQuoteVersionSentAction\}/);
-  assert.match(leadDetailSource, /<QuoteVersionActionForm action=\{acceptQuoteVersionAction\}/);
-  assert.match(leadDetailSource, /<QuoteVersionActionForm action=\{rejectQuoteVersionAction\}/);
-  assert.match(leadDetailSource, /<QuoteVersionActionForm action=\{expireQuoteVersionAction\}/);
-  assert.doesNotMatch(leadDetailSource, /quoteVersionActionForms/);
-  assert.match(formSource, /import \{[\s\S]*createQuoteVersionAction,[\s\S]*\} from "@\/app\/admin\/\(protected\)\/leads\/\[id\]\/quote-version-actions";/);
-  assert.doesNotMatch(formSource, /export const quoteVersionActionForms/);
-  assert.doesNotMatch(formSource, /acceptQuoteVersionAction|expireQuoteVersionAction|markQuoteVersionSentAction|rejectQuoteVersionAction/);
-});
-
-test("quote version non-accept transitions use compare-and-set guards and stable conflict messaging", () => {
-  const actionSource = readFileSync("app/admin/(protected)/leads/[id]/quote-version-actions.ts", "utf8");
-
-  assert.match(actionSource, /select\("id, lead_id, contact_id, quote_request_id, version_number, title, currency, total_amount, deposit_amount, status, sent_at, updated_at"\)/);
-  assert.match(actionSource, /\.eq\("status", currentStatus\)/);
-  assert.match(actionSource, /\.eq\("updated_at", current\.updated_at\)/);
-  assert.match(actionSource, /\.select\("id"\)\s*\.maybeSingle\(\)/);
-  assert.match(actionSource, /if \(!data\) throw new Error\("quote_version_status_conflict"\);/);
-  assert.match(actionSource, /quoteVersionConcurrencyMessage\(\)/);
-  assert.match(actionSource, /message: quoteVersionActionMessage\("send", error\)/);
-  assert.match(actionSource, /message: quoteVersionActionMessage\("reject", error\)/);
-  assert.match(actionSource, /message: quoteVersionActionMessage\("expire", error\)/);
-  assert.match(actionSource, /crm_accept_quote_version/);
+test("0060 removes the direct quote-version compatibility surface", () => {
+  const cutover = readFileSync("db/migrations/0060_quote_pdf_creation_cutover.sql", "utf8");
+  assert.match(cutover, /drop policy if exists "quote versions insert scoped"/i);
+  assert.match(cutover, /drop policy if exists "quote versions update scoped"/i);
+  assert.match(cutover, /drop function public\.crm_accept_quote_version\(uuid, uuid\)/i);
+  assert.match(cutover, /Quote versions require an existing quote header and may only be created through canonical RPCs/);
 });

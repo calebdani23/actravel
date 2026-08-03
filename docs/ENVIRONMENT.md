@@ -45,6 +45,10 @@
 
 Para crear el primer usuario administrador, configura `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `BOOTSTRAP_ADMIN_EMAIL` y `BOOTSTRAP_ADMIN_PASSWORD` en un entorno local/hosting seguro y ejecuta `npm run db:bootstrap-admin`. El asesor principal se crea si también existen `BOOTSTRAP_ASESOR_EMAIL` y `BOOTSTRAP_ASESOR_PASSWORD`. El script carga `.env.local` y luego `.env` automáticamente si las variables no vienen ya del entorno. No inventar ni commitear estas credenciales.
 
+Las cotizaciones comerciales standalone no agregan variables de entorno. El browser deriva el endpoint TUS desde `NEXT_PUBLIC_SUPABASE_URL`: para proyectos hosted usa `https://<project-ref>.storage.supabase.co/storage/v1/upload/resumable` y para local/custom conserva el origin con `/storage/v1/upload/resumable`. La carga usa el JWT de la sesión y la publishable key; nunca expone `SUPABASE_SECRET_KEY`. El hosting debe permitir ese origin de Storage y HTTPS/CORS normales del proyecto.
+
+El despliegue de Cotizaciones requiere `0053`–`0056`, `0058`, `0059` y `0060`; `0057` puede estar presente o ausente porque `0060` repite su revocación de escritura directa. `0059` reserva el registro con PDF inicial y `0060` elimina los escritores de compatibilidad. Los PDF de hasta 20 MiB viajan browser → Storage por TUS en chunks de 6 MiB; Server Actions reciben solo metadatos o un UUID de intent y el servidor descarga el objeto reservado para validar MIME, tamaño, firma `%PDF-` y SHA-256 confiable.
+
 `/admin/staff` también depende de `SUPABASE_SECRET_KEY` porque usa Supabase Auth Admin APIs server-side para crear usuarios, sincronizar `profiles/profile_roles` y registrar auditoría. Si falta esta variable, el provisioning interno debe fallar claramente en servidor.
 
 `/admin/account` no usa `SUPABASE_SECRET_KEY` para cambio self-service de correo: el usuario autenticado solicita el cambio con su propia sesión Supabase vía `auth.updateUser({ email })`, por lo que la verificación del buzón sigue del lado de Supabase Auth.

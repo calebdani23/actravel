@@ -2,12 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActivityTimeline, DetailList, ErrorState, PageContainer, PageHeader, QuietActionButton, SectionCard, StatusBadge, adminInputClassName, adminSelectClassName } from "@/components/admin/admin-primitives";
 import { LeadDeleteForm } from "@/components/admin/leads/lead-delete-form";
-import { QuoteVersionActionForm, QuoteVersionCreateDialog } from "@/components/admin/leads/quote-version-forms";
 import { OperationDialog } from "@/components/admin/operations/operation-dialog";
 import { Button } from "@/components/ui/button";
 import { requireAdminRole } from "@/lib/admin/auth";
 import { formatLeadDeletionBlockerList, leadDeletionUnavailableMessage } from "@/lib/admin/lead-delete";
-import { canAcceptQuoteVersion, canExpireQuoteVersion, canMarkQuoteVersionSent, canRejectQuoteVersion, formatQuoteVersionAmount, quoteVersionBalance, quoteVersionStatusTone } from "@/lib/admin/quote-versions";
 import { formatLeadPriorityLabel, formatLeadSourceLabel, getAdvisors, getLeadDeletionSummary, getLeadDetail, getLeadStatuses } from "@/lib/admin/leads";
 import { formatAdminCurrency, formatAdminDate, formatAdminDateTime, formatAdminInteger, formatAdminTravelerCount } from "@/lib/admin/format";
 import { buildAdminSearchQueryString } from "@/lib/admin/navigation";
@@ -16,10 +14,10 @@ import { leadTemplateVariables } from "@/lib/admin/template-renderer";
 import { buildTrackedWhatsAppUrl, sanitizeWhatsAppPhone } from "@/lib/whatsapp/link";
 import { LeadTemplateActions } from "@/components/admin/leads/whatsapp-template-actions";
 import { addLeadNoteAction, assignLeadAction, registerFollowUpAction, updateLeadStatusAction } from "./actions";
-import { acceptQuoteVersionAction, expireQuoteVersionAction, markQuoteVersionSentAction, rejectQuoteVersionAction } from "./quote-version-actions";
 import { hasAnyRole } from "@/lib/supabase/roles";
 import { RestoreOpportunityForm, SoftDeleteOpportunityForm } from "@/components/admin/contacts/bulk-toolbar";
 import { restoreOpportunityAction, softDeleteOpportunityAction } from "../../contacts/actions";
+import { getOpportunityQuoteNavigation } from "@/lib/admin/quotes";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -96,21 +94,16 @@ function quoteRequestStatusTone(status: string) {
   return "neutral" as const;
 }
 
-function quoteVersionCardTone(status: string) {
-  if (status === "accepted") return "border-[color:var(--admin-accent)] bg-[color:var(--admin-surface)]";
-  if (status === "rejected" || status === "expired") return "border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] opacity-95";
-  return "border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)]";
-}
-
 export default async function LeadDetailPage({ params, searchParams }: PageProps) {
   const [{ id }, currentSearchParams, session] = await Promise.all([params, searchParams, requireAdminRole(["admin", "asesor"])]);
   const canDeleteLead = hasAnyRole(session.roles, ["admin"]);
-  const [{ lead, notes, timeline, payments, bookings, documents, quoteVersions, quoteRequests, relatedOpportunities, contact360, error }, statuses, advisors, messageTemplates, deletionSummary] = await Promise.all([
+  const [{ lead, notes, timeline, payments, bookings, documents, quoteRequests, relatedOpportunities, contact360, error }, statuses, advisors, messageTemplates, deletionSummary, quoteNavigationResult] = await Promise.all([
     getLeadDetail(id),
     getLeadStatuses(),
     getAdvisors(),
     getActiveMessageTemplates(),
     canDeleteLead ? getLeadDeletionSummary(id) : Promise.resolve(null),
+    getOpportunityQuoteNavigation([id]),
   ]);
 
   if (!lead && !error) notFound();
@@ -137,6 +130,7 @@ export default async function LeadDetailPage({ params, searchParams }: PageProps
   const hasWhatsApp = Boolean(sanitizeWhatsAppPhone(lead?.contacts?.phone)) && lead?.contacts?.lifecycle_status !== "blocked" && !lead?.contacts?.blocked_at && !lead?.contacts?.deleted_at;
   const crmBaseHref = `/admin/leads${buildAdminSearchQueryString(currentSearchParams)}`;
   const leadDeletionBlockers = deletionSummary ? formatLeadDeletionBlockerList(deletionSummary.counts) : [];
+  const quoteNavigation = quoteNavigationResult.items[0];
 
   if (error) console.error("Lead detail dashboard-safe error", { leadId: id, error });
 
@@ -252,72 +246,16 @@ export default async function LeadDetailPage({ params, searchParams }: PageProps
 
             <SectionCard
               title="Cotizaciones comerciales"
-              description="Propuestas comerciales de AC Travel dentro de esta oportunidad. Son distintas de las solicitudes del cliente y no eliminan versiones previas."
-              actions={
-                lead ? <QuoteVersionCreateDialog leadId={lead.id} quoteRequests={quoteRequests.map((request) => ({ id: request.id, createdAt: formatDateTime(request.createdAt), channelLabel: request.channelLabel, statusLabel: request.statusLabel }))} /> : null
-              }
+              description="La creación, los PDF, las versiones y el ciclo de vida se administran en el espacio independiente de Cotizaciones. El historial de solicitudes del cliente permanece abajo."
+              actions={lead?.contact_id ? <Button asChild><Link href={`/admin/quotes/new?contactId=${lead.contact_id}&opportunityId=${lead.id}`}>Nueva cotización</Link></Button> : null}
             >
-              {quoteVersions.length ? (
-                <div className="space-y-4" id="cotizaciones-comerciales">
-                  {quoteVersions.map((version) => {
-                    const balance = quoteVersionBalance(version.totalAmount, version.depositAmount);
-                    return (
-                      <article className={`rounded-[var(--admin-radius-control)] border p-4 ${quoteVersionCardTone(version.status)}`} key={version.id}>
-                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                          <div className="min-w-0 space-y-3">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <StatusBadge tone={quoteVersionStatusTone(version.status)}>{version.statusLabel}</StatusBadge>
-                              <StatusBadge tone="neutral">Versión {version.versionNumber}</StatusBadge>
-                              {version.quoteRequestId ? <StatusBadge tone="neutral">Con solicitud del cliente vinculada</StatusBadge> : null}
-                            </div>
-                            <div>
-                              <h3 className="text-base font-semibold text-[color:var(--admin-foreground)]">{version.title}</h3>
-                              {version.summary ? <p className="mt-1 text-sm text-[color:var(--admin-foreground)]">{version.summary}</p> : null}
-                            </div>
-                            <DetailList
-                              columns={3}
-                              items={[
-                                { label: "Total", value: formatQuoteVersionAmount(version.totalAmount, version.currency) },
-                                { label: "Anticipo", value: formatQuoteVersionAmount(version.depositAmount, version.currency) },
-                                { label: "Saldo", value: balance === null ? "—" : formatQuoteVersionAmount(balance, version.currency) },
-                                { label: "Vigencia", value: formatDate(version.validUntil) },
-                                { label: "Creada", value: formatDateTime(version.createdAt) },
-                                { label: "Registró", value: version.createdByName ?? "Equipo interno" },
-                              ]}
-                            />
-                            <div className="flex flex-wrap gap-2 text-xs text-[color:var(--admin-muted-foreground)]">
-                              {version.sentAt ? <span>Enviada: {formatDateTime(version.sentAt)}</span> : <span>Envío pendiente</span>}
-                              {version.acceptedAt ? <span>Aceptada: {formatDateTime(version.acceptedAt)}</span> : null}
-                              {version.rejectedAt ? <span>Rechazada: {formatDateTime(version.rejectedAt)}</span> : null}
-                              {version.expiredAt ? <span>Expirada: {formatDateTime(version.expiredAt)}</span> : null}
-                            </div>
-                            {version.notes ? <p className="whitespace-pre-wrap text-sm text-[color:var(--admin-foreground)]">{version.notes}</p> : null}
-                          </div>
-
-                          <div className="flex w-full max-w-full flex-col gap-2 lg:w-56">
-                            {canMarkQuoteVersionSent(version.status) ? (
-                              <QuoteVersionActionForm action={markQuoteVersionSentAction} idleLabel="Marcar como enviada" leadId={lead.id} pendingLabel="Actualizando…" quoteVersionId={version.id} />
-                            ) : null}
-                            {canAcceptQuoteVersion(version.status) ? (
-                              <QuoteVersionActionForm action={acceptQuoteVersionAction} confirmMessage="¿Aceptar esta cotización? Las demás alternativas activas quedarán rechazadas." idleLabel="Aceptar" leadId={lead.id} pendingLabel="Aceptando…" quoteVersionId={version.id} variant="default" />
-                            ) : null}
-                            {canRejectQuoteVersion(version.status) ? (
-                              <QuoteVersionActionForm action={rejectQuoteVersionAction} confirmMessage="¿Marcar esta cotización como rechazada?" idleLabel="Rechazar" leadId={lead.id} pendingLabel="Actualizando…" quoteVersionId={version.id} />
-                            ) : null}
-                            {canExpireQuoteVersion(version.status) ? (
-                              <QuoteVersionActionForm action={expireQuoteVersionAction} idleLabel="Marcar expirada" leadId={lead.id} pendingLabel="Actualizando…" quoteVersionId={version.id} />
-                            ) : null}
-                          </div>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-sm text-[color:var(--admin-muted-foreground)]">Todavía no existe una cotización comercial para esta oportunidad. Usa <strong>Nueva cotización comercial</strong> para capturar la primera alternativa sin tocar el historial de solicitudes del cliente.</p>
-                </div>
-              )}
+              <div className="flex flex-wrap items-center gap-3" id="cotizaciones-comerciales">
+                <StatusBadge tone={quoteNavigation?.acceptedQuoteId ? "success" : quoteNavigation?.count ? "info" : "neutral"}>{quoteNavigation?.count ?? 0} cotización(es)</StatusBadge>
+                {quoteNavigation?.acceptedQuoteId ? <Button asChild size="sm"><Link href={`/admin/quotes/${quoteNavigation.acceptedQuoteId}`}>Abrir aceptada</Link></Button> : null}
+                {quoteNavigation?.currentQuoteId ? <Button asChild size="sm" variant="outline"><Link href={`/admin/quotes/${quoteNavigation.currentQuoteId}`}>Abrir actual</Link></Button> : null}
+                <Button asChild size="sm" variant="outline"><Link href={`/admin/quotes?opportunityId=${lead.id}`}>Ver portafolio de la oportunidad</Link></Button>
+              </div>
+              {quoteNavigationResult.issues.map((issue) => <p className="mt-3 text-sm text-[color:var(--admin-muted-foreground)]" key={`${issue.section}-${issue.code}`}>{issue.message}</p>)}
             </SectionCard>
 
             <SectionCard title="Solicitudes del cliente" description="Solicitudes de viaje recibidas del cliente; no representan versiones de una cotización comercial de AC Travel.">

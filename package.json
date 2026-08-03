@@ -37,6 +37,7 @@
     "resend": "^6.12.4",
     "server-only": "^0.0.1",
     "tailwind-merge": "latest",
+    "tus-js-client": "^4.3.1",
     "zod": "latest"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 import { checkPublicRateLimit, requesterKeyHash, resetPublicRateLimitFallbackForTests, setPublicRateLimitStoreForTests } from "@/lib/security/public-rate-limit";
@@ -133,13 +133,12 @@ test("admin proxy refreshes Supabase sessions and keeps role checks out of redir
   assert.doesNotMatch(source, /from\("profiles"\)|from\("profile_roles"\)|requireAdminRole|getAdminSession/);
 });
 
-test("admin app keeps server-side role allowlists and avoids service-role imports", () => {
+test("admin app keeps role allowlists and confines the service client to a server-only action", () => {
   const files = [
     "app/admin/(protected)/layout.tsx",
     "app/admin/(protected)/leads/page.tsx",
     "app/admin/(protected)/leads/[id]/page.tsx",
     "app/admin/(protected)/leads/[id]/actions.ts",
-    "app/admin/(protected)/leads/[id]/quote-version-actions.ts",
     "app/admin/(protected)/catalog/[resource]/page.tsx",
     "app/admin/(protected)/catalog/actions.ts",
     "app/admin/(protected)/templates/page.tsx",
@@ -150,9 +149,12 @@ test("admin app keeps server-side role allowlists and avoids service-role import
     "app/admin/(protected)/payments/page.tsx",
     "app/admin/(protected)/logs/page.tsx",
     "app/admin/(protected)/logs/actions.ts",
+    "app/admin/(protected)/quotes/actions.ts",
     "app/admin/(protected)/data-quality/page.tsx",
   ];
   const combined = files.map((file) => readFileSync(file, "utf8")).join("\n");
+  const quoteActions = readFileSync("app/admin/(protected)/quotes/actions.ts", "utf8");
+  const adminClient = readFileSync("lib/supabase/admin.ts", "utf8");
 
   assert.match(combined, /requireAdminRole\(\["admin", "asesor"\]\)/);
   assert.match(combined, /requireAdminRole\(\["admin", "marketing"\]\)/);
@@ -160,13 +162,25 @@ test("admin app keeps server-side role allowlists and avoids service-role import
   assert.match(combined, /requireAdminRole\(\["admin", "finanzas"\]\)/);
   assert.match(combined, /requireAdminRole\(\["admin", "marketing", "asesor"\]\)/);
   assert.match(combined, /requireAdminRole\(\["admin"\]\)/);
+  assert.match(quoteActions, /^"use server";[\s\S]*createSupabaseAdminClient/);
+  assert.match(adminClient, /import "server-only"/);
+  assert.doesNotMatch(quoteActions, /SUPABASE_SECRET_KEY|formData\.get\("(?:serviceRoleKey|supabaseSecretKey)"\)/);
   assert.doesNotMatch(combined, /service-role|SUPABASE_SECRET_KEY|createServiceRoleClient|@\/lib\/supabase\/service/);
+});
+
+test("standalone quote actions reject operations and finance mutation at both route and RPC boundaries", () => {
+  const actions = readFileSync("app/admin/(protected)/quotes/actions.ts", "utf8");
+  const rpcMigration = readFileSync("db/migrations/0055_quote_transactional_rpc_contracts.sql", "utf8");
+
+  assert.match(actions, /requireAdminRole\(\["admin", "asesor"\]\)/);
+  assert.doesNotMatch(actions, /"operaciones"|"finanzas"/);
+  assert.match(rpcMigration, /public\.has_role\('asesor'\)[\s\S]*assigned_to/);
+  assert.doesNotMatch(rpcMigration, /has_role\('(operaciones|finanzas)'\)/);
 });
 
 test("admin lead follow-up actions stay role gated and auditable", () => {
   const actions = readFileSync("app/admin/(protected)/leads/[id]/actions.ts", "utf8");
   const page = readFileSync("app/admin/(protected)/leads/[id]/page.tsx", "utf8");
-  const quoteVersionActions = readFileSync("app/admin/(protected)/leads/[id]/quote-version-actions.ts", "utf8");
 
   assert.match(actions, /export async function registerFollowUpAction/);
   assert.match(actions, /requireAdminRole\(\["admin", "asesor"\]\)/);
@@ -175,11 +189,8 @@ test("admin lead follow-up actions stay role gated and auditable", () => {
   assert.match(actions, /Number\.isNaN\(parsed\.getTime\(\)\)/);
   assert.match(page, /name="followUpBody"/);
   assert.match(page, /name="followUpAt"/);
-  assert.match(quoteVersionActions, /export async function createQuoteVersionAction/);
-  assert.match(quoteVersionActions, /export async function acceptQuoteVersionAction/);
-  assert.match(quoteVersionActions, /requireAdminRole\(\["admin", "asesor"\]\)/);
-  assert.match(quoteVersionActions, /crm_accept_quote_version/);
-  assert.match(quoteVersionActions, /idempotencyKey: formData\.get\("idempotencyKey"\)/);
+  assert.equal(existsSync("app/admin/(protected)/leads/[id]/quote-version-actions.ts"), false);
+  assert.equal(existsSync("components/admin/leads/quote-version-forms.tsx"), false);
 });
 
 test("lead deletion has no direct authenticated DELETE policy exposure", () => {
@@ -208,6 +219,20 @@ test("WhatsApp template renderer fills known variables and removes missing ones"
   const rendered = renderWhatsAppTemplate("Hola {{ name }}, viaje: {{destination}} / {{travelers}} / {{advisor}} / {{missing}}", variables);
 
   assert.equal(rendered, "Hola Ada, viaje: Riviera Maya / 3 / AC Travel /");
+});
+
+test("quote PDFs bypass Server Action bodies and retain the 20 MB browser/server limit", () => {
+  const config = readFileSync("next.config.ts", "utf8");
+  const quotePdf = readFileSync("lib/admin/quote-pdf-client.ts", "utf8");
+  const quoteUpload = readFileSync("components/admin/quotes/quote-pdf-upload.tsx", "utf8");
+  const actions = readFileSync("app/admin/(protected)/quotes/actions.ts", "utf8");
+
+  assert.doesNotMatch(config, /bodySizeLimit|serverActions/);
+  assert.match(quotePdf, /QUOTE_PDF_MAX_SIZE_BYTES = 20 \* 1024 \* 1024/);
+  assert.match(quotePdf, /file\.size > QUOTE_PDF_MAX_SIZE_BYTES/);
+  assert.match(quotePdf, /límite de 20 MB/);
+  assert.match(quoteUpload, /Solo PDF, máximo 20 MB/);
+  assert.doesNotMatch(actions, /File|formData\.get\("pdf"\)|\.upload\([^)]*file/);
 });
 
 test("next config defines baseline security headers", () => {

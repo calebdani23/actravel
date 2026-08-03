@@ -5,6 +5,7 @@ export type AdminNavIcon =
   | "users-round"
   | "wallet"
   | "briefcase-business"
+  | "notebook-tabs"
   | "file-text"
   | "map"
   | "package"
@@ -61,6 +62,14 @@ export const ADMIN_NAV_ITEMS = [
     group: "Comercial",
     roles: ["admin", "operaciones"],
     icon: "briefcase-business",
+  },
+  {
+    href: "/admin/quotes",
+    label: "Cotizaciones",
+    group: "Comercial",
+    roles: ["admin", "asesor", "operaciones", "finanzas"],
+    icon: "notebook-tabs",
+    matchPrefixes: ["/admin/quotes/"],
   },
   {
     href: "/admin/operations/documents",

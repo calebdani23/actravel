@@ -13,6 +13,7 @@ import {
   Map,
   Menu,
   MessagesSquare,
+  NotebookTabs,
   LogOut,
   Package,
   PanelLeftClose,
@@ -32,6 +33,7 @@ const iconMap: Record<AdminNavIcon, typeof LayoutDashboard> = {
   "users-round": UsersRound,
   wallet: Wallet,
   "briefcase-business": BriefcaseBusiness,
+  "notebook-tabs": NotebookTabs,
   "file-text": FileText,
   map: Map,
   package: Package,
@@ -76,6 +78,9 @@ function getRouteContext(pathname: string, visibleLinks: AdminNavItem[]) {
   if (/^\/admin\/leads\/[^/]+$/.test(pathname)) return { eyebrow: "Gestión comercial", title: "Detalle del prospecto", breadcrumbs: trail("Detalle") };
   if (pathname === "/admin/payments") return { eyebrow: "Gestión comercial", title: "Pagos", breadcrumbs: trail() };
   if (pathname === "/admin/operations/bookings") return { eyebrow: "Gestión comercial", title: "Reservas", breadcrumbs: trail() };
+  if (pathname === "/admin/quotes") return { eyebrow: "Gestión comercial", title: "Cotizaciones comerciales", breadcrumbs: trail() };
+  if (pathname === "/admin/quotes/new") return { eyebrow: "Gestión comercial", title: "Nueva cotización", breadcrumbs: trail("Nueva") };
+  if (/^\/admin\/quotes\/[^/]+$/.test(pathname)) return { eyebrow: "Gestión comercial", title: "Detalle de cotización", breadcrumbs: trail("Detalle") };
   if (pathname === "/admin/operations/documents") return { eyebrow: "Gestión comercial", title: "Documentos", breadcrumbs: trail() };
   if (pathname.startsWith("/admin/catalog/")) return { eyebrow: "Contenido operativo", title: activeLink?.label ?? "Catálogo", breadcrumbs: trail("Catálogo") };
   if (pathname === "/admin/templates") return { eyebrow: "Contenido operativo", title: "Plantillas", breadcrumbs: trail() };

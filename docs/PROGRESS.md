@@ -53,6 +53,12 @@ Bloques 1–10 completados en alcance MVP actual. La operación activa queda con
 - ✅ Implementada la segunda etapa profunda de P2.3 sin merges destructivos: nueva vista admin `/admin/data-quality` con auditoría exacta de duplicados por email/teléfono, conteo de eventos `contact_identity_ambiguous`, dependencias por contacto para planear merges, recomendación canónica determinista y explicación explícita de por qué la unicidad dura sigue diferida hasta contar con playbook transaccional y backlog limpio.
 - ✅ Implementado provisioning interno de usuarios `admin` y `asesor`: nueva vista `/admin/staff`, alta server-side con Supabase Auth Admin API, sincronización a `profiles` + `profile_roles`, auditoría `admin_account_events`, guardrails contra self-demotion/self-deactivation/last-admin lockout, filtro compartido de asesores activos para selectores y ruta `/admin/account` para cambio self-service de contraseña.
 - ✅ Extendido `/admin/account` con cambio self-service de correo: validación de correo + confirmación, uso seguro de `supabase.auth.updateUser({ email })` en contexto del usuario autenticado, mensajería de verificación pendiente y auditoría `staff_email_change_requested` sin afirmar falsamente que el cambio ya terminó.
+- ✅ Completada la gestión independiente de cotizaciones comerciales en `/admin/quotes`, `/admin/quotes/new` y `/admin/quotes/[id]`: portafolio filtrable y paginado, versiones inmutables, PDF canónico privado, ciclo de vida transaccional, actividad auditada y separación explícita respecto a Solicitudes del cliente.
+- ✅ Integradas Cotizaciones con Contacto 360 y detalle de oportunidad sin conservar formularios de mutación embebidos; Operaciones y Finanzas tienen lectura acotada y handoff explícito de la versión aceptada hacia reservas/pagos, sin creación automática.
+- ✅ Proyectados los PDF canónicos en Documentos como registros de solo lectura; las acciones genéricas rechazan edición/borrado de documentos ligados a cotizaciones antes de tocar Storage.
+- ✅ Añadido el cutover `0057_quote_rpc_cutover.sql`: elimina políticas/grants de escritura directa sobre `quote_versions`, conserva lectura RLS y mantiene la firma legacy de aceptación como wrapper seguro sobre `crm_accept_quote` con gate de PDF y control transaccional.
+- ✅ Implementado registro obligatorio de cotización con PDF inicial: `0059` reserva IDs/ruta sin crear cabecera y finaliza atómicamente una V1 lista; `0060` elimina `crm_create_quote`, linking legado nuevo, wrapper de aceptación y toda escritura directa de versiones, con invariant diferido para nuevas cabeceras.
+- ✅ Migradas las cargas de PDF inicial y de versiones a TUS resumible directo browser → Supabase Storage (6 MiB por chunk, máximo 20 MiB, sin upsert), con progreso/cancelación/reanudación y Server Actions sin bytes que descargan y verifican el objeto antes de finalizar.
 
 ## En proceso
 
@@ -69,9 +75,9 @@ Bloques 1–10 completados en alcance MVP actual. La operación activa queda con
 
 - El `lang` inicial renderizado por el root layout sigue siendo una limitación parcial: Next.js solo permite `<html>` en `app/layout.tsx`, así que la corrección completa SSR requeriría una reestructuración mayor del árbol/ruteo. Se mantiene la corrección cliente y el SEO/metadatos sí respetan locale.
 - No exponer ni commitear `SUPABASE_SECRET_KEY` ni credenciales bootstrap; deben quedarse solo en el entorno local/hosting seguro.
-- Falta progreso visual de upload y mensajería no fatal para limpiezas de Storage que fallen después de reemplazar/eliminar; la subida real, validación MIME/tamaño, rutas seguras y URLs firmadas ya están operativas.
+- Las limpiezas de objetos de intents fallidos son best-effort bajo RLS y también aparecen como incidencias de recuperación; una caída de red puede dejar el intent/objeto pendiente hasta reintento o limpieza operativa.
 - El middleware admin solo hace refresh/redirect coarse por sesión Supabase; perfiles activos, roles internos y permisos por módulo siguen validados en servidor con `requireAdminRole([...])` y RLS.
 
 ## Última actualización
 
-2026-07-20 — Documentado el review fresco de Supabase Security Advisors para P0.3: leaked password protection queda deferido por limitación del plan actual y los helpers `SECURITY DEFINER` (`has_role`, `is_admin`, `is_assigned_lead`) permanecen aceptados para el modelo RLS vigente; la siguiente deuda real tras este cierre documental vuelve a ser el QA manual final del entorno de hosting y, después, la etapa transaccional/manual de merges de P2.3 si el backlog de duplicados lo exige.
+2026-08-03 — Completado el cutover de PDF inicial obligatorio y cargas directas TUS: aplicación sin bytes en Server Actions, linking legado retirado, migración independiente `0060`, pruebas de ambas cadenas con/sin `0057` y conservación de enlaces históricos. No se aplicaron migraciones remotas.

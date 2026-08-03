@@ -224,7 +224,8 @@ test("phase 2 admin surfaces route visible admin dates and traveler counts throu
   assert.match(leadDetailSource, /const crmBaseHref = `\/admin\/leads\$\{buildAdminSearchQueryString\(currentSearchParams\)\}`/);
   assert.match(leadDetailSource, /<Link href=\{crmBaseHref\}>Volver al CRM<\/Link>/);
   assert.match(leadsSource, /formatAdminModuleLabelFromPath\(click\.page_path\)/);
-  assert.match(leadDetailSource, /Las demás alternativas activas quedarán rechazadas\./);
+  assert.match(leadDetailSource, /Ver portafolio de la oportunidad/);
+  assert.doesNotMatch(leadDetailSource, /QuoteVersionActionForm|quote-version-actions/);
 
   assert.match(leadsPageSource, /Oportunidades abiertas/);
   assert.match(leadsPageSource, /Pipeline MXN/);

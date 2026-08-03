@@ -170,7 +170,7 @@ function DocumentLinks({ document }: Readonly<{ document: DocumentRow }>) {
 }
 
 function ActiveFilterChips({ filters }: Readonly<{ filters: DocumentFilters }>) {
-  const relationLabel = filters.relation === "contact" ? "Contacto" : filters.relation === "lead" ? "Prospecto" : filters.relation === "booking" ? "Reserva" : null;
+  const relationLabel = filters.relation === "contact" ? "Contacto" : filters.relation === "lead" ? "Prospecto" : filters.relation === "booking" ? "Reserva" : filters.relation === "quote" ? "Cotización" : null;
   const chips = [
     filters.q ? `Búsqueda: ${filters.q}` : null,
     filters.type ? `Tipo: ${documentTypeLabel(filters.type)}` : null,
@@ -222,7 +222,7 @@ export default async function DocumentsPage({ searchParams }: PageProps) {
           </>
         }
         breadcrumbs={[{ label: "Operaciones", href: "/admin/dashboard" }, { label: "Documentos" }]}
-        description="Centro seguro para localizar archivos de operación sin exponer ubicaciones internas ni datos privados al equipo interno."
+        description="Centro seguro para localizar archivos operativos y proyectar PDF canónicos de cotización en modo de solo lectura."
         eyebrow="Operaciones"
         title="Documentos"
       />
@@ -255,6 +255,7 @@ export default async function DocumentsPage({ searchParams }: PageProps) {
                 <option value="identification">Identificación</option>
                 <option value="contract">Contrato</option>
                 <option value="other">Otro</option>
+                <option value="quote">Cotización</option>
               </select>
             </label>
 
@@ -275,6 +276,7 @@ export default async function DocumentsPage({ searchParams }: PageProps) {
                 <option value="contact">Contacto</option>
                 <option value="lead">Prospecto</option>
                 <option value="booking">Reserva</option>
+                <option value="quote">Cotización</option>
               </select>
             </label>
 
@@ -340,7 +342,7 @@ export default async function DocumentsPage({ searchParams }: PageProps) {
                     </dl>
 
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <Button asChild size="sm" variant="outline"><Link href={rowHref}>Editar</Link></Button>
+                       {document.quote_version ? <Button asChild size="sm" variant="outline"><Link href={`/admin/quotes/${document.quote_version.quote_id}`}>Abrir cotización</Link></Button> : <Button asChild size="sm" variant="outline"><Link href={rowHref}>Editar</Link></Button>}
                       {document.document_preview_url ? <Button asChild size="sm" variant="outline"><a href={document.document_preview_url} rel="noreferrer" target="_blank">Vista previa</a></Button> : null}
                       {document.document_download_url ? <Button asChild size="sm" variant="outline"><a download href={document.document_download_url}>Descargar</a></Button> : null}
                     </div>
@@ -381,7 +383,7 @@ export default async function DocumentsPage({ searchParams }: PageProps) {
                           <td className="px-4 py-4"><StatusBadge tone={documentStatusTone(document.status)}>{documentStatusLabel(document.status)}</StatusBadge></td>
                           <td className="px-4 py-4">
                             <div className="flex flex-wrap gap-2">
-                              <Button asChild size="sm" variant="outline"><Link href={rowHref}>Editar</Link></Button>
+                               {document.quote_version ? <Button asChild size="sm" variant="outline"><Link href={`/admin/quotes/${document.quote_version.quote_id}`}>Abrir cotización</Link></Button> : <Button asChild size="sm" variant="outline"><Link href={rowHref}>Editar</Link></Button>}
                               {document.document_preview_url ? <Button asChild size="sm" variant="outline"><a href={document.document_preview_url} rel="noreferrer" target="_blank">Vista previa</a></Button> : null}
                               {document.document_download_url ? <Button asChild size="sm" variant="outline"><a download href={document.document_download_url}>Descargar</a></Button> : null}
                             </div>
@@ -397,10 +399,10 @@ export default async function DocumentsPage({ searchParams }: PageProps) {
         )}
       </SectionCard>
 
-      {filteredDocuments.length ? (
-        <SectionCard description="Las acciones existentes de edición, reemplazo y borrado mantienen la autorización y el resguardo privado del documento." title="Edición y mantenimiento">
+      {filteredDocuments.some((document) => !document.quote_version_id) ? (
+        <SectionCard description="Solo los documentos operativos genéricos pueden editarse aquí. Los PDF de cotización permanecen inmutables y se administran desde Cotizaciones." title="Edición y mantenimiento">
           <div className="space-y-4">
-            {filteredDocuments.map((document) => (
+            {filteredDocuments.filter((document) => !document.quote_version_id).map((document) => (
               <details className="rounded-[var(--admin-radius-card)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)]" id={`document-edit-${document.id}`} key={document.id}>
                 <summary className="cursor-pointer list-none px-4 py-4">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

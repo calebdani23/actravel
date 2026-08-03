@@ -10,6 +10,7 @@ import { blockContacts, deleteRestoreContacts, deleteRestoreOpportunities, featu
 import { formatLeadSourceLabel, formatQuoteRequestStatusLabel, getLeadStatuses } from "@/lib/admin/leads";
 import { quoteVersionStatusLabel } from "@/lib/admin/quote-versions";
 import { formatAdminCurrency, formatAdminDate, formatAdminDateTime } from "@/lib/admin/format";
+import { getOpportunityQuoteNavigation, type OpportunityQuoteNavigation } from "@/lib/admin/quotes";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -35,15 +36,17 @@ function quoteTitle(opportunity: ContactOpportunity) {
   return "Sin cotización comercial";
 }
 
-function OpportunityQuote({ opportunity, compact = false }: Readonly<{ opportunity: ContactOpportunity; compact?: boolean }>) {
+function OpportunityQuote({ navigation, opportunity, compact = false }: Readonly<{ navigation?: OpportunityQuoteNavigation; opportunity: ContactOpportunity; compact?: boolean }>) {
   const quote = opportunity.acceptedQuote ?? opportunity.latestQuote;
-  if (!quote) return <p className="text-xs text-[color:var(--admin-muted-foreground)]">Sin cotización comercial · {opportunity.quoteCount} versión(es)</p>;
+  if (!quote) return <div className="space-y-2"><p className="text-xs text-[color:var(--admin-muted-foreground)]">Sin cotización comercial · {navigation?.count ?? opportunity.quoteCount} cotización(es)</p><Link className="text-xs font-medium text-[color:var(--admin-accent)] hover:underline" href={`/admin/quotes/new?contactId=${opportunity.contactId}&opportunityId=${opportunity.id}`}>Nueva cotización</Link></div>;
+  const quoteId = navigation?.acceptedQuoteId ?? navigation?.currentQuoteId;
   return (
     <div className={opportunity.acceptedQuote && !compact ? "rounded-[var(--admin-radius-control)] border border-emerald-300 bg-emerald-50 p-3" : "space-y-1"}>
       <p className={opportunity.acceptedQuote ? "font-semibold text-emerald-900" : "font-medium"}>{quoteTitle(opportunity)}</p>
       <p className="text-xs">Versión {quote.versionNumber} · {quoteVersionStatusLabel(quote.status)} · {quoteAmount(quote)}</p>
       {quote.acceptedAt && !compact ? <p className="text-xs text-emerald-900">Aceptada {formatAdminDateTime(quote.acceptedAt)}</p> : null}
       <p className="text-xs text-[color:var(--admin-muted-foreground)]">{opportunity.quoteCount} versión(es) · {opportunity.activeQuoteCount} activa(s)</p>
+      {quoteId ? <Link className="inline-block text-xs font-medium text-[color:var(--admin-accent)] hover:underline" href={`/admin/quotes/${quoteId}`}>Abrir cotización</Link> : <Link className="inline-block text-xs font-medium text-[color:var(--admin-accent)] hover:underline" href={`/admin/quotes?opportunityId=${opportunity.id}`}>Ver cotizaciones</Link>}
     </div>
   );
 }
@@ -76,6 +79,8 @@ export default async function ContactDetailPage({ params, searchParams }: PagePr
   if (!detail) notFound();
 
   const { contact, opportunities, payments, bookings, documents, activity, warnings } = detail;
+  const quoteNavigationResult = await getOpportunityQuoteNavigation(opportunities.map((opportunity) => opportunity.id));
+  const quoteNavigation = new Map(quoteNavigationResult.items.map((item) => [item.opportunityId, item]));
   const title = contact ? `${contact.firstName} ${contact.lastName ?? ""}`.trim() : "Contacto 360";
   const stateHref = (nextState: Exclude<ContactOpportunityState, "all">) => `/admin/contacts/${id}?state=${nextState}`;
   const loadMoreHref = detail.nextCursor
@@ -87,6 +92,7 @@ export default async function ContactDetailPage({ params, searchParams }: PagePr
       <PageHeader eyebrow="CRM · Contacto 360" title={title} description="Identidad canónica, gobierno, oportunidades y contexto operativo visible." breadcrumbs={[{ label: "Contactos CRM", href: "/admin/leads" }, { label: "Contacto 360" }]} actions={<Button asChild variant="outline"><Link href="/admin/leads">Volver a Contactos CRM</Link></Button>} />
 
       {warnings.map((item) => <ErrorState key={item.section} title={item.title} description={item.message} />)}
+      {quoteNavigationResult.issues.map((issue) => <ErrorState key={`${issue.section}-${issue.code}`} title="Cotizaciones parcialmente disponibles" description={issue.message} />)}
 
       {contact ? (
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.9fr)]">
@@ -162,7 +168,7 @@ export default async function ContactDetailPage({ params, searchParams }: PagePr
                       {opportunity.budgetUsd !== null ? <StatusBadge tone="neutral">{formatAdminCurrency(opportunity.budgetUsd, "USD")}</StatusBadge> : null}
                     </div>
                     <OpportunityRequest opportunity={opportunity} />
-                    <OpportunityQuote opportunity={opportunity} />
+                    <OpportunityQuote navigation={quoteNavigation.get(opportunity.id)} opportunity={opportunity} />
                     <Button asChild size="sm"><Link href={opportunity.href}>Abrir gestión completa</Link></Button>
                   </div>
                 </div>
@@ -181,7 +187,7 @@ export default async function ContactDetailPage({ params, searchParams }: PagePr
                   <td className="px-3 py-4"><StatusBadge tone={opportunity.state === "deleted" ? "warning" : "neutral"}>{opportunity.statusLabel}</StatusBadge>{opportunity.isFeatured ? <StatusBadge className="ml-1" tone="brand">Destacada</StatusBadge> : null}<p className="mt-1 text-xs">{opportunityStateLabel[opportunity.state]}</p></td>
                   <td className="px-3 py-4 whitespace-nowrap">{formatAdminDate(opportunity.startDate)} → {formatAdminDate(opportunity.endDate)}<p className="text-xs">{opportunity.travelers} viajero(s)</p><p className="mt-1 text-xs">{opportunity.budgetMxn !== null ? formatAdminCurrency(opportunity.budgetMxn, "MXN") : "Sin presupuesto MXN"}<br />{opportunity.budgetUsd !== null ? formatAdminCurrency(opportunity.budgetUsd, "USD") : "Sin presupuesto USD"}</p></td>
                   <td className="max-w-64 px-3 py-4"><OpportunityRequest opportunity={opportunity} /></td>
-                  <td className="max-w-64 px-3 py-4"><OpportunityQuote compact opportunity={opportunity} /></td>
+                  <td className="max-w-64 px-3 py-4"><OpportunityQuote compact navigation={quoteNavigation.get(opportunity.id)} opportunity={opportunity} /></td>
                   <td className="px-3 py-4">{opportunity.overdue ? <StatusBadge tone="warning">Vencido</StatusBadge> : opportunity.latestFollowUpAt ? formatAdminDateTime(opportunity.latestFollowUpAt) : "Sin seguimiento"}<p className="mt-1 text-xs">Actividad {formatAdminDateTime(opportunity.lastActivityAt)}</p></td>
                   <td className="px-3 py-4 whitespace-nowrap">{formatAdminDateTime(opportunity.updatedAt)}</td>
                   <td className="px-3 py-4"><Button asChild size="sm" variant="outline"><Link href={opportunity.href}>Gestión completa</Link></Button></td>

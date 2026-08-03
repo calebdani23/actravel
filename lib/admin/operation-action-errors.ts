@@ -6,6 +6,7 @@ export type OperationActionErrorContext =
   | "booking-delete"
   | "booking-load-documents"
   | "document-load-file"
+  | "document-quote-linked"
   | "document-save"
   | "document-delete";
 
@@ -17,6 +18,7 @@ const OPERATION_ACTION_ERROR_MESSAGES: Record<OperationActionErrorContext, strin
   "booking-delete": "No se pudo eliminar la reserva. Intenta nuevamente.",
   "booking-load-documents": "No se pudieron consultar los documentos vinculados a la reserva. Intenta nuevamente.",
   "document-load-file": "No se pudo consultar el documento actual. Intenta nuevamente.",
+  "document-quote-linked": "Los PDF de cotizaciones se administran únicamente desde Cotizaciones.",
   "document-save": "No se pudo guardar el documento. Revisa la información e inténtalo nuevamente.",
   "document-delete": "No se pudo eliminar el documento. Intenta nuevamente.",
 };

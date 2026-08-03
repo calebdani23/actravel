@@ -15,34 +15,44 @@ function numberValue(formData: FormData, key: string) {
   return value === null ? null : Number(value);
 }
 
-function revalidateOperations() {
+function revalidateOperations(quoteId?: string | null) {
   revalidatePath("/admin/payments");
   revalidatePath("/admin/operations/bookings");
   revalidatePath("/admin/operations/documents");
   revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/quotes");
+  if (quoteId) revalidatePath(`/admin/quotes/${quoteId}`);
 }
 
 async function getExistingPaymentFile(id: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("payments").select("id, proof_bucket, proof_path").eq("id", id).maybeSingle();
+  const { data, error } = await supabase.from("payments").select("id, proof_bucket, proof_path, accepted_quote_version:quote_versions!payments_accepted_quote_version_id_fkey(quote_id)").eq("id", id).maybeSingle();
   if (error) throwOperationActionError("payment-load-proof", error);
-  return { supabase, file: data ? { bucket: data.proof_bucket, path: data.proof_path } : null };
+  const accepted = data?.accepted_quote_version;
+  const quoteVersion = Array.isArray(accepted) ? accepted[0] : accepted;
+  return { supabase, file: data ? { bucket: data.proof_bucket, path: data.proof_path } : null, quoteId: quoteVersion?.quote_id ?? null };
 }
 
 async function getExistingDocumentFile(id: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("documents").select("id, bucket, path").eq("id", id).maybeSingle();
+  const { data, error } = await supabase.from("documents").select("id, bucket, path, quote_version_id").eq("id", id).maybeSingle();
   if (error) throwOperationActionError("document-load-file", error);
-  return { supabase, file: data ? { bucket: data.bucket, path: data.path } : null };
+  return { supabase, file: data ? { bucket: data.bucket, path: data.path } : null, quoteVersionId: data?.quote_version_id ?? null };
 }
 
 async function getBookingDocumentFiles(id: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("documents").select("bucket, path").eq("booking_id", id);
-  if (error) throwOperationActionError("booking-load-documents", error);
+  const [documents, booking] = await Promise.all([
+    supabase.from("documents").select("bucket, path").eq("booking_id", id),
+    supabase.from("bookings").select("accepted_quote_version:quote_versions!bookings_accepted_quote_version_id_fkey(quote_id)").eq("id", id).maybeSingle(),
+  ]);
+  if (documents.error || booking.error) throwOperationActionError("booking-load-documents", documents.error ?? booking.error);
+  const accepted = booking.data?.accepted_quote_version;
+  const quoteVersion = Array.isArray(accepted) ? accepted[0] : accepted;
   return {
     supabase,
-    files: (data ?? []).map((file) => ({ bucket: file.bucket, path: file.path })),
+    files: (documents.data ?? []).map((file) => ({ bucket: file.bucket, path: file.path })),
+    quoteId: quoteVersion?.quote_id ?? null,
   };
 }
 
@@ -75,6 +85,7 @@ export async function upsertPaymentAction(formData: FormData) {
     verified_by: isVerified ? session.user.id : null,
     verified_at: isVerified ? new Date().toISOString() : null,
     notes: text(formData, "notes"),
+    accepted_quote_version_id: text(formData, "accepted_quote_version_id"),
     ...(upload ? { proof_bucket: upload.bucket, proof_path: upload.path } : {}),
   };
   const { error } = id ? await supabase.from("payments").update(payload).eq("id", id) : await supabase.from("payments").insert(payload);
@@ -89,13 +100,13 @@ export async function upsertPaymentAction(formData: FormData) {
       console.error("[payments] replaced proof cleanup failed", cleanupError);
     }
   }
-  revalidateOperations();
+  revalidateOperations(text(formData, "quote_id"));
 }
 
 export async function deletePaymentAction(formData: FormData) {
   await requireAdminRole(["admin", "finanzas"]);
   const id = requiredTextFromOperationFormData(formData, "id", "payment-delete");
-  const { supabase, file } = await getExistingPaymentFile(id);
+  const { supabase, file, quoteId } = await getExistingPaymentFile(id);
   const { error } = await supabase.from("payments").delete().eq("id", id);
   if (error) throwOperationActionError("payment-delete", error);
   if (file) {
@@ -105,7 +116,7 @@ export async function deletePaymentAction(formData: FormData) {
       console.error("[payments] deleted proof cleanup failed", cleanupError);
     }
   }
-  revalidateOperations();
+  revalidateOperations(quoteId);
 }
 
 export async function upsertBookingAction(formData: FormData) {
@@ -127,16 +138,17 @@ export async function upsertBookingAction(formData: FormData) {
     total_usd: numberValue(formData, "total_usd"),
     currency: text(formData, "currency") ?? "MXN",
     notes: text(formData, "notes"),
+    accepted_quote_version_id: text(formData, "accepted_quote_version_id"),
   };
   const { error } = id ? await supabase.from("bookings").update(payload).eq("id", id) : await supabase.from("bookings").insert(payload);
   if (error) throwOperationActionError("booking-save", error);
-  revalidateOperations();
+  revalidateOperations(text(formData, "quote_id"));
 }
 
 export async function deleteBookingAction(formData: FormData) {
   await requireAdminRole(["admin", "operaciones"]);
   const id = requiredTextFromOperationFormData(formData, "id", "booking-delete");
-  const { supabase, files } = await getBookingDocumentFiles(id);
+  const { supabase, files, quoteId } = await getBookingDocumentFiles(id);
   const { error } = await supabase.from("bookings").delete().eq("id", id);
   if (error) throwOperationActionError("booking-delete", error);
   if (files.length) {
@@ -146,13 +158,14 @@ export async function deleteBookingAction(formData: FormData) {
       console.error("[bookings] deleted documents cleanup failed", cleanupError);
     }
   }
-  revalidateOperations();
+  revalidateOperations(quoteId);
 }
 
 export async function upsertDocumentAction(formData: FormData) {
   const session = await requireAdminRole(["admin", "operaciones"]);
   const id = text(formData, "id");
   const existing = id ? await getExistingDocumentFile(id) : null;
+  if (existing?.quoteVersionId) throwOperationActionError("document-quote-linked", new Error("quote-linked document mutation rejected"));
   const supabase = existing?.supabase ?? await createClient();
   const title = requiredTextFromOperationFormData(formData, "title", "document-save");
   const documentFile = id ? optionalFile(formData, "document_file") : requiredFile(formData, "document_file", "Selecciona un archivo para crear el documento.");
@@ -192,12 +205,13 @@ export async function upsertDocumentAction(formData: FormData) {
 export async function deleteDocumentAction(formData: FormData) {
   await requireAdminRole(["admin", "operaciones"]);
   const id = requiredTextFromOperationFormData(formData, "id", "document-delete");
-  const { supabase, file } = await getExistingDocumentFile(id);
-  const { error } = await supabase.from("documents").delete().eq("id", id);
+  const existing = await getExistingDocumentFile(id);
+  if (existing.quoteVersionId) throwOperationActionError("document-quote-linked", new Error("quote-linked document deletion rejected"));
+  const { error } = await existing.supabase.from("documents").delete().eq("id", id);
   if (error) throwOperationActionError("document-delete", error);
-  if (file) {
+  if (existing.file) {
     try {
-      await removeStoredObject(supabase, file);
+      await removeStoredObject(existing.supabase, existing.file);
     } catch (cleanupError) {
       console.error("[documents] deleted file cleanup failed", cleanupError);
     }

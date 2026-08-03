@@ -63,4 +63,28 @@ test("public quote flow persists safely and is visible in admin", async ({ page,
   await expect(page.getByText(whatsappDigits, { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Website Quote")).toBeVisible();
   await expect(page.getByText("Cotización recibida")).toBeVisible();
+
+  await page.getByRole("link", { name: "Nueva cotización" }).click();
+  await expect(page.getByRole("heading", { name: "Nueva cotización comercial" })).toBeVisible();
+  await expect(page.locator('select[name="contactId"]')).not.toHaveValue("");
+  await expect(page.locator('select[name="opportunityId"]')).not.toHaveValue("");
+  await page.locator('input[name="title"]').fill(`Propuesta E2E ${unique}`);
+  await page.locator('input[name="totalAmount"]').fill("2400");
+  await page.locator('input[name="depositAmount"]').fill("600");
+  await page.locator('input[name="validUntil"]').fill(futureIsoDate(20));
+  await page.locator('input[name="pdf"]').setInputFiles({
+    name: `propuesta-${unique}.pdf`,
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-1.7\nAC Travel E2E initial quote\n%%EOF"),
+  });
+  await page.getByRole("button", { name: "Crear cotización con PDF" }).click();
+
+  await expect(page).toHaveURL(/\/admin\/quotes\/[0-9a-f-]+\?created=1$/);
+  await expect(page.getByRole("heading", { name: /^COT-[0-9]{4}-[0-9]{6,}$/ })).toBeVisible();
+  await expect(page.getByText(`Propuesta E2E ${unique}`, { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Lista", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Marcar enviada" })).toBeVisible();
+  await expect(page.getByText("PDF de la versión actual", { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/Vincular PDF legado/i)).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Cotizaciones" }).first()).toBeVisible();
 });

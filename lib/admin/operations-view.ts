@@ -197,7 +197,8 @@ export function paymentRelationLabel(payment: { contact_id: string | null; lead_
   return "Sin relación";
 }
 
-export function documentRelationLabel(document: { contact_id: string | null; lead_id: string | null; booking_id: string | null }) {
+export function documentRelationLabel(document: { contact_id: string | null; lead_id: string | null; booking_id: string | null; quote_version_id?: string | null }) {
+  if (document.quote_version_id) return "Cotización";
   if (document.booking_id) return "Reserva";
   if (document.lead_id) return "Prospecto";
   if (document.contact_id) return "Contacto";
@@ -282,6 +283,7 @@ export function filterDocuments<T extends {
   contact_id: string | null;
   lead_id: string | null;
   booking_id: string | null;
+  quote_version_id?: string | null;
   created_at: string;
   title: string;
   contacts: ContactLike;
@@ -294,6 +296,7 @@ export function filterDocuments<T extends {
     if (filters.relation === "contact" && !document.contact_id) return false;
     if (filters.relation === "lead" && !document.lead_id) return false;
     if (filters.relation === "booking" && !document.booking_id) return false;
+    if (filters.relation === "quote" && !document.quote_version_id) return false;
     if (!matchesDateRange(document.created_at, filters.from, filters.to)) return false;
 
     return includesQuery([

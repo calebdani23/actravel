@@ -51,7 +51,7 @@ test("booking delete flow prefetches related documents before cascading database
 
   assert.match(actions, /async function getBookingDocumentFiles\(id: string\)/);
   assert.match(actions, /from\("documents"\)\.select\("bucket, path"\)\.eq\("booking_id", id\)/);
-  assert.match(actions, /const \{ supabase, files \} = await getBookingDocumentFiles\(id\);/);
+  assert.match(actions, /const \{ supabase, files, quoteId \} = await getBookingDocumentFiles\(id\);/);
   assert.match(actions, /from\("bookings"\)\.delete\(\)\.eq\("id", id\)/);
   assert.match(actions, /await removeStoredObjects\(supabase, files\)/);
   assert.match(actions, /console\.error\("\[bookings\] deleted documents cleanup failed"/);
@@ -86,4 +86,20 @@ test("storage policies align private buckets to their owning admin roles", () =>
   assert.doesNotMatch(migration, /bucket_id in \('documents', 'payment-proofs'\)/);
   assert.doesNotMatch(migration, /bucket_id = 'documents'[\s\S]{0,120}has_role\('finanzas'\)/);
   assert.doesNotMatch(migration, /bucket_id = 'payment-proofs'[\s\S]{0,120}has_role\('operaciones'\)/);
+});
+
+test("standalone quote PDF saga uploads direct without overwrite and cleans only failed history", () => {
+  const actions = readFileSync("app/admin/(protected)/quotes/actions.ts", "utf8");
+  const tus = readFileSync("lib/admin/quote-pdf-tus.ts", "utf8");
+  const clients = readFileSync("components/admin/quotes/quote-pdf-upload.tsx", "utf8") + readFileSync("components/admin/quotes/quote-editor-form.tsx", "utf8");
+  const quoteStorageMigration = readFileSync("db/migrations/0054_quote_pdf_documents_and_uploads.sql", "utf8");
+
+  assert.doesNotMatch(actions, /\.upload\([^)]*file|formData\.get\("pdf"\)/);
+  assert.match(tus, /"x-upsert": "false"/);
+  assert.match(tus, /bucketName: input\.bucket[\s\S]*objectName: input\.path/);
+  assert.match(actions, /crm_fail_quote_pdf_upload/);
+  assert.match(clients, /if \(failed\.cleanupAllowed\)[\s\S]*removeFailedQuotePdfObject/);
+  assert.match(tus, /storage\.from\(bucket\)\.remove\(\[path\]\)/);
+  assert.match(quoteStorageMigration, /create policy "quote pdf pending delete"[\s\S]*d\.storage_state = 'failed'/i);
+  assert.match(quoteStorageMigration, /qv\.finalized_at is null[\s\S]*qv\.status = 'draft'/i);
 });
