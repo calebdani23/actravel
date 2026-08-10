@@ -1,3 +1,6 @@
+> **Status: HISTORICAL / SUPERSEDED for active AC Travel Business OS implementation.**
+> This document is retained as MVP planning provenance. Current execution is governed by `docs/implementation/ACTIVE.md`, `docs/implementation/README.md`, and `docs/blueprints/INDEX.md`.
+
 # Roadmap AC Travel MVP
 
 ## MVP v1
@@ -18,9 +21,9 @@
 - **Ready for MVP launch**: la app compila, lint/test pasan y los smoke checks públicos/admin básicos responden con Supabase como fuente única de verdad operativa.
 - **Google Sheets retirado**: la evidencia histórica de sync se conserva en `sheet_sync_logs`, pero ya no se generan nuevas sincronizaciones ni se opera ese boundary en producción.
 
-## Siguientes pasos priorizados
+## Historical next steps
 
-- Ver `docs/NEXT_STEPS_ROADMAP.md` para el roadmap accionable posterior al MVP, organizado por prioridad, bloques y sprints sugeridos.
+The sections below reflect the older MVP roadmap. They may explain provenance but must not override the active Business OS week/change sequence.
 
 ## Fase 2
 

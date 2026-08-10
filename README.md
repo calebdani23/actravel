@@ -1,12 +1,12 @@
 # actravel
 
-MVP Next.js para AC Travel Mx con sitio público bilingüe, formulario de cotización, panel interno, tracking de WhatsApp y emails Resend, con Supabase como fuente única de verdad operativa.
+Next.js platform for AC Travel Mx with a bilingual public site, quote intake, internal operations, WhatsApp tracking, Resend email, and Supabase as the operational source of truth.
 
-## Estado
+## Current repository state
 
-**Ready for MVP launch**: la verificación local final pasa y la operación productiva queda consolidada sobre Supabase; Google Sheets fue retirado de la ruta activa de producción.
+The MVP foundation is operational and has evolved into a contact-centric CRM with standalone commercial quote management. Google Sheets is no longer on the active production path.
 
-## Setup mínimo
+## Minimal setup
 
 ```bash
 cp .env.example .env.local
@@ -14,7 +14,7 @@ npm install
 npm run dev
 ```
 
-Para validar:
+Baseline validation:
 
 ```bash
 npm run lint
@@ -22,7 +22,7 @@ npm run build
 npm run test:quote-notifications
 ```
 
-## E2E critical flow
+Critical E2E:
 
 ```bash
 npm run test:e2e:install
@@ -30,6 +30,16 @@ npm run db:bootstrap-admin
 npm run test:e2e
 ```
 
-Playwright forces `E2E_DISABLE_EXTERNAL_BOUNDARIES=1` in its local web server so the browser still exercises rendering, quote persistence, WhatsApp redirect behavior, and admin visibility without sending real Resend or Meta Conversions traffic. It reads `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD` first, then falls back to `BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD`.
+Playwright uses `E2E_DISABLE_EXTERNAL_BOUNDARIES=1` for its local web server so browser flows do not send real Resend or Meta Conversions traffic.
 
-Ver `docs/ENVIRONMENT.md` para variables y `docs/PROGRESS.md` para estado de lanzamiento.
+See `docs/ENVIRONMENT.md` for environment variables and `docs/PROGRESS.md` for verified implementation history.
+
+## AC Travel Business OS — active implementation context
+
+The post-MVP evolution is routed through:
+
+- `docs/implementation/ACTIVE.md` — minimal current-cycle context and next action.
+- `docs/implementation/README.md` — execution rules, authority order, and 12-week roadmap.
+- `docs/blueprints/INDEX.md` — fast access to Business, Product, and Technical Blueprint context.
+
+Agents must start from `ACTIVE.md` and load additional context only on demand. Do not read all Blueprint material by default.
