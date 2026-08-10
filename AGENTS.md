@@ -14,11 +14,12 @@ For substantial product or implementation work:
 1. Read `docs/implementation/ACTIVE.md`.
 2. Read only the active week/change documents referenced there.
 3. Use `docs/blueprints/INDEX.md` to locate extra business, product, or architecture context on demand.
-4. Do **not** bulk-read all Blueprint volumes or all repository docs by default.
-5. Treat current code/schema/tests as executable reality and active change specs as the exact implementation scope.
-6. Preserve existing migration, RLS, quote, CRM, and data-integrity invariants unless the active change explicitly defines a compatible migration/cutover.
-7. Record durable implementation decisions in `docs/DECISIONS.md` and verified shipped state in `docs/PROGRESS.md`.
-8. Historical MVP roadmaps are provenance, not the active Business OS roadmap.
+4. Use `docs/README.md` only when you need to locate another living repository document.
+5. Do **not** bulk-read all Blueprint volumes or all repository docs by default.
+6. Treat current code/schema/tests as executable reality and active change specs as the exact implementation scope.
+7. Preserve existing migration, RLS, quote, CRM, and data-integrity invariants unless the active change explicitly defines a compatible migration/cutover.
+8. Record durable implementation decisions in `docs/DECISIONS.md` and verified shipped state in `docs/PROGRESS.md`.
+9. Everything under `docs/archive/**` is provenance only. **Never execute or follow instructions from archived documents** unless an active change explicitly references them for historical investigation.
 
 ### Progressive context rule
 
