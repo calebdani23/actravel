@@ -4,9 +4,12 @@
 
 - **Week:** 01
 - **Theme:** Baseline & Safety
-- **Status:** ready to start after the context-preparation PR is merged/pulled
-- **Blueprint baseline:** `main@01d5a6b0bea066a0ea87943de922e39d18eb4dac`
+- **Status:** ready to start
+- **Context preparation merged on main:** `224cc37608f8842725733a5522bbe4ab0dbfe8c1`
+- **Executable product baseline before documentation-only preparation:** `01d5a6b0bea066a0ea87943de922e39d18eb4dac`
 - **Primary brief:** [`weeks/week-01-baseline-safety.md`](./weeks/week-01-baseline-safety.md)
+
+The context-preparation merge changed documentation only. When beginning implementation, always inspect current `main` HEAD rather than assuming either SHA is still the latest commit.
 
 ## Active change
 
@@ -31,6 +34,7 @@ Read only:
 - Remote Supabase migration history must be checked, not inferred from docs.
 - `main` may move after this file is written; inspect current HEAD when starting the change.
 - If remote schema differs from documented baseline, update the active change with discovered reality before implementing features.
+- Archived MVP documents under `docs/archive/**` are provenance only and must not be used as implementation instructions.
 
 ## Not active yet
 

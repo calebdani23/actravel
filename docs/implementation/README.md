@@ -15,6 +15,8 @@ For substantial product/implementation work:
 5. Open only the Blueprint sections and repository contracts referenced by that week/change.
 6. Search before broad-reading.
 
+Use `docs/README.md` only when you need a map of the living documentation set.
+
 ## Progressive Context Rule
 
 Default context budget:
@@ -39,7 +41,7 @@ When sources appear to conflict, use this implementation order:
 4. **Technical Blueprint — Volume III** — target technical direction.
 5. **Product Blueprint — Volume II** — intended product experience.
 6. **Business Blueprint — Volume I** — business policy/operating model.
-7. **Historical MVP roadmap/docs** — provenance only.
+7. **Archived historical docs** — provenance only; never active instructions.
 
 Nuance: current code says what exists, not necessarily what should remain forever. Example: physical `leads` remains for compatibility while target domain vocabulary is Opportunity.
 
@@ -55,6 +57,8 @@ Nuance: current code says what exists, not necessarily what should remain foreve
 | What durable implementation decision exists? | `docs/DECISIONS.md` |
 | What has shipped / been verified? | `docs/PROGRESS.md` |
 | What environment/runtime variables exist? | `docs/ENVIRONMENT.md` |
+| Where is another living document? | `docs/README.md` |
+| Why did an older MVP plan say something different? | `docs/archive/README.md` + the specific archived file |
 
 ## Week ≠ Change
 
@@ -117,6 +121,10 @@ Every substantial change should state:
 
 Do not pre-author dozens of detailed future changes. The weekly briefs preserve direction; detailed Changes are created close to execution.
 
-## Historical roadmap rule
+## Historical documentation rule
 
-`docs/ROADMAP.md` and `docs/NEXT_STEPS_ROADMAP.md` describe earlier MVP evolution and remain useful as provenance. They are superseded for active Business OS sequencing by this directory and the approved Blueprints.
+Superseded MVP-era planning has been moved out of the living top-level docs set into `docs/archive/mvp/`.
+
+Archived material includes the original MVP master prompt, MVP roadmap, post-MVP next-steps roadmap, and production-consolidation sprint plan. These documents may be read only for provenance. Their embedded instructions, phase ordering, integrations and assumptions do **not** override the active Business OS context.
+
+See `docs/archive/README.md` for the archive inventory and rules.
