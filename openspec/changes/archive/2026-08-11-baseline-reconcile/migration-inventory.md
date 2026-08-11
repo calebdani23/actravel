@@ -1,0 +1,168 @@
+# Migration Inventory
+
+This inventory is the bounded, read-only baseline used by `baseline-reconcile`. Local checksums are SHA-256 of file bytes. The authoritative remote values are `statement_md5` values returned by the supplied metadata SQL against `supabase_migrations.schema_migrations`; they are MD5 of stored remote statement text, not local-file SHA-256, so equality is not asserted. The earlier history list API exposed names/order without checksums; the later metadata result exposed statement MD5, while remote statement text remains unavailable for a byte-level comparison.
+
+## Local ordered inventory
+
+Complete local order is the numeric migration order. `0051` is absent; all other versions from `0001` through `0060` are present.
+
+```text
+order|version|filename|bytes|sha256
+1|0001|0001_extensions.sql|187|a5013085143b1b5fd0412abaa48485280b5f8e637d1ca351a793edb0a2402cfb
+2|0002|0002_identity.sql|1061|6ae3784639a220697dc28674729d36577bf6266f0ecf2496797816cd6029e64f
+3|0003|0003_crm.sql|4072|77f67788e679aefd67808242eb87bf917fa8dbbc5305ed0c1586afe783060d89
+4|0004|0004_catalog.sql|5051|072f82d279727fcf3e751bb6bbcf398d54cf55ab2bdb30129d672cd0b74c5fe3
+5|0005|0005_operations.sql|4582|4b9a8782c87df35dfdb94f7208fcc4959e2853b2ebaf86bbca4bee2b30ae0b5f
+6|0006|0006_logs.sql|1725|e72b120e3ce3535913fa8730fd27d64bcb900d13dfd1bc1733bb73812bcf2791
+7|0007|0007_storage.sql|613|4be8af137f9fae61313623b80edc6cd640d395b6f4a591df826c744841b20d14
+8|0008|0008_rls.sql|11590|6f1fdb349e05fe63ceff817d226ffd923c2a5e5ae2e5447e11b1e9241cf3887a
+9|0009|0009_security_advisor_fixes.sql|477|96aaa71c02eaa2e063f70592727c7eb728e50f65880c6a5e510b3af01fb0f56d
+10|0010|0010_fk_indexes.sql|2033|9b8f6a7263a8087c02a780f12760804212f4b7b5a4fb736f342c14cc194ec6d0
+11|0011|0011_restrict_helper_function_execute.sql|389|5c72cf490c116953d28703ea85447e6378ba72f9e0932e60574fa48afdde0148
+12|0012|0012_grant_authenticated_helper_execute.sql|202|a9dc69c4217b91036cab8035a2ccecf8f25a5650ee486e2786a16488926a2ae0
+13|0013|0013_restrict_private_storage_read.sql|396|d882a26ac5bb8274495ae23248039ca897653526f6a6011278e1405947f639c7
+14|0014|0014_notification_log_delivery.sql|978|bc5b8d9fbd9c7f039c7fd549fc0ae23ce56902d2be8603b836a0f93fea4c6d8f
+15|0015|0015_public_rate_limits.sql|1394|588aca3a312da01486812d83c0436cd7b2956683d1dcb68fa68a7c7249311214
+16|0016|0016_retry_idempotency.sql|2219|db9ea7e99291ab1e9049093af936ca42525ba50a38803eb86bab0881812a8742
+17|0017|0017_narrow_private_storage_roles.sql|1120|816526bd33cefd4c360d7a9ce29dba6d8b80d947023da61a3c7cf3223c0dcb6b
+18|0018|0018_template_metadata.sql|389|37e937b04b809fa8864fe327c21458d3f575a7ea659ab4bf59f520cb88164571
+19|0019|0019_packages_catalog_rls.sql|2320|72ca14edc3a6c14b2878606e1715bf1c893d14c2b228272671425c3bbbc1c91a
+20|0020|0020_catalog_media_columns_fix.sql|524|42126f10b4bd70a8640330a349564451fdfa8d4d803ca57e075c767ad9197ba7
+21|0021|0021_operational_incident_state.sql|2455|7a9a4bf53ffa3331d2f19a02b04b9b4040e9387ee8333fcbb8e45c26ae508daa
+22|0022|0022_fix_operational_incident_backfill.sql|521|56508862d24ccabad6e4463876b0b23292a49d3d7d47faa1f507a12e1a632df1
+23|0023|0023_promotion_relations.sql|1470|8e11dbb50c0411e0774dd14f5e2e7955908707e9f9ebd52eb47431a8ec25e05a
+24|0024|0024_catalog_detail_sections.sql|2145|3bd05ec9d700f44bdf8413c12a1549f49b11048ada96bbfbbf2ab7a8796a6fe6
+25|0025|0025_promotion_commercial_sections.sql|1078|cc97987ce6e4aa56cd0337e53ee5bda73fd466511542a019a1e780800c7bf745
+26|0026|0026_whatsapp_inbound_leads.sql|2821|c872b7d5172bdd6db0695279f47cb6c26d3da6d4e81471931e5136b4c89c8343
+27|0027|0027_admin_account_events.sql|1373|275ca82a43d6cb13b741846342ab3daafdb51c66a5e1a6e94c8bcb93d2d3bb09
+28|0028|0028_admin_account_events_staff_deleted.sql|441|89a10ed812085324b38042ef17b8147be966765e7fad333f856fcf4fba7e7abd
+29|0029|0029_admin_account_events_email_change_requested.sql|479|96b8132dddfb47190f4403e0bb82f24f75dd3d76fbd1c52e0f655af04c32b3f5
+30|0030|0030_crm_hierarchy_foundation.sql|4701|948444bb6a17dbc3201450d079cf3472e74cee25bb3e4b12b8e92d423c08e53d
+31|0031|0031_crm_opportunity_resolution_rpc.sql|8441|576162ab265ab8ca8a071626794a57b12a876256af76ffc3a9cb57ce92cf36fd
+32|0032|0032_contact_normalization_trigger.sql|3337|85540b227e7c7d6590257bef78109bf36ff027a5b1855bb0f75b5d4878a50c63
+33|0033|0033_crm_opportunity_resolution_rpc_revoke_public.sql|1123|d9cb919df77d514938d6d083b097442607a762fca4fae014e175922cae5e29e3
+34|0034|0034_quote_versions.sql|5155|179109f09deecde79b0abd977db37c857d3967bfdf571dd85b298683cc02ea7e
+35|0035|0035_quote_version_integrity.sql|7299|54bb605318f311919b2511e8d1501814da6c437191ece96d2b162733c3e85601
+36|0036|0036_quote_version_hardening_followup.sql|8107|6f2e773f204e4221ad78fb04dd5b193d12c048405f490ca54c150724f2eff58b
+37|0037|0037_validate_quote_version_timestamps.sql|190|de421d32ab2da30f4ed8b195837d72f884c41961fd34dbb985145d2fae8d7922
+38|0038|0038_crm_normalization_function_search_path.sql|410|127ce5abdc882eeaa5aecd168955d47411bca73e6e9ebed6144e3a3f8f22a686
+39|0039|0039_admin_lead_delete_guardrails.sql|7912|daa55d3754e9b1b3b95d708217e3e745a0430b8fd76f529822cad89309a4d474
+40|0040|0040_drop_direct_lead_delete_policy.sql|164|60154ea21750e788976ab05d71febd8189746fb50f502da02d747286f73d8f3c
+41|0041|0041_admin_orphan_contact_cleanup.sql|14107|c50eaf71f276b7eda918de54d4640b82e0cb42718c17c487f515e31a55313c9f
+42|0042|0042_crm_governance_fields_and_advisor_rls.sql|7117|b3b5b32e9ec243c42dd4d90e94812a4e8c26b43bb094f9270af2f9958a91073a
+43|0043|0043_crm_bulk_mutation_jobs.sql|1918|cd7b9e0a69695bc347500e5533cf5a17b9e7a7b071804cbabb5bc52bac929f3e
+44|0044|0044_crm_bulk_mutation_rpcs.sql|8979|0b5aa1a1a07edb3fcb32cad34433499ed541901a6cb27f4cb5cf1d43ad126caf
+45|0045|0045_crm_resolver_soft_delete_review.sql|4949|8dbdbd5f59ac5542d3256c04d0f127646c136e0bfa03b847928f2e580354f08f
+46|0046|0046_crm_governance_remediation.sql|7141|69d178099101b964254fd1d09235d425500d6320883b7293477788898bc38f49
+47|0047|0047_crm_archive_restore_controls.sql|6844|363c0423d2f55df1b3922e00794fa187841442b0e25118bc96df38fd0f36deac
+48|0048|0048_crm_test_purge_and_blocked_outbound.sql|12701|4ef62506621802fdfa12d433822500c55d222df03a6f14a8add3fc9b18982683
+49|0049|0049_crm_contact_aggregate_filters.sql|9973|887c448a790627e8a3a6c77d2be5177fd879ddb97d9f96702ae6bc5593ee75d6
+50|0050|0050_harden_crm_trigger_function_grants.sql|454|f3692c3bb69bd622bcd60ee8cb11d161a863683826a9daa5317e8a373ce5e9d8
+51|0052|0052_crm_contact_360_rpc_contracts.sql|26543|c75a2a6b38d554644981e0f51363654c9f139b27aea5625febe5e8d536b027a0
+52|0053|0053_quotes_header_foundation.sql|65742|59d9006f76ae1952281d96f24cc2d9a59cb3cb9b0f7f058f524a94494612660f
+53|0054|0054_quote_pdf_documents_and_uploads.sql|48280|485771fdae6c50639461d0019cff393fac8613ca02f8b31c711dbc3a8a75e6fd
+54|0055|0055_quote_transactional_rpc_contracts.sql|77812|61cea8c210985190af72a9efb8c571485c0bdeeea5c1f91e260827ee7f71c8cf
+55|0056|0056_quote_operations_traceability.sql|30371|bbb07de4c793944c070264ab982ed06ef2ce31df0f29d672c513be4bddc488b9
+56|0057|0057_quote_rpc_cutover.sql|2894|213de32c102081e4538c80e89c71370409077e65b3976846f059bb3776b95c33
+57|0058|0058_fix_legacy_quote_document_link_ambiguity.sql|4892|02dda6c6f9c0e2b545e1d949bdd296c9e880fc7f1e1877c6742dd205003b456b
+58|0059|0059_quote_registration_intents.sql|50997|c0ed043b02c2f6a2b64773f947e97d95a4ba99b667e55803d1a6bf8e3b1b534b
+59|0060|0060_quote_pdf_creation_cutover.sql|21465|8793e832b80922e93797f96db466371ac4ada1c4d6ac02609399afdf707e0ce2
+```
+
+## Authoritative remote ordered inventory
+
+The following is the complete 59-row metadata result, in returned order. `statement_md5` is available; local SHA-256 comparison is unavailable by algorithm and source-text design. For the two provenance questions below, the parent-collected read-only statement retrieval also exposed sanitized stored statement text.
+
+```text
+order|remote_version|name|statement_md5
+1|20260526221557|0001_extensions|f9afc0a769a1f45d802f6722d43458ce
+2|20260526221609|0002_identity|49f1099f35feecfa71e815ad870840b3
+3|20260526221632|0003_crm|a145ea084eac7f377dcae6cf5010a741
+4|20260526221656|0004_catalog|e7de6daed24104bcb57bcc8900183f61
+5|20260526221721|0005_operations|04bce244694555d7f3acf480cae28d04
+6|20260526221734|0006_logs|29930fe188a107a716a3c5bba4238372
+7|20260526221742|0007_storage|ad9eceaf25d39cb61d203b25e0fb7cfa
+8|20260526221834|0008_rls|e3b64a30562ae106b0fb3b211e7ee0d3
+9|20260526221942|0009_security_advisor_fixes|6865ea2fc861b95b37e495229cb7639a
+10|20260526221954|0010_fk_indexes|5658757786623c99aba6a2d6eae17751
+11|20260526222127|0011_restrict_helper_function_execute|f07e8d0765c201afa228b54571099c90
+12|20260526222817|0012_grant_authenticated_helper_execute|90f967b5bb5a6f1ef9aa65c722de9b9d
+13|20260527043155|restrict_private_storage_read|184e66599de739ba0c79ba83ce090ee1
+14|20260527050350|notification_log_delivery|72188bddddbc8480c82238092635a041
+15|20260527213632|public_rate_limits|0b0a8c4de714a61e46a1fe0b89cac5ff
+16|20260527213845|drop_public_rate_limits_write_policy|97dfbe984b72acc69cf6a41621f807ad
+17|20260527215358|retry_idempotency|084ab66b9fbe3771bb64322134f95d17
+18|20260528085029|0017_narrow_private_storage_roles|04b1622a05246427bd79f65248bf2780
+19|20260528091038|0018_template_metadata|bc36f222081dee152fb84aaec41873b1
+20|20260528235729|add_packages_catalog_table_and_policies|8e5e5d94471a842f5270464e41f46203
+21|20260609050324|0021_operational_incident_state|df0c709b42358f4deb439179c9b4f7f0
+22|20260609051831|0022_fix_operational_incident_backfill|122fd6e3bba0422df9844fd0f0fc9f35
+23|20260618225549|0023_promotion_relations|ceb209944fa48c9764dcd3194d17e64d
+24|20260619193354|0024_catalog_detail_sections|f312af21734538ac56d91e9eeb7a68c7
+25|20260619235032|0025_promotion_commercial_sections|c95edb15ec86b2f246151417ceda50d4
+26|20260702214651|0026_whatsapp_inbound_leads|2d3d048e1cb2e150b0d47c7e2e489a18
+27|20260709191227|0027_admin_account_events|0f66f9852aebed5afdd8ea227a430fa3
+28|20260710004157|0028_admin_account_events_staff_deleted|aa90813400683f15c5da0b03f2554074
+29|20260710183056|0029_admin_account_events_email_change_requested|88391837fe56d16209c68d51be729d55
+30|20260722034906|crm_hierarchy_foundation|fe08e4bc6b45a083bfb2b87c65ab2699
+31|20260722034956|crm_opportunity_resolution_rpc|f92e1f237f5cae124bd11c37719c8432
+32|20260722035018|contact_normalization_trigger|d50a081b1f5048790d0de73350b57051
+33|20260722035033|crm_opportunity_resolution_rpc_revoke_public|031d2fbf8dba4f67a20ff42df276c4b4
+34|20260722035104|quote_versions|73c18f48d5f9a756583824933287fcf5
+35|20260722035145|quote_version_integrity|cb831b5e16f363da178d511f801f5e49
+36|20260722035229|quote_version_hardening_followup|9ac61b0500e053376f8f6fe2ea69501d
+37|20260722035424|validate_quote_version_timestamps|4916813edd0271fef936ff44f806c1ca
+38|20260722035457|crm_normalization_function_search_path|742b1cb2d9ce5402c4b1e5a28da3656d
+39|20260722222201|admin_lead_delete_guardrails|6e66620504c7ece9c40619416f1cd2f6
+40|20260722222207|drop_direct_lead_delete_policy|eafce12310078c7a7d602795b2897313
+41|20260722224813|admin_orphan_contact_cleanup|7d563788506f5fe66c48fd26aefb199d
+42|20260728213745|0042_crm_governance_fields_and_advisor_rls|47ac1e442c0ac8a23c7d5065bc82d913
+43|20260728213756|0043_crm_bulk_mutation_jobs|2cfd0c13f83996639e464ab9b799b8ed
+44|20260728214241|0044_crm_bulk_mutation_rpcs|ccb5b4481bced39454dca6d845601d54
+45|20260728214307|0045_crm_resolver_soft_delete_review|ccb5b4481bced39454dca6d845601d54
+46|20260728214345|0046_crm_governance_remediation|ccb5b4481bced39454dca6d845601d54
+47|20260728214433|0047_crm_archive_restore_controls|ccb5b4481bced39454dca6d845601d54
+48|20260728214531|0048_crm_test_purge_and_blocked_outbound|ccb5b4481bced39454dca6d845601d54
+49|20260728214620|0049_crm_contact_aggregate_filters|ccb5b4481bced39454dca6d845601d54
+50|20260728215030|harden_crm_trigger_function_grants|66e2bed5582c0f17ca181fd61af732b6
+51|20260728215934|0051_crm_resolver_advisor_visibility_hotfix|52ebf436c0371ddcdc7aa3acb3d27dac
+52|20260729034445|0052_crm_contact_360_rpc_contracts|9e3c687bed242114d71a1aa89dec64d8
+53|20260730031114|0053_quotes_header_foundation|3195e3e57d2b24cd4a615ea7e1889db3
+54|20260730031511|0054_quote_pdf_documents_and_uploads|024ebd524858b315798044fbbcbe2d27
+55|20260730032136|0055_quote_transactional_rpc_contracts|ef9e4662f3a99734bb37fa1d6fd0a9e4
+56|20260730032409|0056_quote_operations_traceability|42ee411aef4059a20c336b813604b5e6
+57|20260730044541|0058_fix_legacy_quote_document_link_ambiguity|fa5980f537e3584282a6c5f1b35a2034
+58|20260803200511|0059_quote_registration_intents|90c387fa9fa5fc99f912cc771e5c9fa4
+59|20260804005254|0060_quote_pdf_creation_cutover|cff21888d2708b73e0ce69e44876d978
+```
+
+## Discrepancy mapping
+
+| Subject | Classification | Evidence/disposition |
+|---|---|---|
+| Local `0019_packages_catalog_rls.sql` versus remote `add_packages_catalog_table_and_policies` (`20260528235729`) | `represented/applied` | The remote stored DDL semantically creates the same `public.packages` columns, RLS state, grants, `set_packages_updated_at` trigger, and three package policies. The remote name, dynamic `execute` wrappers, and MD5 `8e5e5d94471a842f5270464e41f46203` differ from the local filename, direct-DDL spelling, and SHA-256; those text/hash differences do not negate semantic representation. |
+| Legacy remote names omit the local numeric prefix: local `0013`–`0016`, `0030`–`0041`, and `0050` versus their exact suffix-matching remote names | `represented/applied` | Covered pairs are `0013/restrict_private_storage_read`, `0014/notification_log_delivery`, `0015/public_rate_limits`, `0016/retry_idempotency`; `0030/crm_hierarchy_foundation`, `0031/crm_opportunity_resolution_rpc`, `0032/contact_normalization_trigger`, `0033/crm_opportunity_resolution_rpc_revoke_public`, `0034/quote_versions`, `0035/quote_version_integrity`, `0036/quote_version_hardening_followup`, `0037/validate_quote_version_timestamps`, `0038/crm_normalization_function_search_path`, `0039/admin_lead_delete_guardrails`, `0040/drop_direct_lead_delete_policy`, `0041/admin_orphan_contact_cleanup`; and `0050/harden_crm_trigger_function_grants`. Prefix spelling differences do not negate ordered semantic representation; no history rewrite is authorized. |
+| Remote `drop_public_rate_limits_write_policy` has no distinct local migration file | `remote-only/untracked` | Supplemental catalog evidence shows only authenticated `public rate limits staff read` remains and no write policy exists; final state aligns, but the history row remains untracked locally. |
+| Local `0020_catalog_media_columns_fix.sql` has no distinct remote history row | `ambiguous/manual-review` | Supplemental catalog evidence confirms all eight expected hero/thumbnail columns across destinations, services, packages, and promotions; provenance may be bundled/manual and is not inferable. |
+| Local `0051` absent; remote `0051_crm_resolver_advisor_visibility_hotfix` present | `remote-only/untracked` | Preserve history; obtain provenance before any local representation. |
+| Local `0057_quote_rpc_cutover.sql` present; remote `0057` absent | `local pending` | Do not replay; local `0060` contains the final cutover behavior. |
+| Remote `0044`–`0049` history rows (`ccb5b4481bced39454dca6d845601d54`) versus substantive local files | `ambiguous/manual-review` | The six remote rows exist by name, but parent-collected read-only statement retrieval returned exactly `select 1;` for every row (`distinct_statement_hashes = 1`). Local `0044`–`0049` contain distinct substantive SQL, so remote history does not prove those local bodies were applied. Do not repair/replay history; obtain separate provenance and live-contract evidence before any next migration or tracked type regeneration. |
+| Local/remote checksum algorithms differ | `ambiguous/manual-review` | Names/order align where present, but checksum equality is unavailable. |
+| Remote role, staging, and recovery target | `ambiguous/manual-review` | Identity and restore alignment remain unproven. |
+
+The complete local manifest is also retained at `/tmp/opencode/baseline-reconcile-20260810/local-migrations.json` as the byte-level local source of truth.
+
+### Read-only provenance evidence
+
+The parent-collected statement retrieval used the following read-only shape against `supabase_migrations.schema_migrations` (no mutation or replay):
+
+```sql
+select version, name, statements, md5(array_to_string(statements, E'\n')) as statement_md5
+from supabase_migrations.schema_migrations
+where version in ('20260528235729', '20260728214241', '20260728214307',
+                  '20260728214345', '20260728214433', '20260728214531',
+                  '20260728214620')
+order by version;
+```
+
+The package row's stored DDL is semantically equivalent to local `0019`; the six CRM rows each retrieve exactly `select 1;` and share one MD5. This is provenance evidence only, not authorization to mutate history or infer application of the local CRM SQL.
