@@ -1,0 +1,19 @@
+# Migration Provenance Register
+
+**Register rule:** every row has exactly one classification. The final schema is corroboration only; it cannot prove ledger provenance or reconstruct a local body.
+
+| ID | Migration/object identity | Local name | Remote name | Classification | Planes / evidence | Owner | Blocker | Disposition | Authorization state |
+|---|---|---|---|---|---|---|---|---|---|
+| MHR-R-001 | `0051` / resolver advisor visibility | absent | `0051_crm_resolver_advisor_visibility_hotfix` | `remote-only/untracked` | ledger: MHR-E-003; local: MHR-E-002 | Migration maintainer | authoritative provenance absent | preserve ledger; investigate provider-native repair separately | Not authorized; no replay |
+| MHR-R-002 | policy / public rate-limit writes | absent | `drop_public_rate_limits_write_policy` | `remote-only/untracked` | ledger: archived baseline evidence; local: MHR-E-002 | Migration maintainer | exact provenance and policy evidence absent | preserve ledger; no compensating migration | Not authorized |
+| MHR-R-003 | `0020` / catalog media columns | `0020_catalog_media_columns_fix.sql` | no authoritative match | `ambiguous/manual-review` | local: MHR-E-002; schema inference prohibited | Migration maintainer | missing/contradictory proof | manual review; do not replay | Not authorized |
+| MHR-R-004 | `0044` / CRM bulk mutation RPCs | `0044_crm_bulk_mutation_rpcs.sql` | `0044` placeholder | `ambiguous/manual-review` | ledger: MHR-E-004; local: MHR-E-002 | Migration maintainer | placeholder has no semantic provenance | manual review; no replay | Not authorized |
+| MHR-R-005 | `0045` / resolver soft-delete review | `0045_crm_resolver_soft_delete_review.sql` | `0045` placeholder | `ambiguous/manual-review` | ledger: MHR-E-004; local: MHR-E-002 | Migration maintainer | placeholder has no semantic provenance | manual review; no replay | Not authorized |
+| MHR-R-006 | `0046` / CRM governance remediation | `0046_crm_governance_remediation.sql` | `0046` placeholder | `ambiguous/manual-review` | ledger: MHR-E-004; local: MHR-E-002 | Migration maintainer | placeholder has no semantic provenance | manual review; no replay | Not authorized |
+| MHR-R-007 | `0047` / archive restore controls | `0047_crm_archive_restore_controls.sql` | `0047` placeholder | `ambiguous/manual-review` | ledger: MHR-E-004; local: MHR-E-002 | Migration maintainer | placeholder has no semantic provenance | manual review; no replay | Not authorized |
+| MHR-R-008 | `0048` / purge and blocked outbound | `0048_crm_test_purge_and_blocked_outbound.sql` | `0048` placeholder | `ambiguous/manual-review` | ledger: MHR-E-004; local: MHR-E-002 | Migration maintainer | placeholder has no semantic provenance | manual review; no replay | Not authorized |
+| MHR-R-009 | `0049` / contact aggregate filters | `0049_crm_contact_aggregate_filters.sql` | `0049` placeholder | `ambiguous/manual-review` | ledger: MHR-E-004; local: MHR-E-002 | Migration maintainer | placeholder has no semantic provenance | manual review; no replay | Not authorized |
+| MHR-R-010 | `0057` / quote RPC cutover | `0057_quote_rpc_cutover.sql` | absent | `local pending` | local: MHR-E-002/005; ledger: MHR-E-003 | Migration maintainer | absent ledger row; recovery not proven | absorbed/repeated by `0060`; never replay `0057` | Not authorized |
+| MHR-R-011 | legacy prefix/name variants | local represented files | matching suffix variants | `represented/applied` | local: MHR-E-002; archived baseline provenance | Migration maintainer | none for represented set | retain separate truth planes; no rewrite | Informational only |
+
+No row authorizes a historical/no-op or compensating migration. Remote `0053`–`0056` and `0058`–`0060` are direct archived ledger evidence, but do not convert unresolved rows into authorization.

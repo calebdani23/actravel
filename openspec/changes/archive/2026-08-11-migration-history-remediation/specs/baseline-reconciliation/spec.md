@@ -1,19 +1,6 @@
-# Baseline Reconciliation Specification
+# Delta for Baseline Reconciliation
 
-## Purpose
-
-Establish an evidence-first, non-destructive account of repository, Supabase history, live schema, generated types, environments, and recovery readiness before any new migration identifier is allocated.
-
-## Requirements
-
-### Requirement: Capture and classify the repository baseline
-
-The reconciliation report MUST record current Git HEAD, branch, working-tree state, migration filenames/order/checksums where available, and classify documentation-only commits separately from executable application or schema changes. It MUST identify gaps such as the local `0051` gap without treating documentation as database evidence.
-
-#### Scenario: Git evidence is complete
-- GIVEN the repository contains code, migrations, and documentation commits
-- WHEN the baseline is inspected
-- THEN the report records exact Git evidence and identifies documentation-only commits without claiming remote application
+## MODIFIED Requirements
 
 ### Requirement: Reconcile complete local and authoritative remote history
 
@@ -51,7 +38,7 @@ The baseline MUST preserve type-drift comparison and evidence, but this change M
 - WHEN this change evaluates completion
 - THEN the baseline is retained and tracked type regeneration is prohibited
 
-### Requirement: Verify validation and environment safety
+### Requirement: Verify validation and recovery safety
 
 The baseline MUST distinguish verified, failed, and unavailable evidence for local backup/restore rehearsal, remote readiness, production readiness, and external-boundary-disabled validation. Local proof MUST NOT represent remote or production restore proof. (Previously: capability and recovery proof were merely distinguished.)
 
@@ -77,6 +64,8 @@ The packet MUST provide success/failure criteria, source-time traceability, and 
 - GIVEN all findings are traceable but a required proof or authorization is missing
 - WHEN the final gate is issued
 - THEN the result is `BLOCKED` and `0061+` is explicitly unsafe
+
+## ADDED Requirements
 
 ### Requirement: Bound dependency-baseline parallel work
 
