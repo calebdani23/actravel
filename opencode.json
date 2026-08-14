@@ -336,6 +336,35 @@
       "enabled": true,
       "type": "remote",
       "url": "https://mcp.supabase.com/mcp?project_ref=bdyhakpmxegoipbmbtjb"
+    },
+    "codegraph": {
+      "type": "local",
+      "command": [
+        "codegraph",
+        "serve",
+        "--mcp"
+      ],
+      "enabled": true
+    }
+  },
+  "provider": {
+    "openai": {
+      "models": {
+        "gpt-5.6-luna": {
+          "limit": {
+            "context": 1050000,
+            "input": 922000,
+            "output": 128000
+          }
+        },
+        "gpt-5.6-sol": {
+          "limit": {
+            "context": 1050000,
+            "input": 922000,
+            "output": 128000
+          }
+        }
+      }
     }
   },
   "permission": "allow",
@@ -349,6 +378,6 @@
     "prune": true,
     "tail_turns": 1,
     "preserve_recent_tokens": 12000,
-    "reserved": 300000
+    "reserved": 92200
   }
 }
