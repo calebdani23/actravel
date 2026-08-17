@@ -1,5 +1,19 @@
 # Decisiones técnicas y de producto
 
+## 2026-08-17 — Baseline reconciliation remains blocked
+
+### Decision
+
+Publish the Week 01 evidence packet with one sole final gate, `BLOCKED`, and do not allocate `0061+`.
+
+### Verified facts
+
+The exact linked Supabase ref `bdyhakpmxegoipbmbtjb` and URL matched the required target. Read-only ledger evidence shows remote migrations through `0060` but not `0057`; remote-only named entries include `0051_crm_resolver_advisor_visibility_hotfix` and `drop_public_rate_limits_write_policy`. Local tracked types, migrations, package manifests, and the unrelated intake image remained unchanged by this work. Guarded lint, build, and quote-notification validation passed with external boundaries disabled.
+
+### Blockers
+
+Environment role, independent review, manual reconciliation of ambiguous findings, and all disposable rehearsal prerequisites remain unverified or unavailable. No provider mutation, repair, type regeneration, application change, or real external traffic was performed. Evidence: `openspec/changes/baseline-reconcile-operational-closure/packet/`.
+
 ## 2026-07-20
 
 ### Decisión

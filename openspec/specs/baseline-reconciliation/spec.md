@@ -17,12 +17,12 @@ The reconciliation report MUST record current Git HEAD, branch, working-tree sta
 
 ### Requirement: Reconcile complete local and authoritative remote history
 
-The report MUST inventory local migrations and authoritative remote history with names, versions, authorized hashes, sanitized identity, and evidence times. It MUST give one disposition per discrepancy and cover remote `0051`, `drop_public_rate_limits_write_policy`, local `0020`, placeholders `0044`–`0049`, and local `0057` absorbed by `0060`. (Previously: it required explicit dispositions for `0053`–`0060`.)
+The report MUST use fresh local and remote evidence, discrepancy classifications, evidence references, times, owners, and authorizers. It MUST classify `0051`, `drop_public_rate_limits_write_policy`, `0020`, `0044`–`0049`, and `0057`/`0060` exactly once. (Previously: it required explicit dispositions for named findings.)
 
-#### Scenario: Named findings are reconciled
-- GIVEN local and remote evidence is available or unavailable
-- WHEN the comparison is completed
-- THEN each finding has one classification, owner, blocker, disposition, and authorization state
+#### Scenario: Findings receive deterministic classifications
+- GIVEN local or remote evidence is available, missing, or contradictory
+- WHEN reconciliation is completed
+- THEN every named finding has exactly one classification, disposition, owner, authorizer, source, and capture time
 
 ### Requirement: Use exclusive discrepancy labels
 
@@ -44,39 +44,45 @@ The report MUST compare targeted schema, functions/RPCs/helpers, triggers, const
 
 ### Requirement: Detect generated type drift safely
 
-The baseline MUST preserve type-drift comparison and evidence, but this change MUST NOT regenerate or modify tracked generated types. (Previously: regeneration could occur after proven alignment.)
+The packet MUST generate a remote type artifact in ignored temporary storage, compare it deterministically with `lib/supabase/database.types.ts`, and report hashes and differences. It MUST leave tracked generated types unchanged and MUST NOT overwrite or regenerate them. (Previously: regeneration could occur after proven alignment.)
 
-#### Scenario: Type drift is detected
-- GIVEN a comparison finds generated type drift
-- WHEN this change evaluates completion
-- THEN the baseline is retained and tracked type regeneration is prohibited
+#### Scenario: Fresh types differ
+- GIVEN remote types are generated for comparison
+- WHEN the diff is produced
+- THEN only ignored temporary artifacts are written, tracked types remain unchanged, and drift is reported without provenance inference
 
 ### Requirement: Verify validation and environment safety
 
-The baseline MUST distinguish verified, failed, and unavailable evidence for local backup/restore rehearsal, remote readiness, production readiness, and external-boundary-disabled validation. Local proof MUST NOT represent remote or production restore proof. (Previously: capability and recovery proof were merely distinguished.)
+Baseline lint, build, and quote-notification tests MUST be recorded with outcomes and MUST disable external boundaries; no real Resend, Meta, Storage, or production smoke traffic MAY run. Recovery rehearsal MUST be `verified` only with an approved disposable non-production target, role and authorization, cost/tooling/credential confirmation, backup identity, restore and invariant checks, cleanup proof, and independent sign-off. Missing prerequisites MUST be recorded as `unavailable`, not failed or verified. (Previously: validation distinguished local and remote readiness.)
+
+#### Scenario: Safe baseline validation passes
+
+- GIVEN external boundaries are disabled
+- WHEN lint, build, and quote tests run
+- THEN results are reproducible and no external traffic or database mutation occurs
 
 #### Scenario: Recovery proof is unavailable
-- GIVEN a rehearsal, backup, or restore check cannot be completed
-- WHEN completion is evaluated
-- THEN it receives deterministic `unavailable` or `failed` and cannot pass
+- GIVEN target, authorization, tooling, cost, credentials, backup, cleanup, or independent sign-off is missing
+- WHEN recovery readiness is evaluated
+- THEN rehearsal status is `unavailable` and the final gate is `BLOCKED`
 
 ### Requirement: Gate all risky actions and preserve scope
 
-The packet MUST NOT execute DDL, DML, migrations, migration/history mutation, provider-native or remote repair, migration creation/allocation, placeholder or compensating migrations, generated-type regeneration, or application behavior changes. `0061+` is explicitly prohibited by this change. A request crossing these boundaries MUST fail closed. (Previously: risky operations stopped with a seven-part approval packet.)
+The packet MUST NOT perform DDL, DML, history repair, migration push/reset, provider-native repair, `0061+`, type overwrite, application behavior changes, production smoke, real external traffic, or modification of unrelated paths including `docs/about/helps/intakes/image.png`. A request crossing these boundaries MUST fail closed. (Previously: risky operations and application changes were prohibited.)
 
-#### Scenario: A prohibited operation is requested
-- GIVEN an operator requests repair, migration creation, history allocation, or mutation
+#### Scenario: Scope boundary is crossed
+- GIVEN an operator requests a prohibited mutation or unrelated file change
 - WHEN the request is evaluated
-- THEN it is rejected with a blocker and no action occurs
+- THEN it is rejected, recorded as blocked, and no action occurs
 
 ### Requirement: Publish a bounded final decision
 
-The packet MUST publish exactly one `PASS`, `BLOCKED`, or `PASS WITH FOLLOW-UP` gate and state whether migration allocation is safe. `0061+` MUST remain unsafe unless every required repository, authoritative remote, target, authorization, discrepancy, and recovery gate is proven. (Previously: the report ended with one gate and a safe/not-safe allocation answer.)
+The packet MUST publish exactly one final gate: `PASS`, `BLOCKED`, or `PASS WITH FOLLOW-UP`. Durable `DECISIONS.md`, `PROGRESS.md`, and `ACTIVE.md` updates MUST cite verified facts and blockers, and MUST NOT advance Week 01 unless every completion gate is proven. `0061+` MUST remain unsafe while any provenance, identity, authorization, discrepancy, validation, type-preservation, or recovery gate is missing, unavailable, failed, or unreviewed. (Previously: the report ended with one gate and a safe/not-safe allocation answer.)
 
-#### Scenario: The final gate is issued
-- GIVEN all findings are exclusive and traceable
-- WHEN any required proof is missing, failed, or unavailable
-- THEN the sole outcome is `BLOCKED` and `0061+` is explicitly unsafe
+#### Scenario: Evidence packet completes before closure
+- GIVEN the evidence packet is reproducible but an operational prerequisite is unavailable
+- WHEN durable status is updated
+- THEN the packet may complete, the sole final gate is `BLOCKED`, and Week 01 remains active
 
 ### Requirement: Capture fresh, separated evidence
 

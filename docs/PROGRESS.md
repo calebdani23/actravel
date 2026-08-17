@@ -1,5 +1,11 @@
 # Progreso AC Travel Mx MVP
 
+## 2026-08-17 — Week 01 evidence packet
+
+The bounded baseline reconciliation packet is recorded under `openspec/changes/baseline-reconcile-operational-closure/packet/`. Exact provider ref/URL identity passed a read-only preflight; remote ledger/catalog/policy evidence was captured without mutation. Guarded lint, build, and quote-notification tests passed with `E2E_DISABLE_EXTERNAL_BOUNDARIES=1`; the build-owned `next-env.d.ts` change was restored from its known clean preimage. Tracked database types, migrations, manifests, and `docs/about/helps/intakes/image.png` were preserved.
+
+The sole final gate is **BLOCKED**. Rehearsal is `unavailable` because no approved disposable target, authorization, tooling/cost, credentials, backup, cleanup proof, or independent sign-off was supplied. Week 01 remains active and `0061+` remains unsafe.
+
 ## Estado general
 
 Bloques 1–10 completados en alcance MVP actual. La operación activa queda consolidada sobre Supabase y efectos no-Sheets; Google Sheets fue retirado de la ruta productiva sin borrar historial previo. El proyecto permanece en estado **ready for MVP launch** con validación local final pasada.
