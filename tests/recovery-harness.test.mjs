@@ -8,6 +8,10 @@ import {
   createConfigArtifact,
   canonicalJson,
   sha256Hex,
+  sanitizeArgv,
+  sanitizeEnv,
+  sanitizeText,
+  scanSecrets,
   assertRuntimeToken,
   assertLocalUrl,
   assertAllowedFlags,
@@ -18,6 +22,7 @@ import {
 const expectedExports = [
   'REQUIRED_PORTS', 'renderTemporarySupabaseConfig', 'parseTemporarySupabaseConfig',
   'createConfigArtifact', 'canonicalJson', 'sha256Hex', 'assertRuntimeToken',
+  'sanitizeArgv', 'sanitizeEnv', 'sanitizeText', 'scanSecrets',
   'assertLocalUrl', 'assertAllowedFlags', 'assertContainedPath',
   'validateWorktreeEntries',
 ];
@@ -49,9 +54,10 @@ test('Code A exposes the coherent core subset and frozen ports', () => {
   assert.equal(Object.isFrozen(REQUIRED_PORTS), true);
   assert.deepEqual(Object.keys(module).sort(), expectedExports.slice().sort());
   assert.deepEqual(expectedExports.sort(), [
-    'REQUIRED_PORTS', 'assertAllowedFlags', 'assertContainedPath', 'assertLocalUrl',
-    'assertRuntimeToken', 'canonicalJson', 'createConfigArtifact',
-    'parseTemporarySupabaseConfig', 'renderTemporarySupabaseConfig', 'sha256Hex',
+   'REQUIRED_PORTS', 'assertAllowedFlags', 'assertContainedPath', 'assertLocalUrl',
+   'assertRuntimeToken', 'canonicalJson', 'createConfigArtifact',
+   'parseTemporarySupabaseConfig', 'renderTemporarySupabaseConfig', 'sanitizeArgv',
+   'sanitizeEnv', 'sanitizeText', 'scanSecrets', 'sha256Hex',
     'validateWorktreeEntries',
   ].sort());
 });
@@ -370,4 +376,126 @@ test('Code A tests contain no clock-dependent calls', () => {
   const forbiddenClockReads = new RegExp(['Date', '\\.now', '\\(\\)'].join(''));
   assert.doesNotMatch(deterministicSource, forbiddenConstructors);
   assert.doesNotMatch(deterministicSource, forbiddenClockReads);
+});
+
+test('Code B sanitizes contextual values before shared detection', () => {
+  const argv = ['--token', 'postgres://user:pass@localhost/db', '--db-url=postgres://u:p@x',
+    'https://u:p@example.test/a', 'ordinary'];
+  const argvCopy = JSON.stringify(argv);
+  const safeArgv = sanitizeArgv(argv);
+  assert.deepEqual(safeArgv.value, ['--token', '<redacted:FLAG_VALUE>', '--db-url=<redacted:FLAG_VALUE>',
+    '<redacted:URL_CREDENTIAL>', 'ordinary']);
+  assert.deepEqual(safeArgv.redactions, [
+    { code: 'FLAG_VALUE', indexOrName: 1 }, { code: 'FLAG_VALUE', indexOrName: 2 },
+    { code: 'URL_CREDENTIAL', indexOrName: 3 },
+  ]);
+  assert.equal(JSON.stringify(argv), argvCopy);
+  const env = { DATABASE_URL: 'postgres://u:p@localhost/db', Keep: 'ghp_12345678901234567890' };
+  const safeEnv = sanitizeEnv(env);
+  assert.equal(safeEnv.value.DATABASE_URL, '<redacted:ENV_VALUE>');
+  assert.equal(safeEnv.value.Keep, '<redacted:KNOWN_KEY_PREFIX>');
+  assert.deepEqual(safeEnv.redactions, [
+    { code: 'ENV_VALUE', indexOrName: 'DATABASE_URL' },
+    { code: 'KNOWN_KEY_PREFIX', indexOrName: 'Keep' },
+  ]);
+  assert.equal(sanitizeEnv({ DATABASE_URL: 'postgres://u:p@localhost/db' }, { allowNames: ['DATABASE_URL'] }).value.DATABASE_URL,
+    '<redacted:URL_CREDENTIAL>');
+});
+
+test('Code B detects exact secret grammars and safe findings', () => {
+  const pem = '-----BEGIN PRIVATE KEY-----\nQUJDRA==\n-----END PRIVATE KEY-----';
+  const text = `${pem}\neyJabcde.fghij.klmno AKIA1234567890ABCDEF`;
+  const result = scanSecrets(text);
+  assert.deepEqual(result.findings.map(({ code, index }) => ({ code, index })), [
+    { code: 'PEM_PRIVATE_KEY', index: 0 }, { code: 'JWT_LIKE', index: pem.length + 1 },
+    { code: 'KNOWN_KEY_PREFIX', index: pem.length + 1 + 21 },
+  ]);
+  assert.equal(JSON.stringify(result).includes('QUJDRA'), false);
+  assert.equal(scanSecrets(['ordinary', 'sha256:' + 'a'.repeat(64), '<redacted:URL_CREDENTIAL>']).ok, true);
+  assert.equal(scanSecrets('https://u:p@example.test/path?key=AKIA1234567890ABCDEF').findings.length, 1);
+  assert.equal(scanSecrets('xxeyJabcde.fghij.klmno').ok, true);
+});
+
+test('Code B bounds UTF-8 text after full sanitization', () => {
+  const full = sanitizeText('😀😀AKIA1234567890ABCDEF', { maxBytes: 5 });
+  assert.equal(full.value, '😀');
+  assert.equal(full.retainedBytes, 4);
+  assert.equal(full.truncated, true);
+  assert.equal(full.fullSha256, sha256Hex('😀😀<redacted:KNOWN_KEY_PREFIX>'));
+  assert.deepEqual(full.redactions, [{ code: 'KNOWN_KEY_PREFIX', indexOrName: 4 }]);
+  throws('ERR_SANITIZE_LIMIT', () => sanitizeText('x', { maxBytes: -1 }));
+  throws('ERR_SANITIZE_INPUT', () => sanitizeArgv(['--token']));
+  throws('ERR_SANITIZE_INPUT', () => scanSecrets([, 'x']));
+});
+
+test('Code B covers every sensitive argv form and rejects unsafe shapes', () => {
+  const flags = ['--token', '--password', '--db-url', '--access-token', '--service-role-key'];
+  for (const flag of flags) {
+    assert.deepEqual(sanitizeArgv([flag, 'https://u:p@example.test/x']).value, [flag, '<redacted:FLAG_VALUE>']);
+    assert.deepEqual(sanitizeArgv([`${flag}=https://u:p@example.test/x`]).value, [`${flag}=<redacted:FLAG_VALUE>`]);
+  }
+  assert.deepEqual(sanitizeArgv(['--tokenized', 'https://u:p@example.test/x']).value, ['--tokenized', '<redacted:URL_CREDENTIAL>']);
+  assert.deepEqual(sanitizeArgv(['<redacted:FLAG_VALUE>', '<redacted:ENV_VALUE>']).redactions, []);
+  const source = ['--token', 'value']; assert.deepEqual(sanitizeArgv(source).value, ['--token', '<redacted:FLAG_VALUE>']); assert.deepEqual(source, ['--token', 'value']);
+  for (const value of [null, {}, [, 'x'], Object.assign(['x'], { extra: true }), ['x', 1]]) throws('ERR_SANITIZE_INPUT', () => sanitizeArgv(value));
+  const trap = new Error('secret-native-error'); const proxy = new Proxy([], { ownKeys() { throw trap; } });
+  assert.throws(() => sanitizeArgv(proxy), (error) => { code(error, 'ERR_SANITIZE_INPUT'); assert.notEqual(error, trap); assert.equal(JSON.stringify(error).includes('secret-native-error'), false); return true; });
+  let injectedError;
+  try { assertRuntimeToken('bad'); } catch (error) { injectedError = error; }
+  injectedError.code = 'ERR_SANITIZE_INPUT'; injectedError.message = 'caller-secret';
+  const injectedProxy = new Proxy([], { ownKeys() { throw injectedError; } });
+  assert.throws(() => sanitizeArgv(injectedProxy), (error) => { code(error, 'ERR_SANITIZE_INPUT'); assert.notEqual(error, injectedError); return true; });
+});
+
+test('Code B covers env sensitivity, allowNames, and reflective failures', () => {
+  const names = ['DATABASE_URL', 'db_url', 'POSTGRES_URL', 'POSTGRESQL_URL', 'PASSWORD', 'auth-token', 'api_secret', 'service-key'];
+  const env = Object.fromEntries(names.map((name) => [name, 'https://u:p@example.test/x']));
+  const safe = sanitizeEnv(env);
+  for (const name of names) assert.equal(safe.value[name], '<redacted:ENV_VALUE>');
+  const allowed = sanitizeEnv({ 'api_secret': 'AKIA1234567890ABCDEF' }, { allowNames: ['api_secret'] });
+  assert.equal(allowed.value.api_secret, '<redacted:KNOWN_KEY_PREFIX>');
+  assert.deepEqual(sanitizeEnv({ plain: '<redacted:ENV_VALUE>' }).redactions, []);
+  const accessor = {}; Object.defineProperty(accessor, 'TOKEN', { enumerable: true, get() { throw new Error('env-secret'); } });
+  throws('ERR_SANITIZE_INPUT', () => sanitizeEnv(accessor));
+  const envProxy = new Proxy({ TOKEN: 'x' }, { ownKeys() { throw new Error('proxy-secret'); } });
+  assert.throws(() => sanitizeEnv(envProxy), (error) => { code(error, 'ERR_SANITIZE_INPUT'); assert.equal(JSON.stringify(error).includes('proxy-secret'), false); return true; });
+  for (const options of [null, [], { extra: true }, { allowNames: ['x', 'x'] }, { allowNames: [, 'x'] }]) throws('ERR_SANITIZE_INPUT', () => sanitizeEnv({ x: 'y' }, options));
+});
+
+test('Code B scans PEM variants, all key families, boundaries, and safe indexes', () => {
+  const labels = ['PRIVATE KEY', 'RSA PRIVATE KEY', 'EC PRIVATE KEY', 'OPENSSH PRIVATE KEY'];
+  for (const label of labels) {
+    for (const body of ['QUJD', 'QUJDRA==', 'QUJDRA==\r\nQUJD']) {
+      const text = `-----BEGIN ${label}-----\n${body}\n-----END ${label}-----`;
+      assert.deepEqual(scanSecrets(text).findings, [{ code: 'PEM_PRIVATE_KEY', index: 0 }]);
+    }
+  }
+  for (const text of [
+    '-----BEGIN PRIVATE KEY-----\n\n-----END PRIVATE KEY-----',
+    '-----BEGIN PRIVATE KEY-----\nQUJD\n-----END RSA PRIVATE KEY-----',
+    'x-----BEGIN PRIVATE KEY-----\nQUJD\n-----END PRIVATE KEY-----',
+    '-----BEGIN ENCRYPTED PRIVATE KEY-----\nQUJD\n-----END ENCRYPTED PRIVATE KEY-----',
+    '-----BEGIN PRIVATE KEY-----\nQUJ!\n-----END PRIVATE KEY-----',
+  ]) assert.equal(scanSecrets(text).findings.some(({ code: findingCode }) => findingCode === 'PEM_PRIVATE_KEY'), false);
+  const keys = ['AKIA1234567890ABCDEF', 'ASIA1234567890ABCDEF', 'ghp_12345678901234567890', 'github_pat_12345678901234567890', 'sk_live_1234567890123456', 'sb_secret_1234567890123456'];
+  assert.deepEqual(scanSecrets(keys).findings.map(({ code: findingCode, index }) => ({ code: findingCode, index })), keys.map((_, index) => ({ code: 'KNOWN_KEY_PREFIX', index })));
+  assert.equal(scanSecrets('sha256:' + 'a'.repeat(64) + ' ' + '0'.repeat(200)).ok, true);
+  for (const value of ['eyJabcde.fghij.klmno', 'xxeyJabcde.fghij.klmno', 'eyJabcde.fghij.klmnoX']) {
+    const result = scanSecrets(value); assert.equal(result.findings.some(({ code: findingCode }) => findingCode === 'JWT_LIKE'), value.startsWith('eyJabcde'));
+  }
+  const arrayResult = scanSecrets(['AKIA1234567890ABCDEF', 'eyJabcde.fghij.klmno']);
+  assert.deepEqual(arrayResult.findings, [{ code: 'KNOWN_KEY_PREFIX', index: 0 }, { code: 'JWT_LIKE', index: 1 }]);
+});
+
+test('Code B text options, overlap, mutation, and injected reflective errors are closed', () => {
+  const source = 'https://u:p@example.test/AKIA1234567890ABCDEF'; const result = sanitizeText(source, { maxBytes: 12 });
+  assert.equal(result.value, '<redacted:UR'); assert.equal(result.redactions.length, 1); assert.equal(result.redactions[0].indexOrName, 0); assert.equal(scanSecrets(result.value).ok, true);
+  for (const options of [null, [], { extra: true }]) throws('ERR_SANITIZE_INPUT', () => sanitizeText('x', options));
+  throws('ERR_SANITIZE_LIMIT', () => sanitizeText('x', { maxBytes: '1' }));
+  for (const options of [{ maxBytes: 1.5 }, { maxBytes: Number.MAX_SAFE_INTEGER + 1 }]) throws('ERR_SANITIZE_LIMIT', () => sanitizeText('x', options));
+  const accessor = {}; Object.defineProperty(accessor, 'maxBytes', { enumerable: true, get() { throw new Error('limit-secret'); } });
+  assert.throws(() => sanitizeText('x', accessor), (error) => { code(error, 'ERR_SANITIZE_INPUT'); assert.equal(JSON.stringify(error).includes('limit-secret'), false); return true; });
+  const input = '😀😀AKIA1234567890ABCDEF'; const copy = input.slice(); sanitizeText(input, { maxBytes: 100 }); assert.equal(input, copy);
+  const revoked = Proxy.revocable([], {}); revoked.revoke(); throws('ERR_SANITIZE_INPUT', () => scanSecrets(revoked.proxy));
+  throws('ERR_SANITIZE_INPUT', () => scanSecrets(new Proxy([], { ownKeys() { throw new Error('scan-secret'); } })));
 });

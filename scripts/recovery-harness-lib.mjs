@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const PORT_KEYS = ['api', 'db', 'dbShadow', 'dbPooler', 'studio', 'inbucket', 'inbucketSmtp', 'inbucketPop3', 'analytics'];
 export const REQUIRED_PORTS = Object.freeze({ api: 54321, db: 54322, dbShadow: 54320, dbPooler: 54329, studio: 54323, inbucket: 54324, inbucketSmtp: 54325, inbucketPop3: 54326, analytics: 54327 });
-const errorCodes = new Set(['ERR_CONFIG_PROJECT_ID', 'ERR_CONFIG_SYNTAX', 'ERR_CONFIG_DUPLICATE', 'ERR_CONFIG_UNKNOWN', 'ERR_CONFIG_MISSING', 'ERR_CONFIG_PORT', 'ERR_CANONICAL_TYPE', 'ERR_CANONICAL_CYCLE', 'ERR_HASH_INPUT', 'ERR_TOKEN', 'ERR_URL', 'ERR_FLAG', 'ERR_PATH', 'ERR_WORKTREE']);
+const errorCodes = new Set(['ERR_CONFIG_PROJECT_ID', 'ERR_CONFIG_SYNTAX', 'ERR_CONFIG_DUPLICATE', 'ERR_CONFIG_UNKNOWN', 'ERR_CONFIG_MISSING', 'ERR_CONFIG_PORT', 'ERR_CANONICAL_TYPE', 'ERR_CANONICAL_CYCLE', 'ERR_HASH_INPUT', 'ERR_SANITIZE_INPUT', 'ERR_SANITIZE_LIMIT', 'ERR_TOKEN', 'ERR_URL', 'ERR_FLAG', 'ERR_PATH', 'ERR_WORKTREE']);
 const fields = new Set(['projectId', 'text', 'value', 'input', 'argv', 'env', 'url', 'path', 'entries', 'ports']);
 const reasons = new Set(['invalid', 'duplicate', 'unknown', 'missing', 'out_of_range', 'unsupported', 'cycle', 'sensitive', 'outside', 'protected', 'not_allowed']);
 
@@ -31,10 +31,6 @@ function safeDetails(field, reason, extra = {}) {
   return details;
 }
 function validProjectId(value) { return typeof value === 'string' && /^[a-z0-9][a-z0-9-]{0,47}$/.test(value); }
-function validPorts(value) {
-  if (!plain(value) || !exactKeys(value, PORT_KEYS)) return false;
-  return PORT_KEYS.every((key) => typeof value[key] === 'number' && Number.isSafeInteger(value[key]) && value[key] === REQUIRED_PORTS[key]);
-}
 
 export function renderTemporarySupabaseConfig(input) {
   let keys; let projectId;
@@ -173,17 +169,11 @@ function assertLocalUrlInternal(url, options = {}) {
 }
 export function assertLocalUrl(url, options = {}) { if (typeof url !== 'string' || url.includes('\\')) fail('ERR_URL', safeDetails('url', 'invalid')); options = optionObject(options, ['allowCredentials']); if (options === null) fail('ERR_URL', safeDetails('input', 'invalid')); const allowCredentials = options.allowCredentials; return assertLocalUrlInternal(url, allowCredentials); }
 function denseStrings(value) { if (!Array.isArray(value)) return false; const keys = Reflect.ownKeys(value); if (!keys.includes('length') || keys.length !== value.length + 1) return false; for (let index = 0; index < value.length; index += 1) { const descriptor = Object.getOwnPropertyDescriptor(value, String(index)); if (!descriptor?.enumerable || !('value' in descriptor) || typeof descriptor.value !== 'string') return false; } return true; }
-function assertAllowedFlagsInternal(argv) { const denied = ['--linked', '--project-ref', '--remote', '--include-linked']; argv.forEach((arg, index) => { if (denied.includes(arg) || denied.some((flag) => arg.startsWith(`${flag}=`))) fail('ERR_FLAG', safeDetails('argv', 'not_allowed', { index })); }); return true; }
 export function assertAllowedFlags(argv) { let length; let descriptors; try { if (!Array.isArray(argv)) fail('ERR_FLAG', safeDetails('argv', 'invalid')); const keys = Reflect.ownKeys(argv); length = argv.length; if (!keys.includes('length') || keys.length !== length + 1) fail('ERR_FLAG', safeDetails('argv', 'invalid')); descriptors = []; for (let index = 0; index < length; index += 1) { const descriptor = Object.getOwnPropertyDescriptor(argv, String(index)); if (!descriptor?.enumerable || !('value' in descriptor)) fail('ERR_FLAG', safeDetails('argv', 'invalid')); descriptors.push(descriptor); } } catch { fail('ERR_FLAG', safeDetails('argv', 'invalid')); } const denied = ['--linked', '--project-ref', '--remote', '--include-linked']; for (let index = 0; index < descriptors.length; index += 1) { const arg = descriptors[index].value; if (typeof arg !== 'string') fail('ERR_FLAG', safeDetails('argv', 'invalid', { index })); if (denied.includes(arg) || denied.some((flag) => arg.startsWith(`${flag}=`))) fail('ERR_FLAG', safeDetails('argv', 'not_allowed', { index })); } return true; }
 function safePath(value, absolute) { if (typeof value !== 'string') return false; if (absolute === undefined) absolute = value.startsWith('/'); return !value.includes('\\') && !value.includes('\0') && value === path.posix.normalize(value) && (absolute ? value.startsWith('/') && (value === '/' || !value.endsWith('/')) : !value.startsWith('/') && !value.endsWith('/') && !value.split('/').some((part) => !part || part === '.' || part === '..')); }
 function assertContainedPathInternal(repoRealPath, candidateRealPath) { if (!safePath(repoRealPath, true) || !safePath(candidateRealPath, true)) fail('ERR_PATH', safeDetails('path', 'invalid')); if (candidateRealPath === repoRealPath || (repoRealPath === '/' ? !candidateRealPath.startsWith('/') : !candidateRealPath.startsWith(`${repoRealPath}/`))) fail('ERR_PATH', safeDetails('path', 'outside', { path: candidateRealPath, absolute: true })); return true; }
 export function assertContainedPath(input) { let repoRealPath; let candidateRealPath; try { if (!plain(input) || !exactKeys(input, ['repoRealPath', 'candidateRealPath'])) fail('ERR_PATH', safeDetails('path', 'invalid')); repoRealPath = input.repoRealPath; candidateRealPath = input.candidateRealPath; } catch { fail('ERR_PATH', safeDetails('path', 'invalid')); } return assertContainedPathInternal(repoRealPath, candidateRealPath); }
 function relative(value) { return safePath(value, false); }
-function validateWorktreeEntriesInternal(entries, options) {
-  if (!denseObjects(entries) || !plain(options) || !exactKeys(options, ['allowedPaths', 'protectedPaths']) || !validPathList(options.allowedPaths) || !validPathList(options.protectedPaths)) fail('ERR_WORKTREE', safeDetails('entries', 'invalid'));
-  const allowed = new Set(options.allowedPaths); const protectedSet = new Set(options.protectedPaths); const seen = new Set();
-  entries.forEach((entry, index) => { const entryKeys = plain(entry) && Reflect.ownKeys(entry); const validShape = plain(entry) && exactKeys(entry, ['path', 'status', 'tracked']) && entryKeys.every((key) => { const descriptor = Object.getOwnPropertyDescriptor(entry, key); return descriptor?.enumerable && 'value' in descriptor; }); if (!validShape || !relative(entry.path) || seen.has(entry.path) || !['M', 'A', 'D', 'R', 'C', 'U', '?', '!'].includes(entry.status) || typeof entry.tracked !== 'boolean') fail('ERR_WORKTREE', safeDetails('entries', 'invalid', { index, path: relative(entry.path) ? entry.path : undefined })); if ((entry.status === '?' || entry.status === '!') ? entry.tracked : !entry.tracked) fail('ERR_WORKTREE', safeDetails('entries', 'invalid', { index, path: entry.path })); if (protectedSet.has(entry.path)) fail('ERR_WORKTREE', safeDetails('entries', 'protected', { index, path: entry.path })); if (!allowed.has(entry.path)) fail('ERR_WORKTREE', safeDetails('entries', 'not_allowed', { index, path: entry.path })); seen.add(entry.path); }); return true;
-}
 export function validateWorktreeEntries(entries, options) {
   let safeEntries; let allowedPaths; let protectedPaths; let optionsValid;
   try {
@@ -219,5 +209,88 @@ function snapshotArray(value, strings) {
   const keys = Reflect.ownKeys(value); if (!keys.includes('length') || keys.length !== value.length + 1) return null;
   const result = []; for (let index = 0; index < value.length; index += 1) { const descriptor = Object.getOwnPropertyDescriptor(value, String(index)); if (!descriptor?.enumerable || !('value' in descriptor) || (strings && typeof descriptor.value !== 'string')) return null; result.push(descriptor.value); } return result;
 }
-function denseObjects(value) { if (!Array.isArray(value)) return false; const keys = Reflect.ownKeys(value); if (!keys.includes('length') || keys.length !== value.length + 1) return false; for (let index = 0; index < value.length; index += 1) { const descriptor = Object.getOwnPropertyDescriptor(value, String(index)); if (!descriptor?.enumerable || !('value' in descriptor)) return false; } return true; }
 function validPathList(value) { return denseStrings(value) && value.every(relative) && new Set(value).size === value.length; }
+
+const SENSITIVE_FLAGS = new Set(['--token', '--password', '--db-url', '--access-token', '--service-role-key']);
+const PEM_LABEL = 'PRIVATE KEY|RSA PRIVATE KEY|EC PRIVATE KEY|OPENSSH PRIVATE KEY';
+const BASE64_LINE = '(?:(?:[A-Za-z0-9+/]{4})+(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?|(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=))';
+const PEM_RE = new RegExp(`(^|\\n)-----BEGIN (?<pemLabel>${PEM_LABEL})-----\\r?\\n(?:(?:${BASE64_LINE})\\r?\\n)+-----END \\k<pemLabel>-----(?=$|\\r?\\n)`, 'g');
+const JWT_RE = /eyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}/g;
+const KEY_RE = /(?:AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk_(?:live|test)_[A-Za-z0-9]{16,}|sb_secret_[A-Za-z0-9_-]{16,})/g;
+const PLACEHOLDER_RE = /^<redacted:[A-Z_]+>$/;
+function delimiter(character) { return /[\s\u0000-\u001f\u007f-\u009f]/.test(character); }
+function tokenBoundary(text, start, end) { return (start === 0 || !/[A-Za-z0-9_-]/.test(text[start - 1])) && (end === text.length || !/[A-Za-z0-9_-]/.test(text[end])); }
+function sharedSpans(text) {
+  if (PLACEHOLDER_RE.test(text)) return [];
+  const spans = [];
+  for (const match of text.matchAll(PEM_RE)) spans.push({ code: 'PEM_PRIVATE_KEY', start: match.index + match[1].length, end: match.index + match[0].length });
+  let start = 0;
+  while (start < text.length) {
+    while (start < text.length && delimiter(text[start])) start += 1;
+    if (start >= text.length) break;
+    let end = start; while (end < text.length && !delimiter(text[end])) end += 1;
+    const candidate = text.slice(start, end);
+    if (/^(?:http|https|postgres|postgresql):\/\//.test(candidate)) {
+      try { const parsed = new URL(candidate); if (parsed.username || parsed.password) spans.push({ code: 'URL_CREDENTIAL', start, end }); } catch { /* another detector may still match */ }
+    }
+    start = end;
+  }
+  for (const [regex, code] of [[JWT_RE, 'JWT_LIKE'], [KEY_RE, 'KNOWN_KEY_PREFIX']]) {
+    regex.lastIndex = 0;
+    for (const match of text.matchAll(regex)) if (tokenBoundary(text, match.index, match.index + match[0].length)) spans.push({ code, start: match.index, end: match.index + match[0].length });
+  }
+  const priority = { PEM_PRIVATE_KEY: 0, URL_CREDENTIAL: 1, JWT_LIKE: 2, KNOWN_KEY_PREFIX: 3 };
+  spans.sort((a, b) => priority[a.code] - priority[b.code] || a.start - b.start || (b.end - b.start) - (a.end - a.start));
+  const selected = [];
+  for (const span of spans) if (!selected.some((other) => span.start < other.end && other.start < span.end)) selected.push(span);
+  return selected.sort((a, b) => a.start - b.start);
+}
+function sanitizeShared(text, indexOrName, useOffsets = false) {
+  const spans = sharedSpans(text); let value = text;
+  const redactions = spans.map((span) => ({ code: span.code, indexOrName: useOffsets ? span.start : indexOrName }));
+  for (let index = spans.length - 1; index >= 0; index -= 1) { const span = spans[index]; value = `${value.slice(0, span.start)}<redacted:${span.code}>${value.slice(span.end)}`; }
+  return { value, redactions };
+}
+function sanitizerOptions(options, allowed) {
+  if (options === undefined) return {};
+  try {
+    if (!plain(options)) fail('ERR_SANITIZE_INPUT', safeDetails('input', 'invalid'));
+    const keys = Reflect.ownKeys(options); if (keys.some((key) => !allowed.includes(key))) fail('ERR_SANITIZE_INPUT', safeDetails('input', 'unknown'));
+    const result = {}; for (const key of keys) { const descriptor = Object.getOwnPropertyDescriptor(options, key); if (!descriptor?.enumerable || !('value' in descriptor)) fail('ERR_SANITIZE_INPUT', safeDetails('input', 'invalid')); result[key] = descriptor.value; } return result;
+  } catch { fail('ERR_SANITIZE_INPUT', safeDetails('input', 'invalid')); }
+}
+function sanitizerScan(value, field) { const result = scanSecrets(value); if (!result.ok) fail('ERR_SANITIZE_INPUT', safeDetails(field, 'sensitive')); }
+function snapshotStringArray(value) { try { const result = snapshotArray(value, true); if (!result) fail('ERR_SANITIZE_INPUT', safeDetails('input', 'invalid')); return result; } catch { fail('ERR_SANITIZE_INPUT', safeDetails('input', 'invalid')); } }
+
+export function scanSecrets(input) {
+  if (typeof input === 'string') return { ok: sharedSpans(input).length === 0, findings: sharedSpans(input).map(({ code, start }) => ({ code, index: start })) };
+  const values = snapshotStringArray(input); const findings = [];
+  values.forEach((value, index) => sharedSpans(value).forEach(({ code }) => findings.push({ code, index })));
+  return { ok: findings.length === 0, findings };
+}
+export function sanitizeArgv(argv, options = {}) {
+  sanitizerOptions(options, []); const source = snapshotStringArray(argv); const value = []; const redactions = [];
+  for (let index = 0; index < source.length; index += 1) {
+    const arg = source[index]; const equals = arg.indexOf('='); const flag = equals < 0 ? arg : arg.slice(0, equals);
+    if (SENSITIVE_FLAGS.has(arg) || (SENSITIVE_FLAGS.has(flag) && equals >= 0)) {
+      if (equals >= 0) { value.push(`${flag}=<redacted:FLAG_VALUE>`); redactions.push({ code: 'FLAG_VALUE', indexOrName: index }); }
+      else { if (index + 1 >= source.length) fail('ERR_SANITIZE_INPUT', safeDetails('argv', 'invalid', { index })); value.push(arg); index += 1; value.push('<redacted:FLAG_VALUE>'); redactions.push({ code: 'FLAG_VALUE', indexOrName: index }); }
+    } else { const sanitized = sanitizeShared(arg, index); value.push(sanitized.value); redactions.push(...sanitized.redactions); }
+  }
+  sanitizerScan(value, 'argv'); return { value, redactions };
+}
+function sensitiveEnvName(name) { return /^(?:DATABASE_URL|DB_URL|POSTGRES_URL|POSTGRESQL_URL)$/i.test(name) || /(^|[_-])(PASSWORD|TOKEN|SECRET|KEY)([_-]|$)/i.test(name) || /(^|[_-])(DATABASE|DB|POSTGRES|POSTGRESQL)[_-]?URL([_-]|$)/i.test(name); }
+export function sanitizeEnv(env, options = {}) {
+  const parsed = sanitizerOptions(options, ['allowNames']); let allow = [];
+  if (parsed.allowNames !== undefined) { allow = snapshotStringArray(parsed.allowNames); if (new Set(allow).size !== allow.length) fail('ERR_SANITIZE_INPUT', safeDetails('input', 'duplicate')); }
+  let keys; try { if (!plain(env)) fail('ERR_SANITIZE_INPUT', safeDetails('env', 'invalid')); keys = Reflect.ownKeys(env); if (keys.some((key) => typeof key !== 'string')) fail('ERR_SANITIZE_INPUT', safeDetails('env', 'invalid')); } catch { fail('ERR_SANITIZE_INPUT', safeDetails('env', 'invalid')); }
+  const value = Object.create(null); const redactions = [];
+  try { for (const name of keys) { const descriptor = Object.getOwnPropertyDescriptor(env, name); if (!descriptor?.enumerable || !('value' in descriptor) || typeof descriptor.value !== 'string') fail('ERR_SANITIZE_INPUT', safeDetails('env', 'invalid')); if (sensitiveEnvName(name) && !allow.includes(name)) { value[name] = '<redacted:ENV_VALUE>'; redactions.push({ code: 'ENV_VALUE', indexOrName: name }); } else { const sanitized = sanitizeShared(descriptor.value, name); value[name] = sanitized.value; redactions.push(...sanitized.redactions); } } } catch { fail('ERR_SANITIZE_INPUT', safeDetails('env', 'invalid')); }
+  sanitizerScan(Object.keys(value).sort().map((name) => value[name]), 'env'); return { value, redactions };
+}
+export function sanitizeText(text, options = {}) {
+  if (typeof text !== 'string') fail('ERR_SANITIZE_INPUT', safeDetails('text', 'invalid')); const parsed = sanitizerOptions(options, ['maxBytes']); const maxBytes = parsed.maxBytes === undefined ? 16384 : parsed.maxBytes;
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 0) fail('ERR_SANITIZE_LIMIT', safeDetails('value', 'out_of_range')); const sanitized = sanitizeShared(text, 0, true); sanitizerScan(sanitized.value, 'text'); const fullSha256 = sha256Hex(sanitized.value); const bytes = new TextEncoder().encode(sanitized.value); let value = ''; let retainedBytes = 0;
+  for (const character of sanitized.value) { const size = new TextEncoder().encode(character).length; if (retainedBytes + size > maxBytes) break; value += character; retainedBytes += size; }
+  return { value, fullSha256, truncated: retainedBytes < bytes.length, retainedBytes, redactions: sanitized.redactions };
+}
