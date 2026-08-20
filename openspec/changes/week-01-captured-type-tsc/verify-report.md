@@ -1,4 +1,5 @@
-```yaml gentle-ai.verify-result/v1
+```yaml
+schema: gentle-ai.verify-result/v1
 change: week-01-captured-type-tsc
 mode: strict-tdd
 attempt_token: sha256:bfe880ab01a32e18185bff37e30e9251f5b0886d131651d9ec3fd30c2ec5fdd5
