@@ -272,3 +272,38 @@ The baseline delta is limited to deterministic utility/guard coverage. A core PA
 - GIVEN a proposed test or conclusion requiring process execution, receipts, invariants, cleanup, manifests, SQL, recovery lifecycle, external systems, or provider evidence
 - WHEN evaluated against this change
 - THEN it is deferred to a follow-up slice rather than added or inferred here
+
+### Requirement: Bound captured-type compiler compatibility
+
+The repository MAY publish `TSC_COMPATIBLE_WITH_CAPTURED_SNAPSHOT` only when the
+fixed captured snapshot identity, exact `HEAD` TypeScript source preimage, parsed
+root boundaries, isolated in-memory compiler hosts, baseline-zero diagnostics,
+and candidate-zero diagnostics all pass. The result proves compiler compatibility
+with the captured bytes only. It MUST NOT be interpreted as a build result, fresh
+remote provenance, tracked generated-type alignment, recovery readiness, Week 01
+closure, or authorization to create migration `0061+`. Any unsafe semantic
+condition MUST produce `BLOCKED` with its bounded blocker code and MUST NOT modify
+tracked types, migrations, application behavior, dependencies, lockfiles, or
+other protected paths.
+
+#### Scenario: Captured snapshot compatibility passes
+
+- GIVEN the fixed snapshot and exact tracked-source preimage are validated
+- AND baseline and candidate compiler diagnostics are empty
+- WHEN the diagnostic publishes its result
+- THEN it may publish `TSC_COMPATIBLE_WITH_CAPTURED_SNAPSHOT`
+- AND the result is recorded only as compatibility with those captured bytes
+
+#### Scenario: Compatibility is not broader readiness
+
+- GIVEN the diagnostic publishes `TSC_COMPATIBLE_WITH_CAPTURED_SNAPSHOT`
+- WHEN baseline status is reconciled
+- THEN no build, fresh remote provenance, tracked type alignment, recovery readiness,
+  Week 01 closure, or `0061+` authorization is inferred
+
+#### Scenario: Unsafe or changed inputs fail closed
+
+- GIVEN snapshot identity, source preimage, root filtering, compiler isolation, or
+  diagnostics are unsafe or changed
+- WHEN the diagnostic runs
+- THEN it publishes `BLOCKED` with the applicable blocker and performs no protected mutation
