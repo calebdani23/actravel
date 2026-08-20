@@ -1,8 +1,20 @@
 # Progreso AC Travel Mx MVP
 
+## 2026-08-20 — Week 01 amendment proposed
+
+Maintainer token `sha256:10f4ad85c10c004edab347f07603c0465d29bd7f812d54fc6025c262e592232d` amends the parent gate to accept `0057` as `ABSENT_WITH_EFFECT_EQUIVALENCE`. The 59-row authoritative ledger proves it did not execute; exact LF-normalized `0060` and live durable effects prove equivalence. Production recovery manifest `24a882...0fe3`, category aggregate `45f3a8...b394`, and provider/recovery/type/prior receipts are bound in the canonical packet. Proposed verdict is `PASS`, pending fresh independent verification; Week 02 is not advanced yet and `0061+` cannot run automatically.
+
+## 2026-08-20 — Week 01 final integration
+
+The canonical final manifest is `openspec/changes/week-01-operational-gate-closure/packet/evidence-manifest.md`. The amended packet records requirements 9/9, scenarios 17/17, tasks 17/17, production recovery, 59/59 ledger rows, 16/16 catalog categories, and cleanup/secret scans. The authoritative ledger proves `0057` did not execute; exact normalized `0060` and live durable effects satisfy the approved equivalence amendment without fabricating provenance. Proposed verdict is **PASS**, pending fresh independent verification; no `0061+` work is authorized automatically.
+
+## 2026-08-20 — Week 01 final independent gate
+
+Final verification under token `sha256:e031596ae703108ce9841aad44373afe2b0f4a301a54e52d775ca4d3c802cbf5` is **PASS**: 8/8 requirements, 14/14 scenarios, and 17/17 task rows are complete. `0057` did not execute; authoritative absence plus exact `0060`/live-catalog equivalence is accepted only as the amended requirement disposition, not historical provenance. Week 02 is planning-only next action and `0061+` remains separately gated.
+
 ## 2026-08-17 — Week 01 evidence packet
 
-The bounded baseline reconciliation packet is recorded under `openspec/changes/baseline-reconcile-operational-closure/packet/`. Exact provider ref/URL identity passed a read-only preflight; remote ledger/catalog/policy evidence was captured without mutation. Guarded lint, build, and quote-notification tests passed with `E2E_DISABLE_EXTERNAL_BOUNDARIES=1`; the build-owned `next-env.d.ts` change was restored from its known clean preimage. Tracked database types, migrations, manifests, and `docs/about/helps/intakes/image.png` were preserved.
+The bounded baseline reconciliation packet is recorded under `openspec/changes/week-01-operational-gate-closure/packet/`. Exact provider ref/URL identity passed a read-only preflight; remote ledger/catalog/policy evidence was captured without mutation. Guarded lint, build, and quote-notification validation passed; tracked database types, migrations, manifests, and `docs/about/helps/intakes/image.png` were preserved.
 
 The sole final gate is **BLOCKED**. Rehearsal is `unavailable` because no approved disposable target, authorization, tooling/cost, credentials, backup, cleanup proof, or independent sign-off was supplied. Week 01 remains active and `0061+` remains unsafe.
 

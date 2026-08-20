@@ -1,5 +1,17 @@
 # Decisiones técnicas y de producto
 
+## 2026-08-20 — Week 01 final independent gate: PASS
+
+Under final verification token `sha256:e031596ae703108ce9841aad44373afe2b0f4a301a54e52d775ca4d3c802cbf5`, the amended gate passes: `0057` did not execute; authoritative absence plus exact `0060`/live-catalog equivalence is accepted as the requirement disposition, not historical provenance. Production remains read-only, no replay/repair/mutation is authorized, Week 02 is planning-only next action, and `0061+` remains separately gated.
+
+## 2026-08-20 — Week 01 amendment: absent 0057 with equivalent effects
+
+The maintainer-approved token `sha256:10f4ad85c10c004edab347f07603c0465d29bd7f812d54fc6025c262e592232d` accepts `0057` as `ABSENT_WITH_EFFECT_EQUIVALENCE`. The authoritative 59-row ledger proves `0057` did not execute; exact LF-normalized local/production `0060` and live durable effects prove the intended equivalent production outcome. This changes the requirement, not history. Production remains read-only, no replay/repair/mutation is authorized, `0061+` remains separately gated, and a fresh independent verifier retains final authority.
+
+## 2026-08-20 — Week 01 final integration remains blocked
+
+The final reconciliation binds provider evidence, production recovery manifest `24a882a7158383c946b99c1ea55374f6c2f7b038fd30441f56e39f8510e10fe3`, and preserved type evidence. Read-only source backup/local restore passed; all 59 ledger rows and 16 catalog categories matched, with cleanup and secret scan passing. The authoritative ledger still lacks `0057`; normalized `0060` and live durable effects equal the intended `0057` outcome, but historical execution provenance is not proven. The current parent contract does not define `ABSENT_WITH_EFFECT_EQUIVALENCE` as sufficient, so the sole gate remains **BLOCKED**. Closure requires historical `0057` proof or a maintainer-approved requirement amendment; `0061+` remains separately gated. Evidence: `openspec/changes/week-01-operational-gate-closure/packet/evidence-manifest.md` and `verify-report.md`.
+
 ## 2026-08-17 — Baseline reconciliation remains blocked
 
 ### Decision
