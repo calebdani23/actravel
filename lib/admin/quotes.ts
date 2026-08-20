@@ -4,8 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/supabase/database.types";
 
 type Functions = Database["public"]["Functions"];
-type QuotePageRow = Functions["crm_quote_page"]["Returns"][number];
-type QuoteDetailRow = Functions["crm_quote_detail"]["Returns"][number];
+type QuoteCurrencyNullabilityOverlay = {
+  current_currency: string | null;
+  accepted_currency: string | null;
+};
+type QuotePageRow = Omit<Functions["crm_quote_page"]["Returns"][number], keyof QuoteCurrencyNullabilityOverlay> & QuoteCurrencyNullabilityOverlay;
+type QuoteDetailRow = Omit<Functions["crm_quote_detail"]["Returns"][number], keyof QuoteCurrencyNullabilityOverlay> & QuoteCurrencyNullabilityOverlay;
 type QuoteVersionRow = Functions["crm_quote_version_page"]["Returns"][number];
 type QuoteRequestRow = Functions["crm_quote_request_link_page"]["Returns"][number];
 type QuoteEventRow = Functions["crm_quote_event_page"]["Returns"][number];

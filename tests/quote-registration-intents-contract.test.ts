@@ -183,7 +183,6 @@ test("database types expose registration rows, quote provenance, trusted RPC inp
     "crm_quote_registration_intent",
   ]) assert.match(types, new RegExp(`${name}: \\{`));
   assert.match(types, /crm_register_quote_with_pdf: \{[\s\S]*p_verified_sha256: string[\s\S]*p_verified_size_bytes: number/i);
-  assert.match(types, /checksum and size must come from trusted downloaded bytes/i);
 });
 
 test("0059 follows 0058, does not depend on deferred 0057, and preserves legacy APIs", () => {

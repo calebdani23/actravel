@@ -5,6 +5,7 @@ import test from "node:test";
 const read = (path: string) => readFileSync(path, "utf8");
 const migration = read("db/migrations/0053_quotes_header_foundation.sql");
 const databaseTypes = read("lib/supabase/database.types.ts");
+const quoteAdmin = read("lib/admin/quotes.ts");
 
 test("0053 creates first-class quote headers with safe numbering and lifecycle governance", () => {
   assert.match(migration, /create sequence if not exists public\.quote_number_sequence/i);
@@ -181,7 +182,9 @@ test("database types expose quote tables, relationships, compatibility fields, a
   ]) assert.match(databaseTypes, new RegExp(fk));
   for (const field of ["quote_id?: string", "finalized_at", "finalized_by", "content_sha256"]) assert.match(databaseTypes, new RegExp(field.replace("?", "\\?")));
   for (const fn of ["crm_quote_page", "crm_quote_detail", "crm_quote_version_page", "crm_quote_request_link_page", "crm_quote_event_page"]) assert.match(databaseTypes, new RegExp(`${fn}:`));
-  assert.match(databaseTypes, /current_currency: string \| null[\s\S]*accepted_currency: string \| null/);
+  assert.match(quoteAdmin, /type QuoteCurrencyNullabilityOverlay = \{[\s\S]*current_currency: string \| null;[\s\S]*accepted_currency: string \| null;/);
+  assert.match(quoteAdmin, /type QuotePageRow = Omit<Functions\["crm_quote_page"\]/);
+  assert.match(quoteAdmin, /type QuoteDetailRow = Omit<Functions\["crm_quote_detail"\]/);
 });
 
 test("0053 is additive, preserves customer rows, and is the next migration number", () => {

@@ -109,26 +109,6 @@ export type Database = {
           },
         ]
       }
-      crm_bulk_mutation_jobs: {
-        Row: { actor_id: string | null; completed_at: string | null; created_at: string; failure_count: number; id: string; metadata: Json; operation: string; requested_count: number; success_count: number }
-        Insert: { actor_id?: string | null; completed_at?: string | null; created_at?: string; failure_count?: number; id?: string; metadata?: Json; operation: string; requested_count?: number; success_count?: number }
-        Update: { actor_id?: string | null; completed_at?: string | null; created_at?: string; failure_count?: number; id?: string; metadata?: Json; operation?: string; requested_count?: number; success_count?: number }
-        Relationships: [
-          {
-            foreignKeyName: "crm_bulk_mutation_jobs_actor_id_fkey"
-            columns: ["actor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      crm_bulk_mutation_items: {
-        Row: { after_state: Json | null; before_state: Json | null; created_at: string; entity_id: string; entity_type: string; error_code: string | null; error_message: string | null; id: string; job_id: string; outcome: string }
-        Insert: { after_state?: Json | null; before_state?: Json | null; created_at?: string; entity_id: string; entity_type: string; error_code?: string | null; error_message?: string | null; id?: string; job_id: string; outcome: string }
-        Update: { after_state?: Json | null; before_state?: Json | null; created_at?: string; entity_id?: string; entity_type?: string; error_code?: string | null; error_message?: string | null; id?: string; job_id?: string; outcome?: string }
-        Relationships: []
-      }
       bookings: {
         Row: {
           accepted_quote_version_id: string | null
@@ -249,8 +229,8 @@ export type Database = {
           first_name: string
           id: string
           is_test_data: boolean
-          lifecycle_status: string
           last_name: string | null
+          lifecycle_status: string
           normalized_email: string | null
           normalized_phone: string | null
           notes: string | null
@@ -272,8 +252,8 @@ export type Database = {
           first_name: string
           id?: string
           is_test_data?: boolean
-          lifecycle_status?: string
           last_name?: string | null
+          lifecycle_status?: string
           normalized_email?: string | null
           normalized_phone?: string | null
           notes?: string | null
@@ -295,8 +275,8 @@ export type Database = {
           first_name?: string
           id?: string
           is_test_data?: boolean
-          lifecycle_status?: string
           last_name?: string | null
+          lifecycle_status?: string
           normalized_email?: string | null
           normalized_phone?: string | null
           notes?: string | null
@@ -322,14 +302,105 @@ export type Database = {
           },
         ]
       }
+      crm_bulk_mutation_items: {
+        Row: {
+          after_state: Json | null
+          before_state: Json | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          error_code: string | null
+          error_message: string | null
+          id: string
+          job_id: string
+          outcome: string
+        }
+        Insert: {
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          job_id: string
+          outcome: string
+        }
+        Update: {
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          job_id?: string
+          outcome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_bulk_mutation_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "crm_bulk_mutation_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_bulk_mutation_jobs: {
+        Row: {
+          actor_id: string | null
+          completed_at: string | null
+          created_at: string
+          failure_count: number
+          id: string
+          metadata: Json
+          operation: string
+          requested_count: number
+          success_count: number
+        }
+        Insert: {
+          actor_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          failure_count?: number
+          id?: string
+          metadata?: Json
+          operation: string
+          requested_count?: number
+          success_count?: number
+        }
+        Update: {
+          actor_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          failure_count?: number
+          id?: string
+          metadata?: Json
+          operation?: string
+          requested_count?: number
+          success_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_bulk_mutation_jobs_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       destinations: {
         Row: {
           country: string
           created_at: string
-          detail_sections_en: Json | null
-          detail_sections_es: Json | null
           description_en: string | null
           description_es: string | null
+          detail_sections_en: Json | null
+          detail_sections_es: Json | null
           hero_image_url: string | null
           id: string
           is_featured: boolean
@@ -348,10 +419,10 @@ export type Database = {
         Insert: {
           country?: string
           created_at?: string
-          detail_sections_en?: Json | null
-          detail_sections_es?: Json | null
           description_en?: string | null
           description_es?: string | null
+          detail_sections_en?: Json | null
+          detail_sections_es?: Json | null
           hero_image_url?: string | null
           id?: string
           is_featured?: boolean
@@ -370,10 +441,10 @@ export type Database = {
         Update: {
           country?: string
           created_at?: string
-          detail_sections_en?: Json | null
-          detail_sections_es?: Json | null
           description_en?: string | null
           description_es?: string | null
+          detail_sections_en?: Json | null
+          detail_sections_es?: Json | null
           hero_image_url?: string | null
           id?: string
           is_featured?: boolean
@@ -653,8 +724,8 @@ export type Database = {
           deleted_reason: string | null
           destination_id: string | null
           id: string
-          is_test_data: boolean
           is_featured: boolean
+          is_test_data: boolean
           opportunity_basis: Json
           opportunity_signature: string | null
           opportunity_signature_version: number
@@ -681,8 +752,8 @@ export type Database = {
           deleted_reason?: string | null
           destination_id?: string | null
           id?: string
-          is_test_data?: boolean
           is_featured?: boolean
+          is_test_data?: boolean
           opportunity_basis?: Json
           opportunity_signature?: string | null
           opportunity_signature_version?: number
@@ -709,8 +780,8 @@ export type Database = {
           deleted_reason?: string | null
           destination_id?: string | null
           id?: string
-          is_test_data?: boolean
           is_featured?: boolean
+          is_test_data?: boolean
           opportunity_basis?: Json
           opportunity_signature?: string | null
           opportunity_signature_version?: number
@@ -927,10 +998,10 @@ export type Database = {
       packages: {
         Row: {
           created_at: string
-          detail_sections_en: Json | null
-          detail_sections_es: Json | null
           description_en: string | null
           description_es: string | null
+          detail_sections_en: Json | null
+          detail_sections_es: Json | null
           hero_image_url: string | null
           id: string
           is_featured: boolean
@@ -950,10 +1021,10 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          detail_sections_en?: Json | null
-          detail_sections_es?: Json | null
           description_en?: string | null
           description_es?: string | null
+          detail_sections_en?: Json | null
+          detail_sections_es?: Json | null
           hero_image_url?: string | null
           id?: string
           is_featured?: boolean
@@ -973,10 +1044,10 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          detail_sections_en?: Json | null
-          detail_sections_es?: Json | null
           description_en?: string | null
           description_es?: string | null
+          detail_sections_en?: Json | null
+          detail_sections_es?: Json | null
           hero_image_url?: string | null
           id?: string
           is_featured?: boolean
@@ -1518,109 +1589,6 @@ export type Database = {
           },
         ]
       }
-      quote_request_quote_links: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          id: string
-          quote_id: string
-          quote_request_id: string
-          relation: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          quote_id: string
-          quote_request_id: string
-          relation: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          quote_id?: string
-          quote_request_id?: string
-          relation?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "quote_request_quote_links_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quote_request_quote_links_quote_id_fkey"
-            columns: ["quote_id"]
-            isOneToOne: false
-            referencedRelation: "quotes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quote_request_quote_links_quote_request_id_fkey"
-            columns: ["quote_request_id"]
-            isOneToOne: false
-            referencedRelation: "quote_requests"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      quote_requests: {
-        Row: {
-          contact_id: string | null
-          created_at: string
-          destination_slug: string | null
-          id: string
-          lead_id: string | null
-          locale: string
-          payload: Json
-          service_slug: string | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          contact_id?: string | null
-          created_at?: string
-          destination_slug?: string | null
-          id?: string
-          lead_id?: string | null
-          locale?: string
-          payload?: Json
-          service_slug?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          contact_id?: string | null
-          created_at?: string
-          destination_slug?: string | null
-          id?: string
-          lead_id?: string | null
-          locale?: string
-          payload?: Json
-          service_slug?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "quote_requests_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quote_requests_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       quote_registration_intents: {
         Row: {
           abandoned_at: string | null
@@ -1760,6 +1728,109 @@ export type Database = {
             columns: ["originating_request_id"]
             isOneToOne: false
             referencedRelation: "quote_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_request_quote_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          quote_id: string
+          quote_request_id: string
+          relation: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          quote_id: string
+          quote_request_id: string
+          relation: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          quote_id?: string
+          quote_request_id?: string
+          relation?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_request_quote_links_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_request_quote_links_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_request_quote_links_quote_request_id_fkey"
+            columns: ["quote_request_id"]
+            isOneToOne: false
+            referencedRelation: "quote_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_requests: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          destination_slug: string | null
+          id: string
+          lead_id: string | null
+          locale: string
+          payload: Json
+          service_slug: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          destination_slug?: string | null
+          id?: string
+          lead_id?: string | null
+          locale?: string
+          payload?: Json
+          service_slug?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          destination_slug?: string | null
+          id?: string
+          lead_id?: string | null
+          locale?: string
+          payload?: Json
+          service_slug?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_requests_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_requests_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
@@ -1908,7 +1979,7 @@ export type Database = {
           idempotency_key?: string | null
           lead_id: string
           notes?: string | null
-          quote_id?: string
+          quote_id: string
           quote_request_id?: string | null
           rejected_at?: string | null
           sent_at?: string | null
@@ -2150,10 +2221,10 @@ export type Database = {
       services: {
         Row: {
           created_at: string
-          detail_sections_en: Json | null
-          detail_sections_es: Json | null
           description_en: string | null
           description_es: string | null
+          detail_sections_en: Json | null
+          detail_sections_es: Json | null
           hero_image_url: string | null
           id: string
           is_featured: boolean
@@ -2173,10 +2244,10 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          detail_sections_en?: Json | null
-          detail_sections_es?: Json | null
           description_en?: string | null
           description_es?: string | null
+          detail_sections_en?: Json | null
+          detail_sections_es?: Json | null
           hero_image_url?: string | null
           id?: string
           is_featured?: boolean
@@ -2196,10 +2267,10 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          detail_sections_en?: Json | null
-          detail_sections_es?: Json | null
           description_en?: string | null
           description_es?: string | null
+          detail_sections_en?: Json | null
+          detail_sections_es?: Json | null
           hero_image_url?: string | null
           id?: string
           is_featured?: boolean
@@ -2300,6 +2371,60 @@ export type Database = {
           },
         ]
       }
+      whatsapp_clicks: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          id: string
+          ip_hash: string | null
+          lead_id: string | null
+          locale: string
+          message: string | null
+          page_path: string | null
+          phone: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          lead_id?: string | null
+          locale?: string
+          message?: string | null
+          page_path?: string | null
+          phone?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          lead_id?: string | null
+          locale?: string
+          message?: string | null
+          page_path?: string | null
+          phone?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_clicks_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_clicks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_inbound_messages: {
         Row: {
           contact_id: string | null
@@ -2384,340 +2509,86 @@ export type Database = {
           },
         ]
       }
-      whatsapp_clicks: {
-        Row: {
-          contact_id: string | null
-          created_at: string
-          id: string
-          ip_hash: string | null
-          lead_id: string | null
-          locale: string
-          message: string | null
-          page_path: string | null
-          phone: string | null
-          user_agent: string | null
-        }
-        Insert: {
-          contact_id?: string | null
-          created_at?: string
-          id?: string
-          ip_hash?: string | null
-          lead_id?: string | null
-          locale?: string
-          message?: string | null
-          page_path?: string | null
-          phone?: string | null
-          user_agent?: string | null
-        }
-        Update: {
-          contact_id?: string | null
-          created_at?: string
-          id?: string
-          ip_hash?: string | null
-          lead_id?: string | null
-          locale?: string
-          message?: string | null
-          page_path?: string | null
-          phone?: string | null
-          user_agent?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "whatsapp_clicks_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "whatsapp_clicks_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      crm_resolve_opportunity_lead: {
+      crm_accept_quote: {
         Args: {
-          p_assigned_to?: string | null
-          p_budget_mxn?: number | null
-          p_budget_usd?: number | null
-          p_contact_id: string
-          p_destination_id?: string | null
-          p_opportunity_basis?: Json
-          p_opportunity_signature: string
-          p_opportunity_signature_version?: number
-          p_priority?: string | null
-          p_service_id?: string | null
-          p_source: string
-          p_status_id?: string | null
-          p_summary?: string | null
-          p_travel_end_date?: string | null
-          p_travel_start_date?: string | null
-          p_travelers_count?: number | null
+          p_expected_accepted_quote_id: string
+          p_expected_lock_version: number
+          p_idempotency_key: string
+          p_quote_id: string
+          p_quote_version_id: string
+          p_supersede_reason: string
         }
         Returns: {
-          basis: Json
-          created_new: boolean
-          lead_id: string
-          reliable_purpose: boolean
-          resolution_status: string
-          review_required: boolean
-          signature: string | null
-          signature_version: number
-        }[]
-      }
-      crm_bulk_block_contacts: { Args: { p_contact_ids: string[] }; Returns: { failure_count: number; job_id: string; requested_count: number; success_count: number }[] }
-      crm_bulk_unblock_contacts: { Args: { p_contact_ids: string[] }; Returns: { failure_count: number; job_id: string; requested_count: number; success_count: number }[] }
-      crm_bulk_update_contact_lifecycle: { Args: { p_contact_ids: string[]; p_lifecycle_status: string }; Returns: { failure_count: number; job_id: string; requested_count: number; success_count: number }[] }
-      crm_bulk_delete_restore_contacts: { Args: { p_contact_ids: string[]; p_confirmation: string; p_restore: boolean }; Returns: { failure_count: number; job_id: string; requested_count: number; success_count: number }[] }
-      crm_bulk_feature_opportunities: { Args: { p_featured: boolean; p_opportunity_ids: string[] }; Returns: { failure_count: number; job_id: string; requested_count: number; success_count: number }[] }
-      crm_bulk_update_opportunity_status: { Args: { p_opportunity_ids: string[]; p_status_id: string }; Returns: { failure_count: number; job_id: string; requested_count: number; success_count: number }[] }
-      crm_bulk_delete_restore_opportunities: { Args: { p_confirmation: string; p_opportunity_ids: string[]; p_restore: boolean }; Returns: { failure_count: number; job_id: string; requested_count: number; success_count: number }[] }
-      crm_bulk_archive_opportunities: { Args: { p_archived: boolean; p_opportunity_ids: string[] }; Returns: { failure_count: number; job_id: string; requested_count: number; success_count: number }[] }
-      crm_contact_count: { Args: { p_include_deleted?: boolean }; Returns: number }
-      crm_contact_aggregate_page: { Args: { p_advisor?: string | null; p_blocked?: boolean | null; p_contact_id?: string | null; p_destination?: string | null; p_deleted_only?: boolean; p_deleted_opportunity_only?: boolean; p_duplicate?: boolean; p_include_deleted?: boolean; p_lifecycle?: string | null; p_limit?: number; p_offset?: number; p_open_only?: boolean; p_overdue?: boolean; p_quick_view?: string | null; p_search?: string | null; p_service?: string | null; p_source?: string | null; p_unassigned?: boolean }; Returns: { blocked_at: string | null; blocked_reason: string | null; contact_id: string; deleted_at: string | null; deleted_opportunity_count: number; destinations: string[]; duplicate_risk: boolean; email: string | null; featured_opportunity_count: number; first_name: string; last_activity_at: string | null; last_name: string | null; lifecycle_status: string; next_follow_up_at: string | null; open_opportunity_count: number; owners: string[]; phone: string | null; pipeline_mxn: number; pipeline_usd: number; quote_count: number; request_count: number; services: string[]; total_count: number; total_opportunity_count: number; overdue_count: number }[] }
-      crm_contact_360_summary: {
-        Args: { p_contact_id: string }
-        Returns: {
-          accepted_quote_count: number
-          accepted_quote_value_mxn: number
-          accepted_quote_value_usd: number
-          active_opportunity_count: number
-          archived_opportunity_count: number
-          blocked_at: string | null
-          blocked_by: string | null
-          blocked_by_name: string | null
-          blocked_reason: string | null
-          booking_count: number
-          consent_marketing: boolean
-          contact_id: string
-          created_at: string
-          deleted_at: string | null
-          deleted_by: string | null
-          deleted_by_name: string | null
-          deleted_opportunity_count: number
-          deleted_reason: string | null
-          document_count: number
-          duplicate_email_count: number
-          duplicate_phone_count: number
-          duplicate_risk: boolean
-          email: string | null
-          first_name: string
-          is_test_data: boolean
-          last_activity_at: string | null
-          last_name: string | null
-          lifecycle_status: string
-          next_follow_up_at: string | null
-          normalized_email: string | null
-          normalized_phone: string | null
-          notes: string | null
-          open_opportunity_count: number
-          overdue_follow_up_count: number
-          payment_count: number
-          phone: string | null
-          pipeline_mxn: number
-          pipeline_usd: number
-          preferred_locale: string
-          quote_version_count: number
-          request_count: number
-          source: string | null
-          total_opportunity_count: number
-          unassigned_request_count: number
-          updated_at: string
-        }[]
-      }
-      crm_contact_opportunity_page: {
-        Args: {
-          p_after_id?: string | null
-          p_after_updated_at?: string | null
-          p_contact_id: string
-          p_limit?: number
-          p_state?: string
-        }
-        Returns: {
-          accepted_quote_accepted_at: string | null
-          accepted_quote_amount: number | null
-          accepted_quote_currency: string | null
-          accepted_quote_id: string | null
-          accepted_quote_version_number: number | null
-          active_quote_version_count: number
-          archived_at: string | null
-          archived_by: string | null
-          archived_by_name: string | null
-          assigned_to: string | null
-          budget_mxn: number | null
-          budget_usd: number | null
-          contact_id: string
-          created_at: string
-          deleted_at: string | null
-          deleted_by: string | null
-          deleted_by_name: string | null
-          deleted_reason: string | null
-          destination_id: string | null
-          destination_name: string | null
-          follow_up_overdue: boolean
-          is_featured: boolean
-          is_test_data: boolean
-          last_activity_at: string
-          latest_follow_up_at: string | null
-          latest_follow_up_created_at: string | null
-          latest_quote_amount: number | null
-          latest_quote_currency: string | null
-          latest_quote_id: string | null
-          latest_quote_status: string | null
-          latest_quote_title: string | null
-          latest_quote_updated_at: string | null
-          latest_quote_version_number: number | null
-          latest_request_created_at: string | null
-          latest_request_id: string | null
-          latest_request_locale: string | null
-          latest_request_source: string | null
-          latest_request_status: string | null
-          open_request_count: number
-          opportunity_id: string
-          opportunity_state: string
-          owner_name: string | null
-          page_has_more: boolean
-          priority: string
-          quote_version_count: number
-          request_count: number
-          service_id: string | null
-          service_name: string | null
-          source: string
-          status_id: string
-          status_is_terminal: boolean
-          status_label: string
-          status_name: string
-          summary: string | null
-          travel_end_date: string | null
-          travel_start_date: string | null
-          travelers_count: number
-          updated_at: string
+          accepted_version_id: string
+          idempotent_replay: boolean
+          lock_version: number
+          quote_id: string
+          quote_number: string
+          quote_status: string
+          quote_version_id: string
+          superseded_quote_id: string
+          version_number: number
+          version_status: string
         }[]
       }
       crm_accepted_quote_handoff: {
         Args: { p_quote_id: string }
         Returns: {
           accepted_at: string
-          accepted_balance_amount: number | null
+          accepted_balance_amount: number
           accepted_currency: string
-          accepted_deposit_amount: number | null
+          accepted_deposit_amount: number
           accepted_quote_version_id: string
           accepted_title: string
-          accepted_total_amount: number | null
-          accepted_valid_until: string | null
+          accepted_total_amount: number
+          accepted_valid_until: string
           accepted_version_number: number
           can_manage_booking: boolean
           can_manage_payment: boolean
           contact_id: string
           contact_name: string
-          destination_id: string | null
+          destination_id: string
           document_id: string
-          latest_booking_id: string | null
-          latest_payment_id: string | null
+          latest_booking_id: string
+          latest_payment_id: string
           linked_booking_count: number
           linked_payment_count: number
           lock_version: number
           opportunity_id: string
           opportunity_label: string
-          owner_id: string | null
+          owner_id: string
           pdf_bucket: string
-          pdf_byte_size: number | null
+          pdf_byte_size: number
           pdf_path: string
-          pdf_sha256: string | null
+          pdf_sha256: string
           quote_id: string
           quote_number: string
           quote_status: string
-          service_id: string | null
-          travel_end_date: string | null
-          travel_start_date: string | null
+          service_id: string
+          travel_end_date: string
+          travel_start_date: string
           travelers_count: number
-        }[]
-      }
-      crm_advisor_can_access_live_opportunity: { Args: { p_lead_id: string }; Returns: boolean }
-      crm_can_delete_quote_registration_object: { Args: { p_bucket: string; p_path: string }; Returns: boolean }
-      crm_can_mutate_quote: { Args: { p_quote_id: string }; Returns: boolean }
-      crm_can_read_quote: { Args: { p_quote_id: string }; Returns: boolean }
-      crm_can_manage_generic_document_object: { Args: { p_bucket: string; p_path: string }; Returns: boolean }
-      crm_can_upload_quote_registration_object: { Args: { p_bucket: string; p_path: string }; Returns: boolean }
-      crm_quote_profile_label: { Args: { p_profile_id: string; p_quote_id: string }; Returns: string }
-      crm_quote_data_quality_page: {
-        Args: {
-          p_after_issue_key?: string | null
-          p_issue_type?: string | null
-          p_limit?: number
-        }
-        Returns: {
-          booking_id: string | null
-          contact_id: string | null
-          detected_at: string
-          document_id: string | null
-          intent_id: string | null
-          issue_key: string
-          issue_type: string
-          opportunity_id: string | null
-          page_has_more: boolean
-          payment_id: string | null
-          quote_id: string | null
-          quote_version_id: string | null
-          severity: string
-          summary: string
-        }[]
-      }
-      crm_begin_quote_registration: {
-        Args: {
-          p_advisory_sha256: string
-          p_currency: string
-          p_deposit_amount: number | null
-          p_expected_size_bytes: number
-          p_idempotency_key: string
-          p_notes: string | null
-          p_opportunity_id: string
-          p_originating_request_id: string | null
-          p_summary: string | null
-          p_title: string
-          p_total_amount: number | null
-          p_valid_until: string | null
-        }
-        Returns: {
-          attempt_count: number
-          bucket: string
-          contact_id: string
-          expected_mime_type: string
-          expected_size_bytes: number
-          expires_at: string
-          idempotent_replay: boolean
-          intent_id: string
-          intent_status: string
-          opportunity_id: string
-          path: string
-          recovery_deadline: string
-          target_document_id: string
-          target_quote_id: string
-          target_quote_version_id: string
         }[]
       }
       crm_add_quote_version: {
         Args: {
-          p_clone_version_id: string | null
-          p_currency: string | null
-          p_deposit_amount: number | null
+          p_clone_version_id: string
+          p_currency: string
+          p_deposit_amount: number
           p_expected_lock_version: number
           p_idempotency_key: string
-          p_notes: string | null
+          p_notes: string
           p_quote_id: string
-          p_quote_request_id: string | null
-          p_summary: string | null
-          p_title: string | null
-          p_total_amount: number | null
-          p_valid_until: string | null
+          p_quote_request_id: string
+          p_summary: string
+          p_title: string
+          p_total_amount: number
+          p_valid_until: string
         }
         Returns: {
           idempotent_replay: boolean
@@ -2728,6 +2599,10 @@ export type Database = {
           quote_version_id: string
           version_number: number
         }[]
+      }
+      crm_advisor_can_access_live_opportunity: {
+        Args: { p_lead_id: string }
+        Returns: boolean
       }
       crm_begin_quote_pdf_upload: {
         Args: {
@@ -2750,18 +2625,386 @@ export type Database = {
           quote_version_id: string
         }[]
       }
-      // Service-role-only; callers must use the trusted quote Server Action.
-      crm_finalize_quote_pdf_upload: {
-        Args: { p_idempotency_key: string; p_intent_id: string; p_sha256: string }
+      crm_begin_quote_registration: {
+        Args: {
+          p_advisory_sha256: string
+          p_currency: string
+          p_deposit_amount: number
+          p_expected_size_bytes: number
+          p_idempotency_key: string
+          p_notes: string
+          p_opportunity_id: string
+          p_originating_request_id: string
+          p_summary: string
+          p_title: string
+          p_total_amount: number
+          p_valid_until: string
+        }
         Returns: {
-          document_id: string
-          document_state: string
+          attempt_count: number
+          bucket: string
+          contact_id: string
+          expected_mime_type: string
+          expected_size_bytes: number
+          expires_at: string
           idempotent_replay: boolean
           intent_id: string
+          intent_status: string
+          opportunity_id: string
+          path: string
+          recovery_deadline: string
+          target_document_id: string
+          target_quote_id: string
+          target_quote_version_id: string
+        }[]
+      }
+      crm_bulk_archive_opportunities: {
+        Args: { p_archived: boolean; p_opportunity_ids: string[] }
+        Returns: {
+          failure_count: number
+          job_id: string
+          requested_count: number
+          success_count: number
+        }[]
+      }
+      crm_bulk_block_contacts: {
+        Args: { p_contact_ids: string[] }
+        Returns: {
+          failure_count: number
+          job_id: string
+          requested_count: number
+          success_count: number
+        }[]
+      }
+      crm_bulk_delete_restore_contacts: {
+        Args: {
+          p_confirmation: string
+          p_contact_ids: string[]
+          p_restore: boolean
+        }
+        Returns: {
+          failure_count: number
+          job_id: string
+          requested_count: number
+          success_count: number
+        }[]
+      }
+      crm_bulk_delete_restore_opportunities: {
+        Args: {
+          p_confirmation: string
+          p_opportunity_ids: string[]
+          p_restore: boolean
+        }
+        Returns: {
+          failure_count: number
+          job_id: string
+          requested_count: number
+          success_count: number
+        }[]
+      }
+      crm_bulk_feature_opportunities: {
+        Args: { p_featured: boolean; p_opportunity_ids: string[] }
+        Returns: {
+          failure_count: number
+          job_id: string
+          requested_count: number
+          success_count: number
+        }[]
+      }
+      crm_bulk_mutate: {
+        Args: {
+          p_confirmation?: string
+          p_entity_ids: string[]
+          p_operation: string
+          p_status_value?: string
+        }
+        Returns: {
+          failure_count: number
+          job_id: string
+          requested_count: number
+          success_count: number
+        }[]
+      }
+      crm_bulk_unblock_contacts: {
+        Args: { p_contact_ids: string[] }
+        Returns: {
+          failure_count: number
+          job_id: string
+          requested_count: number
+          success_count: number
+        }[]
+      }
+      crm_bulk_update_contact_lifecycle: {
+        Args: { p_contact_ids: string[]; p_lifecycle_status: string }
+        Returns: {
+          failure_count: number
+          job_id: string
+          requested_count: number
+          success_count: number
+        }[]
+      }
+      crm_bulk_update_opportunity_status: {
+        Args: { p_opportunity_ids: string[]; p_status_id: string }
+        Returns: {
+          failure_count: number
+          job_id: string
+          requested_count: number
+          success_count: number
+        }[]
+      }
+      crm_can_delete_quote_registration_object: {
+        Args: { p_bucket: string; p_path: string }
+        Returns: boolean
+      }
+      crm_can_manage_generic_document_object: {
+        Args: { p_bucket: string; p_path: string }
+        Returns: boolean
+      }
+      crm_can_mutate_quote: { Args: { p_quote_id: string }; Returns: boolean }
+      crm_can_read_quote: { Args: { p_quote_id: string }; Returns: boolean }
+      crm_can_upload_quote_registration_object: {
+        Args: { p_bucket: string; p_path: string }
+        Returns: boolean
+      }
+      crm_cancel_quote: {
+        Args: {
+          p_expected_lock_version: number
+          p_idempotency_key: string
+          p_quote_id: string
+          p_quote_version_id: string
+        }
+        Returns: {
+          accepted_version_id: string
+          idempotent_replay: boolean
           lock_version: number
           quote_id: string
+          quote_number: string
           quote_status: string
           quote_version_id: string
+          superseded_quote_id: string
+          version_number: number
+          version_status: string
+        }[]
+      }
+      crm_contact_360_summary: {
+        Args: { p_contact_id: string }
+        Returns: {
+          accepted_quote_count: number
+          accepted_quote_value_mxn: number
+          accepted_quote_value_usd: number
+          active_opportunity_count: number
+          archived_opportunity_count: number
+          blocked_at: string
+          blocked_by: string
+          blocked_by_name: string
+          blocked_reason: string
+          booking_count: number
+          consent_marketing: boolean
+          contact_id: string
+          created_at: string
+          deleted_at: string
+          deleted_by: string
+          deleted_by_name: string
+          deleted_opportunity_count: number
+          deleted_reason: string
+          document_count: number
+          duplicate_email_count: number
+          duplicate_phone_count: number
+          duplicate_risk: boolean
+          email: string
+          first_name: string
+          is_test_data: boolean
+          last_activity_at: string
+          last_name: string
+          lifecycle_status: string
+          next_follow_up_at: string
+          normalized_email: string
+          normalized_phone: string
+          notes: string
+          open_opportunity_count: number
+          overdue_follow_up_count: number
+          payment_count: number
+          phone: string
+          pipeline_mxn: number
+          pipeline_usd: number
+          preferred_locale: string
+          quote_version_count: number
+          request_count: number
+          source: string
+          total_opportunity_count: number
+          unassigned_request_count: number
+          updated_at: string
+        }[]
+      }
+      crm_contact_aggregate_page: {
+        Args: {
+          p_advisor?: string
+          p_blocked?: boolean
+          p_contact_id?: string
+          p_deleted_only?: boolean
+          p_deleted_opportunity_only?: boolean
+          p_destination?: string
+          p_duplicate?: boolean
+          p_include_deleted?: boolean
+          p_lifecycle?: string
+          p_limit?: number
+          p_offset?: number
+          p_open_only?: boolean
+          p_overdue?: boolean
+          p_quick_view?: string
+          p_search?: string
+          p_service?: string
+          p_source?: string
+          p_unassigned?: boolean
+        }
+        Returns: {
+          blocked_at: string
+          blocked_reason: string
+          contact_id: string
+          deleted_at: string
+          deleted_opportunity_count: number
+          destinations: string[]
+          duplicate_risk: boolean
+          email: string
+          featured_opportunity_count: number
+          first_name: string
+          last_activity_at: string
+          last_name: string
+          lifecycle_status: string
+          next_follow_up_at: string
+          open_opportunity_count: number
+          overdue_count: number
+          owners: string[]
+          phone: string
+          pipeline_mxn: number
+          pipeline_usd: number
+          quote_count: number
+          request_count: number
+          services: string[]
+          total_count: number
+          total_opportunity_count: number
+        }[]
+      }
+      crm_contact_count: {
+        Args: { p_include_deleted?: boolean }
+        Returns: number
+      }
+      crm_contact_opportunity_page: {
+        Args: {
+          p_after_id?: string
+          p_after_updated_at?: string
+          p_contact_id: string
+          p_limit?: number
+          p_state?: string
+        }
+        Returns: {
+          accepted_quote_accepted_at: string
+          accepted_quote_amount: number
+          accepted_quote_currency: string
+          accepted_quote_id: string
+          accepted_quote_version_number: number
+          active_quote_version_count: number
+          archived_at: string
+          archived_by: string
+          archived_by_name: string
+          assigned_to: string
+          budget_mxn: number
+          budget_usd: number
+          contact_id: string
+          created_at: string
+          deleted_at: string
+          deleted_by: string
+          deleted_by_name: string
+          deleted_reason: string
+          destination_id: string
+          destination_name: string
+          follow_up_overdue: boolean
+          is_featured: boolean
+          is_test_data: boolean
+          last_activity_at: string
+          latest_follow_up_at: string
+          latest_follow_up_created_at: string
+          latest_quote_amount: number
+          latest_quote_currency: string
+          latest_quote_id: string
+          latest_quote_status: string
+          latest_quote_title: string
+          latest_quote_updated_at: string
+          latest_quote_version_number: number
+          latest_request_created_at: string
+          latest_request_id: string
+          latest_request_locale: string
+          latest_request_source: string
+          latest_request_status: string
+          open_request_count: number
+          opportunity_id: string
+          opportunity_state: string
+          owner_name: string
+          page_has_more: boolean
+          priority: string
+          quote_version_count: number
+          request_count: number
+          service_id: string
+          service_name: string
+          source: string
+          status_id: string
+          status_is_terminal: boolean
+          status_label: string
+          status_name: string
+          summary: string
+          travel_end_date: string
+          travel_start_date: string
+          travelers_count: number
+          updated_at: string
+        }[]
+      }
+      crm_delete_lead_guarded: {
+        Args: {
+          p_confirmation: string
+          p_delete_orphan_contact: boolean
+          p_lead_id: string
+        }
+        Returns: {
+          blocked: boolean
+          blocked_reasons: Json
+          blocker_counts: Json
+          contact_deleted: boolean
+          contact_id: string
+          deleted: boolean
+          deleted_at: string
+          lead_id: string
+        }[]
+      }
+      crm_delete_lead_guarded_unchecked: {
+        Args: { p_delete_orphan_contact?: boolean; p_lead_id: string }
+        Returns: {
+          blocked: boolean
+          blocked_reasons: Json
+          blocker_counts: Json
+          contact_deleted: boolean
+          contact_id: string
+          deleted: boolean
+          deleted_at: string
+          lead_id: string
+        }[]
+      }
+      crm_expire_quote: {
+        Args: {
+          p_expected_lock_version: number
+          p_idempotency_key: string
+          p_quote_id: string
+          p_quote_version_id: string
+        }
+        Returns: {
+          accepted_version_id: string
+          idempotent_replay: boolean
+          lock_version: number
+          quote_id: string
+          quote_number: string
+          quote_status: string
+          quote_version_id: string
+          superseded_quote_id: string
+          version_number: number
           version_status: string
         }[]
       }
@@ -2784,53 +3027,293 @@ export type Database = {
         }[]
       }
       crm_fail_quote_registration: {
-        Args: { p_error_code: string; p_error_message: string; p_intent_id: string }
+        Args: {
+          p_error_code: string
+          p_error_message: string
+          p_intent_id: string
+        }
         Returns: {
           attempt_count: number
-          failed_at: string | null
+          failed_at: string
           idempotent_replay: boolean
           intent_id: string
           intent_status: string
-          last_error_code: string | null
+          last_error_code: string
           target_document_id: string
           target_quote_id: string
           target_quote_version_id: string
         }[]
       }
-      crm_mark_quote_ready: {
-        Args: { p_expected_lock_version: number; p_idempotency_key: string; p_quote_id: string; p_quote_version_id: string }
+      crm_finalize_quote_pdf_upload: {
+        Args: {
+          p_idempotency_key: string
+          p_intent_id: string
+          p_sha256: string
+        }
         Returns: {
-          accepted_version_id: string | null
+          document_id: string
+          document_state: string
+          idempotent_replay: boolean
+          intent_id: string
+          lock_version: number
+          quote_id: string
+          quote_status: string
+          quote_version_id: string
+          version_status: string
+        }[]
+      }
+      crm_is_valid_accepted_quote_scope: {
+        Args: {
+          p_contact_id: string
+          p_lead_id: string
+          p_quote_version_id: string
+        }
+        Returns: boolean
+      }
+      crm_mark_quote_ready: {
+        Args: {
+          p_expected_lock_version: number
+          p_idempotency_key: string
+          p_quote_id: string
+          p_quote_version_id: string
+        }
+        Returns: {
+          accepted_version_id: string
           idempotent_replay: boolean
           lock_version: number
           quote_id: string
           quote_number: string
           quote_status: string
           quote_version_id: string
-          superseded_quote_id: string | null
+          superseded_quote_id: string
           version_number: number
           version_status: string
         }[]
       }
       crm_mark_quote_sent: {
-        Args: { p_expected_lock_version: number; p_idempotency_key: string; p_quote_id: string; p_quote_version_id: string }
+        Args: {
+          p_expected_lock_version: number
+          p_idempotency_key: string
+          p_quote_id: string
+          p_quote_version_id: string
+        }
         Returns: {
-          accepted_version_id: string | null
+          accepted_version_id: string
           idempotent_replay: boolean
           lock_version: number
           quote_id: string
           quote_number: string
           quote_status: string
           quote_version_id: string
-          superseded_quote_id: string | null
+          superseded_quote_id: string
           version_number: number
           version_status: string
         }[]
       }
+      crm_next_quote_number: { Args: never; Returns: string }
+      crm_normalize_email: { Args: { value: string }; Returns: string }
+      crm_normalize_identity_ascii: { Args: { value: string }; Returns: string }
+      crm_normalize_phone: { Args: { value: string }; Returns: string }
+      crm_quote_data_quality_page: {
+        Args: {
+          p_after_issue_key?: string
+          p_issue_type?: string
+          p_limit?: number
+        }
+        Returns: {
+          booking_id: string
+          contact_id: string
+          detected_at: string
+          document_id: string
+          intent_id: string
+          issue_key: string
+          issue_type: string
+          opportunity_id: string
+          page_has_more: boolean
+          payment_id: string
+          quote_id: string
+          quote_version_id: string
+          severity: string
+          summary: string
+        }[]
+      }
+      crm_quote_detail: {
+        Args: { p_quote_id: string }
+        Returns: {
+          accepted_accepted_at: string
+          accepted_at: string
+          accepted_currency: string
+          accepted_deposit_amount: number
+          accepted_document_id: string
+          accepted_pdf_bucket: string
+          accepted_pdf_byte_size: number
+          accepted_pdf_mime_type: string
+          accepted_pdf_path: string
+          accepted_pdf_sha256: string
+          accepted_pdf_state: string
+          accepted_pdf_uploaded_at: string
+          accepted_total_amount: number
+          accepted_valid_until: string
+          accepted_version_id: string
+          accepted_version_number: number
+          accepted_version_status: string
+          accepted_version_title: string
+          advisor_name: string
+          cancelled_at: string
+          contact_email: string
+          contact_id: string
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          created_by: string
+          created_by_name: string
+          current_currency: string
+          current_deposit_amount: number
+          current_document_id: string
+          current_finalized_at: string
+          current_pdf_bucket: string
+          current_pdf_byte_size: number
+          current_pdf_mime_type: string
+          current_pdf_path: string
+          current_pdf_sha256: string
+          current_pdf_state: string
+          current_pdf_uploaded_at: string
+          current_total_amount: number
+          current_valid_until: string
+          current_version_id: string
+          current_version_number: number
+          current_version_status: string
+          current_version_title: string
+          deleted_at: string
+          deleted_by: string
+          deleted_by_name: string
+          deleted_reason: string
+          event_count: number
+          expired_at: string
+          latest_event_at: string
+          latest_event_type: string
+          lock_version: number
+          next_version_number: number
+          opportunity_id: string
+          opportunity_label: string
+          originating_request_id: string
+          originating_request_status: string
+          owner_id: string
+          quote_id: string
+          quote_number: string
+          ready_at: string
+          rejected_at: string
+          request_count: number
+          sent_at: string
+          status: string
+          title: string
+          updated_at: string
+          version_count: number
+        }[]
+      }
+      crm_quote_event_page: {
+        Args: {
+          p_after_created_at?: string
+          p_after_id?: string
+          p_limit?: number
+          p_quote_id: string
+        }
+        Returns: {
+          actor_id: string
+          actor_name: string
+          created_at: string
+          event_id: string
+          event_type: string
+          page_has_more: boolean
+          payload: Json
+          quote_id: string
+          quote_version_id: string
+        }[]
+      }
+      crm_quote_page: {
+        Args: {
+          p_after_id?: string
+          p_after_updated_at?: string
+          p_contact_id?: string
+          p_currency?: string
+          p_include_deleted?: boolean
+          p_limit?: number
+          p_opportunity_id?: string
+          p_owner_id?: string
+          p_search?: string
+          p_status?: string
+          p_validity?: string
+        }
+        Returns: {
+          accepted_accepted_at: string
+          accepted_at: string
+          accepted_currency: string
+          accepted_deposit_amount: number
+          accepted_document_id: string
+          accepted_pdf_byte_size: number
+          accepted_pdf_mime_type: string
+          accepted_pdf_sha256: string
+          accepted_pdf_state: string
+          accepted_pdf_uploaded_at: string
+          accepted_total_amount: number
+          accepted_valid_until: string
+          accepted_version_id: string
+          accepted_version_number: number
+          accepted_version_status: string
+          accepted_version_title: string
+          advisor_name: string
+          cancelled_at: string
+          contact_email: string
+          contact_id: string
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          current_currency: string
+          current_deposit_amount: number
+          current_document_id: string
+          current_finalized_at: string
+          current_pdf_byte_size: number
+          current_pdf_mime_type: string
+          current_pdf_sha256: string
+          current_pdf_state: string
+          current_pdf_uploaded_at: string
+          current_total_amount: number
+          current_updated_at: string
+          current_valid_until: string
+          current_version_id: string
+          current_version_number: number
+          current_version_status: string
+          current_version_title: string
+          deleted_at: string
+          deleted_by: string
+          deleted_reason: string
+          expired_at: string
+          lock_version: number
+          next_version_number: number
+          opportunity_id: string
+          opportunity_label: string
+          owner_id: string
+          page_has_more: boolean
+          quote_id: string
+          quote_number: string
+          ready_at: string
+          rejected_at: string
+          request_count: number
+          sent_at: string
+          status: string
+          title: string
+          updated_at: string
+          version_count: number
+        }[]
+      }
+      crm_quote_profile_label: {
+        Args: { p_profile_id: string; p_quote_id: string }
+        Returns: string
+      }
       crm_quote_registration_intent: {
         Args: { p_intent_id: string }
         Returns: {
-          abandoned_at: string | null
+          abandoned_at: string
           attempt_count: number
           attempt_started_at: string
           bucket: string
@@ -2840,14 +3323,14 @@ export type Database = {
           expected_mime_type: string
           expected_size_bytes: number
           expires_at: string
-          failed_at: string | null
-          finalized_at: string | null
+          failed_at: string
+          finalized_at: string
           intent_id: string
           intent_status: string
-          last_error_code: string | null
-          last_error_message: string | null
+          last_error_code: string
+          last_error_message: string
           opportunity_id: string
-          originating_request_id: string | null
+          originating_request_id: string
           path: string
           recovery_deadline: string
           retry_allowed: boolean
@@ -2858,9 +3341,91 @@ export type Database = {
           upload_allowed: boolean
         }[]
       }
-      // Service-role-only; checksum and size must come from trusted downloaded bytes.
+      crm_quote_request_link_page: {
+        Args: {
+          p_after_created_at?: string
+          p_after_id?: string
+          p_limit?: number
+          p_quote_id: string
+        }
+        Returns: {
+          destination_slug: string
+          link_id: string
+          linked_at: string
+          linked_by: string
+          linked_by_name: string
+          page_has_more: boolean
+          quote_id: string
+          quote_request_id: string
+          relation: string
+          request_created_at: string
+          request_locale: string
+          request_status: string
+          service_slug: string
+        }[]
+      }
+      crm_quote_version_page: {
+        Args: {
+          p_after_id?: string
+          p_after_version_number?: number
+          p_limit?: number
+          p_quote_id: string
+        }
+        Returns: {
+          accepted_at: string
+          content_sha256: string
+          created_at: string
+          created_by: string
+          created_by_name: string
+          currency: string
+          deposit_amount: number
+          document_id: string
+          expired_at: string
+          finalized_at: string
+          finalized_by: string
+          finalized_by_name: string
+          notes: string
+          page_has_more: boolean
+          pdf_bucket: string
+          pdf_byte_size: number
+          pdf_mime_type: string
+          pdf_path: string
+          pdf_sha256: string
+          pdf_state: string
+          pdf_uploaded_at: string
+          quote_id: string
+          quote_request_id: string
+          quote_version_id: string
+          rejected_at: string
+          sent_at: string
+          status: string
+          summary: string
+          title: string
+          total_amount: number
+          updated_at: string
+          valid_until: string
+          version_number: number
+        }[]
+      }
+      crm_record_quote_mutation: {
+        Args: {
+          p_actor_id: string
+          p_event_type: string
+          p_extra_payload?: Json
+          p_idempotency_key: string
+          p_next_status: string
+          p_previous_status: string
+          p_quote_id: string
+          p_quote_version_id: string
+        }
+        Returns: boolean
+      }
       crm_register_quote_with_pdf: {
-        Args: { p_intent_id: string; p_verified_sha256: string; p_verified_size_bytes: number }
+        Args: {
+          p_intent_id: string
+          p_verified_sha256: string
+          p_verified_size_bytes: number
+        }
         Returns: {
           document_id: string
           document_state: string
@@ -2875,71 +3440,71 @@ export type Database = {
           version_status: string
         }[]
       }
-      crm_accept_quote: {
+      crm_reject_quote: {
         Args: {
-          p_expected_accepted_quote_id: string | null
           p_expected_lock_version: number
           p_idempotency_key: string
           p_quote_id: string
           p_quote_version_id: string
-          p_supersede_reason: string | null
         }
         Returns: {
-          accepted_version_id: string | null
+          accepted_version_id: string
           idempotent_replay: boolean
           lock_version: number
           quote_id: string
           quote_number: string
           quote_status: string
           quote_version_id: string
-          superseded_quote_id: string | null
+          superseded_quote_id: string
           version_number: number
           version_status: string
         }[]
       }
-      crm_reject_quote: {
-        Args: { p_expected_lock_version: number; p_idempotency_key: string; p_quote_id: string; p_quote_version_id: string }
+      crm_resolve_opportunity_lead: {
+        Args: {
+          p_assigned_to?: string
+          p_budget_mxn?: number
+          p_budget_usd?: number
+          p_contact_id: string
+          p_destination_id?: string
+          p_opportunity_basis?: Json
+          p_opportunity_signature?: string
+          p_opportunity_signature_version?: number
+          p_priority?: string
+          p_service_id?: string
+          p_source?: string
+          p_status_id: string
+          p_summary?: string
+          p_travel_end_date?: string
+          p_travel_start_date?: string
+          p_travelers_count?: number
+        }
         Returns: {
-          accepted_version_id: string | null
-          idempotent_replay: boolean
-          lock_version: number
-          quote_id: string
-          quote_number: string
-          quote_status: string
-          quote_version_id: string
-          superseded_quote_id: string | null
-          version_number: number
-          version_status: string
+          basis: Json
+          created_new: boolean
+          lead_id: string
+          reliable_purpose: boolean
+          resolution_status: string
+          review_required: boolean
+          signature: string
+          signature_version: number
         }[]
       }
-      crm_expire_quote: {
-        Args: { p_expected_lock_version: number; p_idempotency_key: string; p_quote_id: string; p_quote_version_id: string }
+      crm_restore_quote: {
+        Args: {
+          p_confirmation: string
+          p_expected_lock_version: number
+          p_idempotency_key: string
+          p_quote_id: string
+        }
         Returns: {
-          accepted_version_id: string | null
+          deleted_at: string
           idempotent_replay: boolean
           lock_version: number
           quote_id: string
           quote_number: string
           quote_status: string
-          quote_version_id: string
-          superseded_quote_id: string | null
-          version_number: number
-          version_status: string
-        }[]
-      }
-      crm_cancel_quote: {
-        Args: { p_expected_lock_version: number; p_idempotency_key: string; p_quote_id: string; p_quote_version_id: string }
-        Returns: {
-          accepted_version_id: string | null
-          idempotent_replay: boolean
-          lock_version: number
-          quote_id: string
-          quote_number: string
-          quote_status: string
-          quote_version_id: string
-          superseded_quote_id: string | null
-          version_number: number
-          version_status: string
+          restored: boolean
         }[]
       }
       crm_soft_delete_quote: {
@@ -2952,7 +3517,7 @@ export type Database = {
         }
         Returns: {
           deleted: boolean
-          deleted_at: string | null
+          deleted_at: string
           idempotent_replay: boolean
           lock_version: number
           quote_id: string
@@ -2960,265 +3525,40 @@ export type Database = {
           quote_status: string
         }[]
       }
-      crm_restore_quote: {
-        Args: { p_confirmation: string; p_expected_lock_version: number; p_idempotency_key: string; p_quote_id: string }
+      crm_transition_quote: {
+        Args: {
+          p_action: string
+          p_expected_accepted_quote_id: string
+          p_expected_lock_version: number
+          p_idempotency_key: string
+          p_quote_id: string
+          p_quote_version_id: string
+          p_supersede_reason: string
+        }
         Returns: {
-          deleted_at: string | null
+          accepted_version_id: string
           idempotent_replay: boolean
           lock_version: number
           quote_id: string
           quote_number: string
           quote_status: string
-          restored: boolean
-        }[]
-      }
-      crm_quote_detail: {
-        Args: { p_quote_id: string }
-        Returns: {
-          accepted_accepted_at: string | null
-          accepted_at: string | null
-          accepted_currency: string | null
-          accepted_deposit_amount: number | null
-          accepted_document_id: string | null
-          accepted_pdf_bucket: string | null
-          accepted_pdf_byte_size: number | null
-          accepted_pdf_mime_type: string | null
-          accepted_pdf_path: string | null
-          accepted_pdf_sha256: string | null
-          accepted_pdf_state: string | null
-          accepted_pdf_uploaded_at: string | null
-          accepted_total_amount: number | null
-          accepted_valid_until: string | null
-          accepted_version_id: string | null
-          accepted_version_number: number | null
-          accepted_version_status: string | null
-          accepted_version_title: string | null
-          advisor_name: string | null
-          cancelled_at: string | null
-          contact_email: string | null
-          contact_id: string
-          contact_name: string
-          contact_phone: string | null
-          created_at: string
-          created_by: string | null
-          created_by_name: string | null
-          current_currency: string | null
-          current_deposit_amount: number | null
-          current_document_id: string | null
-          current_finalized_at: string | null
-          current_pdf_bucket: string | null
-          current_pdf_byte_size: number | null
-          current_pdf_mime_type: string | null
-          current_pdf_path: string | null
-          current_pdf_sha256: string | null
-          current_pdf_state: string | null
-          current_pdf_uploaded_at: string | null
-          current_total_amount: number | null
-          current_valid_until: string | null
-          current_version_id: string | null
-          current_version_number: number | null
-          current_version_status: string | null
-          current_version_title: string | null
-          deleted_at: string | null
-          deleted_by: string | null
-          deleted_by_name: string | null
-          deleted_reason: string | null
-          event_count: number
-          expired_at: string | null
-          latest_event_at: string | null
-          latest_event_type: string | null
-          lock_version: number
-          next_version_number: number
-          opportunity_id: string
-          opportunity_label: string
-          originating_request_id: string | null
-          originating_request_status: string | null
-          owner_id: string | null
-          quote_id: string
-          quote_number: string
-          ready_at: string | null
-          rejected_at: string | null
-          request_count: number
-          sent_at: string | null
-          status: string
-          title: string
-          updated_at: string
-          version_count: number
-        }[]
-      }
-      crm_quote_event_page: {
-        Args: {
-          p_after_created_at?: string | null
-          p_after_id?: string | null
-          p_limit?: number
-          p_quote_id: string
-        }
-        Returns: {
-          actor_id: string | null
-          actor_name: string | null
-          created_at: string
-          event_id: string
-          event_type: string
-          page_has_more: boolean
-          payload: Json
-          quote_id: string
-          quote_version_id: string | null
-        }[]
-      }
-      crm_quote_page: {
-        Args: {
-          p_after_id?: string | null
-          p_after_updated_at?: string | null
-          p_contact_id?: string | null
-          p_currency?: string | null
-          p_include_deleted?: boolean
-          p_limit?: number
-          p_opportunity_id?: string | null
-          p_owner_id?: string | null
-          p_search?: string | null
-          p_status?: string | null
-          p_validity?: string
-        }
-        Returns: {
-          accepted_accepted_at: string | null
-          accepted_at: string | null
-          accepted_currency: string | null
-          accepted_deposit_amount: number | null
-          accepted_document_id: string | null
-          accepted_pdf_byte_size: number | null
-          accepted_pdf_mime_type: string | null
-          accepted_pdf_sha256: string | null
-          accepted_pdf_state: string | null
-          accepted_pdf_uploaded_at: string | null
-          accepted_total_amount: number | null
-          accepted_valid_until: string | null
-          accepted_version_id: string | null
-          accepted_version_number: number | null
-          accepted_version_status: string | null
-          accepted_version_title: string | null
-          advisor_name: string | null
-          cancelled_at: string | null
-          contact_email: string | null
-          contact_id: string
-          contact_name: string
-          contact_phone: string | null
-          created_at: string
-          current_currency: string | null
-          current_deposit_amount: number | null
-          current_document_id: string | null
-          current_finalized_at: string | null
-          current_pdf_byte_size: number | null
-          current_pdf_mime_type: string | null
-          current_pdf_sha256: string | null
-          current_pdf_state: string | null
-          current_pdf_uploaded_at: string | null
-          current_total_amount: number | null
-          current_updated_at: string | null
-          current_valid_until: string | null
-          current_version_id: string | null
-          current_version_number: number | null
-          current_version_status: string | null
-          current_version_title: string | null
-          deleted_at: string | null
-          deleted_by: string | null
-          deleted_reason: string | null
-          expired_at: string | null
-          lock_version: number
-          next_version_number: number
-          opportunity_id: string
-          opportunity_label: string
-          owner_id: string | null
-          page_has_more: boolean
-          quote_id: string
-          quote_number: string
-          ready_at: string | null
-          rejected_at: string | null
-          request_count: number
-          sent_at: string | null
-          status: string
-          title: string
-          updated_at: string
-          version_count: number
-        }[]
-      }
-      crm_quote_request_link_page: {
-        Args: {
-          p_after_created_at?: string | null
-          p_after_id?: string | null
-          p_limit?: number
-          p_quote_id: string
-        }
-        Returns: {
-          destination_slug: string | null
-          link_id: string
-          linked_at: string
-          linked_by: string | null
-          linked_by_name: string | null
-          page_has_more: boolean
-          quote_id: string
-          quote_request_id: string
-          relation: string
-          request_created_at: string
-          request_locale: string
-          request_status: string
-          service_slug: string | null
-        }[]
-      }
-      crm_quote_version_page: {
-        Args: {
-          p_after_id?: string | null
-          p_after_version_number?: number | null
-          p_limit?: number
-          p_quote_id: string
-        }
-        Returns: {
-          accepted_at: string | null
-          content_sha256: string | null
-          created_at: string
-          created_by: string | null
-          created_by_name: string | null
-          currency: string
-          deposit_amount: number | null
-          document_id: string | null
-          expired_at: string | null
-          finalized_at: string | null
-          finalized_by: string | null
-          finalized_by_name: string | null
-          notes: string | null
-          page_has_more: boolean
-          pdf_bucket: string | null
-          pdf_byte_size: number | null
-          pdf_mime_type: string | null
-          pdf_path: string | null
-          pdf_sha256: string | null
-          pdf_state: string | null
-          pdf_uploaded_at: string | null
-          quote_id: string
-          quote_request_id: string | null
           quote_version_id: string
-          rejected_at: string | null
-          sent_at: string | null
-          status: string
-          summary: string | null
-          title: string
-          total_amount: number | null
-          updated_at: string
-          valid_until: string | null
+          superseded_quote_id: string
           version_number: number
+          version_status: string
         }[]
       }
-      crm_delete_lead_guarded: {
-        Args: { p_confirmation: string; p_delete_orphan_contact: boolean; p_lead_id: string }
-        Returns: {
-          blocked: boolean
-          blocked_reasons: Json
-          blocker_counts: Json
-          contact_id: string
-          contact_deleted: boolean
-          deleted: boolean
-          deleted_at: string | null
-          lead_id: string
-        }[]
+      crm_validate_quote_commercial_input: {
+        Args: {
+          p_currency: string
+          p_deposit_amount: number
+          p_idempotency_key: string
+          p_notes: string
+          p_summary: string
+          p_title: string
+          p_total_amount: number
+        }
+        Returns: undefined
       }
       has_role: { Args: { role_name: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
