@@ -445,12 +445,101 @@ Every supplied entry, including `!`, MUST occur by exact string equality in `all
 - WHEN validation runs
 - THEN it throws `ERR_WORKTREE`, with protected entries rejected before allowlist acceptance
 
-### Requirement: Explicit micro-slice boundary
+### Requirement: Micro-slice boundary
 
 This change MUST NOT define or implement process execution, command adapters, receipts, invariant categories, cleanup, manifests, SQL, runners, A/B lifecycle, Docker, Supabase, Postgres, sockets, network, provider access, `recovery:local`, migrations, application behavior, generated types, dependencies, lockfile changes, image behavior, or integration execution. Follow-up slices own those concerns.
+
+The recovery core remains pure and unchanged. Recovery-runner additions MUST be limited to a synchronous, immutable orchestration model and external-free tests. Actual command adapters, timeout/signal mapping, cleanup execution, filesystem publication, package integration, and external recovery evidence MUST remain deferred.
 
 #### Scenario: Core-only interpretation
 
 - GIVEN every utility/guard test passes
 - WHEN recovery readiness or Week 01 closure is evaluated
 - THEN core PASS is insufficient and the recovery status remains not ready and not closed
+
+#### Scenario: Core and model boundary
+- GIVEN core and model tests pass
+- WHEN the change is reviewed
+- THEN no process, fs, socket, signal, clock, network, SQL, Docker, Supabase, Postgres, provider, migration, package, application, type, image, integration, publication, readiness, or closure behavior has been implemented
+
+### Requirement: Pure recovery-runner model boundary
+
+The recovery-runner slice MUST add only `scripts/recovery-runner-model.mjs` and `tests/recovery-runner-model.test.mjs`. The module MUST be synchronous, pure, immutable, deterministic, and external-free; it MUST directly reuse committed `canonicalJson`, `sha256Hex`, `assertRuntimeToken`, and `scanSecrets` without changing the core. It MUST export exactly `RUN_STATES`, `EVENT_TYPES`, `FAILURE_PRECEDENCE`, `createRunModel`, `applyRunEvent`, `reconcileRun`, and `buildManifestEnvelope`, and MUST add no package script, dependency, helper, adapter, default, CLI, publication path, or process/fs/socket/signal/clock behavior.
+
+#### Scenario: Module inspection
+- GIVEN the model module is imported
+- WHEN its namespace and source boundary are inspected
+- THEN only the seven named exports exist and no external-system or default-adapter behavior exists
+
+### Requirement: Closed recovery-run creation contract
+
+`createRunModel` MUST accept exactly `{runId,parentToken,commandIds,resourceIds}` as a plain enumerable data object. IDs MUST match `[a-z0-9][a-z0-9._-]{0,63}`, arrays MUST be dense, primitive, unique, disjoint, secret-scanned, snapshotted, and sorted, and `parentToken` MUST pass the exact lowercase runtime-token contract. The token MUST NOT be retained; only `sha256Hex(parentToken)` may be stored. The deeply frozen model MUST contain exactly `schema,runId,parentTokenHash,interpretation,state,pendingFailures,commandIds,resourceIds,receipts,resources,events,reconciled,terminal`, with schema `actravel.recovery-run-model/v1`, interpretation `orchestration-only-not-recovery-evidence`, initial state `created`, explicit null resource records, and empty remaining collections.
+
+#### Scenario: Defensive creation
+- GIVEN valid options followed by caller mutation
+- WHEN the returned model is inspected and mutation is attempted
+- THEN sorted snapshots remain unchanged, all nested model data is frozen, and the parent token appears nowhere in the model
+
+### Requirement: Closed recovery-run constants and errors
+
+`RUN_STATES` MUST be the frozen ordered array `created,preflight,running,cleaning,cleaned,reconciled,succeeded,blocked,failed,aborted`; `EVENT_TYPES` MUST be the frozen ordered array `PRECHECK_OK,COMMAND_RECEIPT,RESOURCE_ACQUIRED,CLEANUP_STARTED,RESOURCE_RELEASED,FAILURE_RECORDED,CLEANUP_COMPLETED,RECONCILE,FINALIZE`; and `FAILURE_PRECEDENCE` MUST contain frozen `secret/blocked`, `cleanup/failed`, `signal/aborted`, `timeout/failed`, `command/failed`, and `preflight/blocked` records in that order. The internal `RecoveryRunnerModelError` MUST remain unexported, with `name === 'RecoveryRunnerModelError'`, `message === code`, exactly the eleven specified error codes, and frozen safe details containing only the specified field/reason plus applicable safe index/id/eventType.
+
+Validation and reflective failures MUST map deterministically to the closed branches: model input, event schema, transition, duplicate, unknown ID, receipt set, resource set, secret, reconcile, terminal, or manifest. No caller value, scanner finding, proxy text, cause, stack, or native error text may be exposed.
+
+#### Scenario: Closed failure surface
+- GIVEN malformed input or a proxy trap that throws secret-bearing text
+- WHEN any public function rejects it
+- THEN the error has the fixed internal class name, one of exactly eleven code/messages, only allowed safe details, deterministic branch selection, and no trapped text
+
+### Requirement: Exact recovery-run event schemas
+
+Every event MUST be an exact plain enumerable object with one of `{type:'PRECHECK_OK'}`, `{type:'COMMAND_RECEIPT',commandId,sequence,status,outputHash}`, `{type:'RESOURCE_ACQUIRED',resourceId,ownerCommandId}`, `{type:'CLEANUP_STARTED'}`, `{type:'RESOURCE_RELEASED',resourceId,cleanupHash}`, `{type:'FAILURE_RECORDED',category,safeCode}`, `{type:'CLEANUP_COMPLETED'}`, `{type:'RECONCILE'}`, or `{type:'FINALIZE'}`. Event IDs and safe codes MUST use the closed ID grammar, sequences MUST be non-negative safe integers, and output/cleanup hashes MUST be 64 lowercase hexadecimal characters. `applyRunEvent` MUST snapshot and validate both arguments, return a new deeply frozen model, and leave prior models and events unchanged.
+
+### Requirement: Monotonic recovery-run lifecycle
+
+The only transition path MUST be `created -> preflight -> running? -> cleaning -> cleaned -> reconciled -> terminal`. Work events are forbidden at and after cleaning; releases and cleanup completion are cleaning-only; cleaned accepts only reconciliation; reconciled accepts only finalization; and terminal states reject every event. Failure events MUST never skip cleanup, with `cleanup` failures accepted only during cleaning before completion and all other categories accepted only before cleanup completion.
+
+#### Scenario: Every transition
+- GIVEN a model at each non-terminal and terminal state
+- WHEN every event type is attempted
+- THEN exactly the allowed transitions succeed, cleanup failures exist only in the cleaning window, cleaned is reconciliation-only, failures do not bypass cleanup, and late or terminal events reject without mutation
+
+### Requirement: Deterministic recovery-run failures
+
+Pending failures MUST be unique exact `{category,safeCode}` records sorted by the fixed category precedence and ascending safeCode. Receipt statuses `error`, `timeout`, and `signal` MUST add the corresponding command, timeout, and signal failure exactly once; `ok` adds none. `FINALIZE` MUST select the first sorted failure and create `{state,category,safeCode}`, or `{state:'succeeded',category:null,safeCode:null}` when none exists.
+
+#### Scenario: Precedence permutations
+- GIVEN every permutation of all six categories and multiple safe codes in one category
+- WHEN the model is finalized after cleanup and reconciliation
+- THEN category precedence wins independently of event order and the lexicographically first same-category code wins
+
+### Requirement: Closed recovery-run receipts and resources
+
+Receipts MUST be exact `{commandId,sequence,status,outputHash}` records sorted by sequence, with one declared command and sequence identity each. Reconciliation MUST require exactly one receipt per declared command and contiguous sequences `0..commandIds.length-1`. Resources MUST be exact `{resourceId,ownerCommandId,cleanupHash}` records sorted by resource ID; acquisition requires a declared command owner, release requires an acquired unreleased resource during cleaning, and cleanup completion requires every acquired resource to be released. Unacquired declared resources remain explicit null records. The model MUST record assertions only and MUST NOT infer or execute cleanup.
+
+#### Scenario: Receipt and cleanup completeness
+- GIVEN missing, duplicate, gapped, unknown, orphaned, unacquired, or late receipt/resource variants
+- WHEN work, cleanup, or reconciliation is applied
+- THEN only the exact closed receipt set and acquired-resource release set satisfies the gates, without mutation on failure
+
+### Requirement: Pure recovery-run reconciliation
+
+`reconcileRun(model)` MUST be exactly equivalent to applying `{type:'RECONCILE'}`. It MUST require `cleaned`, complete closed receipt/resource sets, and a successful secret scan, then append only `RECONCILE` and move to `reconciled`. It MUST produce frozen `{receiptSetHash,resourceSetHash,eventSetHash,reconciliationHash,secretScan:{ok:true,hash}}` attestations from canonical ordered event, receipt, and resource strings. Reconciliation failures MUST use the applicable closed error without becoming a late failure or mutating the model; the event projection MUST include accepted history, `RECONCILE`, and the sole legal next event `FINALIZE`.
+
+### Requirement: Terminal recovery-run manifest envelope
+
+`buildManifestEnvelope` MUST accept only a valid terminal model and return exactly `{envelope,bytes,sha256}`. The envelope MUST be exactly `{schema:'actravel.recovery-run-manifest/v1',body,attestations}` with the model identity, interpretation, terminal record, ordered IDs/receipts/resources/events, state trace, and reconciliation attestations. Bytes MUST be canonical UTF-8 with no newline and sha256 MUST remain outside the envelope. There MUST be no self hash, path, write, rename, publication receipt, readiness field, or recovery-evidence claim.
+
+#### Scenario: Canonical non-self-referential manifest
+- GIVEN equivalent terminal models and repeated manifest builds
+- WHEN envelopes are built
+- THEN canonical bytes and hashes match, returned byte mutation cannot affect later output, and the external hash is absent from its own envelope
+
+### Requirement: External-free recovery-runner tests
+
+Tests MUST use only `node:test` and `node:assert/strict`, covering exact exports and schemas, all closed errors and safe details, every lifecycle transition and terminal rejection, failure precedence, receipt/resource/cleanup/reconciliation gates, hostile inputs and immutability, deterministic ordering and hashes, manifest non-self-reference, and the exact interpretation. The two implementation files MUST remain within the one-slice 650 physical authored-line cap.
+
+#### Scenario: Passing model suite
+- GIVEN all external-free tests pass
+- WHEN the result is reported
+- THEN it states only `orchestration-only-not-recovery-evidence` and makes no command, cleanup, publication, restore, readiness, provider, or Week 01 closure claim
