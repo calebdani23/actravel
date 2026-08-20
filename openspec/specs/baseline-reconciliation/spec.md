@@ -68,7 +68,7 @@ Baseline lint, build, and quote-notification tests MUST be recorded with outcome
 
 ### Requirement: Gate all risky actions and preserve scope
 
-The packet MUST NOT perform DDL, DML, history repair, migration push/reset, provider-native repair, `0061+`, type overwrite, application behavior changes, production smoke, real external traffic, or modification of unrelated paths including `docs/about/helps/intakes/image.png`. A request crossing these boundaries MUST fail closed. (Previously: risky operations and application changes were prohibited.)
+The implementation source allowlist MUST be exactly `lib/supabase/database.types.ts`, `lib/admin/quotes.ts`, `tests/quotes-foundation-contract.test.ts`, and `tests/quote-registration-intents-contract.test.ts`. The generated file is read-only and must remain exact; only the named overlay and contract corrections are permitted. It MUST NOT perform DDL, DML, history repair, migration push/reset, provider-native repair, `0061+`, generation, provider operations, migrations, package/config changes, other application/test edits, or modifications to unrelated paths including `docs/about/helps/intakes/image.png`. A request crossing these boundaries MUST fail closed.
 
 #### Scenario: Scope boundary is crossed
 - GIVEN an operator requests a prohibited mutation or unrelated file change
@@ -132,12 +132,65 @@ Live inspection MUST be read-only and limited to an explicitly approved, sanitiz
 
 ### Requirement: Preserve generated-type and historical boundaries
 
-The packet MUST preserve the generated-type drift baseline and original evidence unchanged. It MUST NOT regenerate or modify tracked generated types. Archived evidence MAY inform investigation only as labeled historical input and MUST NOT satisfy fresh identity, provenance, target, authorization, or recovery gates.
+The packet MUST preserve the captured diagnostic, snapshot identity, and historical evidence as labeled inputs. Alignment MAY prove only exact tracked-byte replacement and the listed local compatibility/validation outcomes. It MUST NOT claim fresh provider provenance, schema-history alignment, recovery readiness, authorization for `0061+`, or Week 01 closure. Archived evidence MAY inform investigation only as labeled historical input and MUST NOT satisfy fresh identity, provenance, target, authorization, or recovery gates.
 
 #### Scenario: Type drift or stale history is found
 - GIVEN generated types differ or archived proof conflicts with current evidence
 - WHEN readiness is assessed
 - THEN drift and contradiction remain recorded and cannot be presented as aligned proof
+
+### Requirement: Preserve generated snapshot and align nullable quote consumers
+
+The system MUST verify that `lib/supabase/database.types.ts` already contains only the fixed snapshot bytes: mode `100644`, 113159 bytes, 3697 LF lines, SHA-256 `b6e3ea6876dd32c1e817d9f9f8ff7b28571a75ed5b29fd2faa5e10449b492637`. It MUST NOT regenerate or edit that file. Application consumers MUST use a minimum nullable overlay for `crm_quote_page` and `crm_quote_detail` `current_currency` and `accepted_currency` fields, preserving SQL nullability semantics at the mapper boundary.
+
+#### Scenario: Exact snapshot is preserved
+- GIVEN the tracked generated file and fixed snapshot have the required identity
+- WHEN remediation is applied
+- THEN the generated file is byte-for-byte unchanged and the nullable overlay is the only application compatibility correction
+
+#### Scenario: Snapshot identity differs
+- GIVEN any protected path, mode, byte count, line count, or hash differs
+- WHEN remediation is requested
+- THEN the operation fails closed before any source edit and records `BLOCKED`
+
+### Requirement: Record generated semantic identity
+
+The evidence MUST record the semantic generated diff as 1105 additions, 765 deletions, and 2238 unified-diff lines, together with a stable patch/hash identity. Generated changes MUST count in review and rollback accounting but MUST NOT count as authored-line budget.
+
+#### Scenario: Generated diff is reviewed
+- GIVEN the exact postimage is present
+- WHEN the diff ledger is produced
+- THEN its counts and stable identity are recorded without treating generated lines as authored work
+
+### Requirement: Capture bounded validation diagnostics
+
+The packet MUST capture the existing captured-type diagnostic and direct generated-type contract suite, direct `tsc --noEmit`, lint, guarded build, and quote-notification checks. Build MUST disable external boundaries and MAY use the existing local environment read-only. If build rewrites `next-env.d.ts`, the packet MAY restore it to its captured preimage and still report PASS only when the path was at that preimage when the command began, its post-command bytes are attributed exactly to that command, and restoration re-verifies the preimage identity. A collision, unknown bytes, or failed restoration/verification MUST report `BLOCKED`.
+
+#### Scenario: Validation is safe and complete
+- GIVEN external boundaries are disabled and all required inputs are available
+- WHEN the validation ledger runs
+- THEN every result is recorded with its command and outcome, with no external traffic
+
+#### Scenario: Validation exposes consumer remediation
+- GIVEN any check fails or requires an application or test source edit
+- WHEN the result is reviewed
+- THEN this child is `BLOCKED` and remediation is deferred to a separate consumer/app follow-up
+
+#### Scenario: Differential validation isolates a pre-existing harness warning
+- GIVEN the exact direct contract suite was run on the target preimage and postimage
+- WHEN a server-only harness-only failure has identical test name, message, and diagnostic hash before and after alignment
+- THEN it is recorded as pre-existing differential evidence and does not mask the alignment result
+- BUT any new or changed failure MUST report `BLOCKED`
+
+#### Scenario: Exact command-owned next-env rewrite is cleaned up
+- GIVEN the captured preimage and exact command-owned post-command bytes of `next-env.d.ts` are verified
+- WHEN the exact preimage is restored and re-verified
+- THEN the cleanup does not prevent an otherwise passing validation ledger from reporting PASS
+
+#### Scenario: next-env ownership or restoration is unsafe
+- GIVEN `next-env.d.ts` has collided, contains unknown bytes, or cannot be restored and verified exactly
+- WHEN cleanup is evaluated
+- THEN the child reports `BLOCKED` and does not overwrite the unsafe bytes
 
 ### Requirement: Bound dependency-baseline parallel work
 
