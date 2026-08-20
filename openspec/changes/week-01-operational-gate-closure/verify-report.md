@@ -1,7 +1,7 @@
 ```yaml
 schema: gentle-ai.verify-result/v1
 evidence_revision: sha256:e031596ae703108ce9841aad44373afe2b0f4a301a54e52d775ca4d3c802cbf5
-verdict: PASS
+verdict: pass
 blockers: 0
 critical_findings: 0
 requirements: 8/8
@@ -24,7 +24,7 @@ build_output_hash: sha256:148af4edb31af53bda56cfa37eb043a2af5e77c7e4a4f0898453be
 
 | Dimension | Result |
 |---|---:|
-| Tasks | 16/16 complete after this verification; task 4.4 is marked complete |
+| Tasks | 17/17 complete after this verification; task 4.4 and amendment task 4.5 are complete |
 | Requirements | 8/8 evaluated against the amended proposal, design, and delta spec |
 | Scenarios | 14/14 evaluated with provider, recovery, RED, child, local runtime, and amendment evidence |
 | Final gate | Exactly one final `PASS`; fresh independent verifier completed |
