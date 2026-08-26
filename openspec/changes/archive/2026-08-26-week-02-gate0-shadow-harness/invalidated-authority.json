@@ -1,0 +1,152 @@
+{
+  "schemaVersion": "Gate0InvalidatedAuthorityV1",
+  "status": "INVALIDATED",
+  "recordedAt": "2026-08-26T02:16:59Z",
+  "change": "week-02-gate0-shadow-harness",
+  "invalidRunId": "20260826T014900Z-20260826-a7c91d2e",
+  "authoritative": false,
+  "ready": false,
+  "reason": "The prior PASS had false cleanup semantics and retained local secrets and a full generated type artifact. Its content hashes no longer authorize delivery after deliberate secret redaction and artifact deletion.",
+  "invalidatedArtifacts": [
+    {
+      "path": "gate0-approved.json",
+      "fileHash": "sha256:e791e83920fac34a3b1a4e7dfdba90e4c136835d1eb3ea0399786caab1e15c54",
+      "semanticHash": "sha256:c2475e92989e09f11092cb6418d1feebebc6107f56f1a75b5e100d0ce03f9136",
+      "removed": true
+    },
+    {
+      "path": "evidence/20260826T014900Z-20260826-a7c91d2e/gate0-report.json",
+      "fileHash": "sha256:4e977195e7ab6d13c0a7811bd91a1398b4fd796c28c73d1cdece91786de1fb97",
+      "semanticHash": "sha256:8b27330b717dbb70c85efb7922252ed555abe5604a82f6eac3590fe552786ac8",
+      "removed": false
+    },
+    {
+      "path": "evidence/20260826T014900Z-20260826-a7c91d2e/gate0-receipt.json",
+      "fileHash": "sha256:76e8c7d81d16be4732f77ee9649abd479ed4d60f0c741e7520f989946e05b9b6",
+      "semanticHash": "sha256:23c9d8fbe836bd35c2bc4b96add7e79081675b73ca1807963245961d78660e0d",
+      "removed": false
+    },
+    {
+      "path": "evidence/20260826T014900Z-20260826-a7c91d2e/artifact-manifest.json",
+      "fileHash": "sha256:685c33d94e12e0aa53ce1589b7b193c561f04ff1cd853dd93a83b18ed78e36b0",
+      "semanticHash": "sha256:236d268ca95ff448730526f7dfb6079d9918ff1f4df6b438c404880564f014bf",
+      "removed": false
+    }
+  ],
+  "removedPaths": [
+    "gate0-approved.json",
+    "evidence/20260826T014900Z-20260826-a7c91d2e/local/generated-types.ts",
+    "evidence/20260826T014900Z-20260826-a7c91d2e/local/status.sanitized.json"
+  ],
+  "redactionEvidence": [
+    "evidence/20260826T014900Z-20260826-a7c91d2e/local/generated-types-evidence.invalidated.json",
+    "evidence/20260826T014900Z-20260826-a7c91d2e/local/status-evidence.invalidated.json"
+  ],
+  "dockerCleanup": {
+    "labels": [
+      {
+        "projectLabel": "actravel-gate0-20260826T014900Z-20260826",
+        "before": {"containers": 12, "volumes": 3, "networks": 1},
+        "after": {"containers": 0, "volumes": 0, "networks": 0}
+      },
+      {
+        "projectLabel": "actravel-gate0-debug-20260826T023000Z-23",
+        "before": {"containers": 12, "volumes": 3, "networks": 1},
+        "after": {"containers": 0, "volumes": 0, "networks": 0}
+      }
+    ],
+    "removedResources": [
+      {"type":"container","id":"0eb6d276c27f9c51d72ade7eb84ab4bd3f2462527444278c18e125de7f4283ef","name":"supabase_analytics_actravel-gate0-20260826T014900Z-20260826","projectLabel":"actravel-gate0-20260826T014900Z-20260826"},
+      {"type":"container","id":"d0352e1b4876657a1b3720c2badacc069a7955ec382a793190e779a11ff47e92","name":"supabase_auth_actravel-gate0-20260826T014900Z-20260826","projectLabel":"actravel-gate0-20260826T014900Z-20260826"},
+      {"type":"container","id":"72b481265caf1dd45e8c0d2d5a53104426de1ada38b2efd92c830c1d1c9502cb","name":"supabase_db_actravel-gate0-20260826T014900Z-20260826","projectLabel":"actravel-gate0-20260826T014900Z-20260826"},
+      {"type":"container","id":"724fb7da74bd091c1c2a262e723103af5159110c0163eb7ff4ccd00bde35ff75","name":"supabase_edge_runtime_actravel-gate0-20260826T014900Z-20260826","projectLabel":"actravel-gate0-20260826T014900Z-20260826"},
+      {"type":"container","id":"54980ee68659f5b7871daf6a696e5aab8de1230103806ad16ba137a0b6d60a0b","name":"supabase_inbucket_actravel-gate0-20260826T014900Z-20260826","projectLabel":"actravel-gate0-20260826T014900Z-20260826"},
+      {"type":"container","id":"e42365a71d8d64be5934f9928693479316d8478c37e3c62d6426847294893311","name":"supabase_kong_actravel-gate0-20260826T014900Z-20260826","projectLabel":"actravel-gate0-20260826T014900Z-20260826"},
+      {"type":"container","id":"459f9760e874c3c31d75cd53b5e077f0e25cf1e67546819a284d21e40a11c105","name":"supabase_pg_meta_actravel-gate0-20260826T014900Z-20260826","projectLabel":"actravel-gate0-20260826T014900Z-20260826"},
+      {"type":"container","id":"f6fbffe62f68c678855c4d24f8877727e0b4445a8da49a24cb585ee8ba83528c","name":"supabase_realtime_actravel-gate0-20260826T014900Z-20260826","projectLabel":"actravel-gate0-20260826T014900Z-20260826"},
+      {"type":"container","id":"dbe88f43db437a8a04ed5d67fcf78b7f91e04b2e622fcf4f4fc6c09e7b1494ca","name":"supabase_rest_actravel-gate0-20260826T014900Z-20260826","projectLabel":"actravel-gate0-20260826T014900Z-20260826"},
+      {"type":"container","id":"5679e6e4000f4230028e231afaa9d0da411dd0f1c6e2f69509a6830ae77cd2b1","name":"supabase_storage_actravel-gate0-20260826T014900Z-20260826","projectLabel":"actravel-gate0-20260826T014900Z-20260826"},
+      {"type":"container","id":"e50eba0ca586dbadd4724a4f3ec061edc121354895c84176cf065c7f5b5f0296","name":"supabase_studio_actravel-gate0-20260826T014900Z-20260826","projectLabel":"actravel-gate0-20260826T014900Z-20260826"},
+      {"type":"container","id":"b7b06212e7e93189d71b45871d297e31cc050a5d1d1f23ffe2c45adb25767b71","name":"supabase_vector_actravel-gate0-20260826T014900Z-20260826","projectLabel":"actravel-gate0-20260826T014900Z-20260826"},
+      {"type":"container","id":"850ec2513023b62ca2137d9a916b4b780d75fd052df1d381930f190cf0fdae9e","name":"supabase_analytics_actravel-gate0-debug-20260826T023000Z-23","projectLabel":"actravel-gate0-debug-20260826T023000Z-23"},
+      {"type":"container","id":"cecd7bb3be89e01a712f44bbde3fc6063d690ae06cbd2ab97b57a686dad501e9","name":"supabase_auth_actravel-gate0-debug-20260826T023000Z-23","projectLabel":"actravel-gate0-debug-20260826T023000Z-23"},
+      {"type":"container","id":"993cb3655d6aae1916a19d150adff91f0ab587200d95e8d12ee2ec90004a1626","name":"supabase_db_actravel-gate0-debug-20260826T023000Z-23","projectLabel":"actravel-gate0-debug-20260826T023000Z-23"},
+      {"type":"container","id":"035430de073fd3c071ca6ae1b270293e53fbb8613d3bd3d9a1e8e5a3b4012a64","name":"supabase_edge_runtime_actravel-gate0-debug-20260826T023000Z-23","projectLabel":"actravel-gate0-debug-20260826T023000Z-23"},
+      {"type":"container","id":"ccd50881a630a7881fc6bac8bce755672bacdc54c4a053fa2be39c6c27afffe0","name":"supabase_inbucket_actravel-gate0-debug-20260826T023000Z-23","projectLabel":"actravel-gate0-debug-20260826T023000Z-23"},
+      {"type":"container","id":"cbea2e3a829215681e4a72368100116f8d3ebbe52bd8ccf79c08b64744e29e2b","name":"supabase_kong_actravel-gate0-debug-20260826T023000Z-23","projectLabel":"actravel-gate0-debug-20260826T023000Z-23"},
+      {"type":"container","id":"8f0de15869dc4cd9eebbda0c9c98fa2c4f3facf4c5ed02d9495426f89fd5ac63","name":"supabase_pg_meta_actravel-gate0-debug-20260826T023000Z-23","projectLabel":"actravel-gate0-debug-20260826T023000Z-23"},
+      {"type":"container","id":"eb27352cc586d885bca35437c8a93180e9d89dd63657b649354e924ecfd1d2de","name":"supabase_realtime_actravel-gate0-debug-20260826T023000Z-23","projectLabel":"actravel-gate0-debug-20260826T023000Z-23"},
+      {"type":"container","id":"2920792c5a45166e68c9655921585384865fefaec2f1f960487eeefafd1a3524","name":"supabase_rest_actravel-gate0-debug-20260826T023000Z-23","projectLabel":"actravel-gate0-debug-20260826T023000Z-23"},
+      {"type":"container","id":"73b551727ed7d2a5e1b3e2509a8e26a0af8683ed430d45e679de474655666f8e","name":"supabase_storage_actravel-gate0-debug-20260826T023000Z-23","projectLabel":"actravel-gate0-debug-20260826T023000Z-23"},
+      {"type":"container","id":"1156753deee2496ecbb8cdc3981e274a796e48de3b38150b62a1868e1a062863","name":"supabase_studio_actravel-gate0-debug-20260826T023000Z-23","projectLabel":"actravel-gate0-debug-20260826T023000Z-23"},
+      {"type":"container","id":"64474ad78e9f49952214e0959cb98c75a0116f8a6cb9d71a8f8b40a3ec188a54","name":"supabase_vector_actravel-gate0-debug-20260826T023000Z-23","projectLabel":"actravel-gate0-debug-20260826T023000Z-23"},
+      {"type":"volume","name":"supabase_db_actravel-gate0-20260826T014900Z-20260826","projectLabel":"actravel-gate0-20260826T014900Z-20260826"},
+      {"type":"volume","name":"supabase_edge_runtime_actravel-gate0-20260826T014900Z-20260826","projectLabel":"actravel-gate0-20260826T014900Z-20260826"},
+      {"type":"volume","name":"supabase_storage_actravel-gate0-20260826T014900Z-20260826","projectLabel":"actravel-gate0-20260826T014900Z-20260826"},
+      {"type":"volume","name":"supabase_db_actravel-gate0-debug-20260826T023000Z-23","projectLabel":"actravel-gate0-debug-20260826T023000Z-23"},
+      {"type":"volume","name":"supabase_edge_runtime_actravel-gate0-debug-20260826T023000Z-23","projectLabel":"actravel-gate0-debug-20260826T023000Z-23"},
+      {"type":"volume","name":"supabase_storage_actravel-gate0-debug-20260826T023000Z-23","projectLabel":"actravel-gate0-debug-20260826T023000Z-23"},
+      {"type":"network","id":"1025e70f52165008a6e33d5b46755174ae8709e2b9c8b3b763badb74b29f2f65","name":"supabase_network_actravel-gate0-20260826T014900Z-20260826","projectLabel":"actravel-gate0-20260826T014900Z-20260826"},
+      {"type":"network","id":"f3754e173be27a4e9c7290a9fccb278602b0f67ffe4a8ceab44d674c5ef7c8a2","name":"supabase_network_actravel-gate0-debug-20260826T023000Z-23","projectLabel":"actravel-gate0-debug-20260826T023000Z-23"}
+    ],
+    "removedCounts": {"containers": 24, "volumes": 6, "networks": 2, "images": 0},
+    "preservedUnrelatedCounts": {"containers": 1, "volumes": 14, "networks": 3, "images": 29},
+    "preservationHashes": {
+      "containersBeforeAndAfter": "sha256:1c90e7e7c7fe5d5f3813fb3e2c17895eb0e42c7102759b16a6fb6d5b18fe0bd7",
+      "volumesBeforeAndAfter": "sha256:0c82cf9dbbd42e328deaeb895c4fe86a2f84b0e558ac61f13bc9ff0859de2636",
+      "networksBeforeAndAfter": "sha256:4f54e1b8c692bdd0df90b0b3da6b8d5ec61b0af0f3cdcdc36d0975548054c533",
+      "imagesBeforeAndAfter": "sha256:a490869a41484b282d3412c0bb8dedd97ac6d982d01417cff410c923e09d4cf8"
+    }
+  },
+  "repositoryPreservation": {
+    "headBeforeAndAfter": "83a99ed5faaf01b51abc430b9098781cc7334704",
+    "branchBeforeAndAfter": "main",
+    "indexFileHashBeforeAndAfter": "sha256:9ab2becb461752539851fd11413ef863e9ee5e21c021ec171cd27958f7ebbf58",
+    "indexModeBeforeAndAfter": "0664",
+    "indexByteCountBeforeAndAfter": 67292,
+    "indexEntriesHashBeforeAndAfter": "sha256:fbbf16c6679e4075e2f07c85eaffa7ce16f23659e735f7f18f75a82ce5f1787a",
+    "unrelatedRepositoryManifestBeforeAndAfter": "sha256:03feddec01fef49a10de994a135baf7b642e6d74b0c149c556bccee5d65fea2a",
+    "codeManifestBeforeAndAfter": "sha256:019b38d148f03d75c44f4785db8a11796b286da1d8e36ae3fa68bba05712b840",
+    "configManifestBeforeAndAfter": "sha256:1bc99f2226da72a82eeb3ef6b68efc9c73ddc7500498f4a65293257903ec729e",
+    "migrationManifestBeforeAndAfter": "sha256:1ef5edc64848b2c1393c8f051f187a51c615fc8a10645f87f1520feb81c9a30c",
+    "protectedFiles": [
+      {"path":"next-env.d.ts","mode":"0664","hash":"sha256:7ad303e40d4fddf44f156129e397511953a71481c5cfd86b1862649aaaf240cc"},
+      {"path":"lib/supabase/database.types.ts","mode":"0664","hash":"sha256:b6e3ea6876dd32c1e817d9f9f8ff7b28571a75ed5b29fd2faa5e10449b492637"},
+      {"path":"docs/about/helps/intakes/image.png","mode":"0664","hash":"sha256:fef8a13433a8084e6632b0a8c64f668f4a51cfba4fd14d951ec774d32fc58655"}
+    ]
+  },
+  "reopenedTasks": ["1.1", "1.2", "3.2", "3.3", "4.1", "4.2", "4.3"],
+  "reopenedTaskCount": 7,
+  "protocolHardening": {
+    "status": "PREPARED_NOT_EXECUTED",
+    "requiresSeparateAuthorization": true,
+    "requiresNewRunId": true,
+    "projectIdPattern": "^atg0-[0-9a-f]{8}$",
+    "projectIdLength": 13,
+    "cleanupLabelSource": "observed com.supabase.cli.project",
+    "labelEqualityRequiredForEveryOwnedResource": true,
+    "cleanupMustReachZero": ["containers", "volumes", "networks"],
+    "imagesNeverRemoved": true,
+    "imageAdditionsAllowed": true,
+    "existingImageIdsMustBePreserved": true,
+    "retainedStatusArtifact": "local-connection-evidence.json",
+    "retainedStatusFields": ["projectId", "loopbackHost", "publishedPort", "database", "user", "containerId", "hashes"],
+    "retainedGeneratedTypesArtifact": "generated-types-evidence.json",
+    "retainedGeneratedTypesFields": ["artifactHash", "byteCount", "lineCount", "mode", "shapeAssertions", "recordHash"],
+    "rawStatusRetained": false,
+    "fullGeneratedTypesRetained": false,
+    "localCatalogRequirements": ["manager_count", "roles_name_check_definition", "roles_staff_read_policy", "tasks_absent", "staff_notifications_absent", "exact_quote_function_state"],
+    "commandRecordRange": "C000-C016",
+    "commandRecordsHashBound": true,
+    "lineBudgetLimit": 2200,
+    "lineBudgetBoundary": "retained authored/current-run evidence after secret/type deletion and before pointer",
+    "freshExternalPrePointerValidatorRequired": true,
+    "freshPointerBoundReadOnlyValidatorRequired": true,
+    "newContentAddressedReceiptRequired": true,
+    "correctiveRunTask": "5.1",
+    "correctiveRunTaskComplete": false
+  },
+  "replacementPassPublished": false,
+  "replacementPointerPublished": false,
+  "baselineExecutionContinued": false
+}

@@ -1,0 +1,42 @@
+{
+  "schema": "actravel.week02.closure-provenance/v1",
+  "externalIgnoredRoot": "tmp/audit-evidence/week02-closure-provenance/",
+  "fullManifest": {
+    "path": "tmp/audit-evidence/week02-closure-provenance/manifest.tsv",
+    "columns": ["originalRelativePath", "bytes", "mode", "sha256"],
+    "ordering": "originalRelativePath ascending",
+    "lineEndings": "LF",
+    "aggregateSha256": "764a1cb3827368f0f5a1b38f681accee29bfbe9b2def3f592caf6acccda2604e"
+  },
+  "totals": {
+    "fileCount": 326,
+    "bytes": 3516748
+  },
+  "categoryCounts": {
+    "gate0Evidence": 319,
+    "harnessHistory": 3,
+    "trackerCombinedPlanning": 3,
+    "tasksBlockedDesign": 1
+  },
+  "keyHashes": {
+    "invalidPassRun20260826T014900Z": {
+      "reportSha256": "4e977195e7ab6d13c0a7811bd91a1398b4fd796c28c73d1cdece91786de1fb97",
+      "receiptSha256": "76e8c7d81d16be4732f77ee9649abd479ed4d60f0c741e7520f989946e05b9b6",
+      "artifactManifestSha256": "685c33d94e12e0aa53ce1589b7b193c561f04ff1cd853dd93a83b18ed78e36b0",
+      "deletedPointerPreimageSha256": "e791e83920fac34a3b1a4e7dfdba90e4c136835d1eb3ea0399786caab1e15c54"
+    },
+    "invalidPassRun20260826T044700Z": {
+      "reportSha256": "4c9026356508667187f91937424dd24769a2affec4913babf5b1f1aedfe9daff",
+      "receiptSha256": "d218c5681bfede5e8018e64efbe96c09d9ce02b7662b70634451d8284eec0c71",
+      "artifactManifestSha256": "7f9bc1255921d0c1f4effe479b43d103b0b6d5dbbc6d839e90e58a40ed892cb4",
+      "deletedPointerPreimageSha256": "cba49f643f13639d6bc5734476298877efe777ea8c714f8871f60261b5efa97a"
+    },
+    "diagnosticPassEvidence": {
+      "runId": "20260826T023000Z-2311731-d6b7c9e1",
+      "diagnosisFileSha256": "e1ab39d1ae95e12223af26842eb8742d54299215e542d50ad6b3e468a506944d",
+      "embeddedEvidenceRevision": "e20dc161f316140ad0b94ce9050279c5fea21ec5e744dca94a1a52504b703b19",
+      "classification": "diagnostic START_SUCCEEDED only"
+    }
+  },
+  "authority": "External artifacts are provenance only and non-authoritative. They cannot satisfy an active task, readiness gate, receipt, manifest, validation, or approval requirement."
+}
