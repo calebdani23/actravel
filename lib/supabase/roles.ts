@@ -1,9 +1,10 @@
-export const ROLE_NAMES = ["admin", "asesor", "operaciones", "finanzas", "marketing"] as const;
+export const ROLE_NAMES = ["admin", "manager", "asesor", "operaciones", "finanzas", "marketing"] as const;
 
 export type RoleName = (typeof ROLE_NAMES)[number];
 
 export const ROLE_LABELS: Record<RoleName, string> = {
   admin: "Administrador",
+  manager: "Gerencia",
   asesor: "Asesor",
   operaciones: "Operaciones",
   finanzas: "Finanzas",
@@ -20,4 +21,8 @@ export function hasRole(roles: readonly string[] | null | undefined, role: RoleN
 
 export function hasAnyRole(roles: readonly string[] | null | undefined, allowed: readonly RoleName[]) {
   return allowed.some((role) => hasRole(roles, role));
+}
+
+export function normalizeRoleNames(values: readonly string[] | null | undefined): RoleName[] {
+  return Array.from(new Set((values ?? []).filter(isRoleName)));
 }

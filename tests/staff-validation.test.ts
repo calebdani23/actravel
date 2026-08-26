@@ -49,6 +49,19 @@ test("staff create parser normalizes safe fields and redacts passwords from erro
     is_active: true,
     initial_password: "Str0ng!Password",
   });
+
+  const manager = parseCreateStaffFormData(formData({
+    email: "gerencia@example.com",
+    full_name: "Grace Manager",
+    role: "manager",
+    is_active: "on",
+    initial_password: "Str0ng!Password",
+    confirm_initial_password: "Str0ng!Password",
+  }));
+
+  assert.equal(manager.success, true);
+  if (!manager.success) return;
+  assert.equal(manager.data.role, "manager");
 });
 
 test("staff update parser validates managed roles and booleans", () => {
@@ -74,6 +87,17 @@ test("staff update parser validates managed roles and booleans", () => {
     role: "asesor",
     is_active: false,
   });
+
+  const manager = parseUpdateStaffFormData(formData({
+    profile_id: "550e8400-e29b-41d4-a716-446655440000",
+    full_name: "Grace Manager",
+    role: "manager",
+    is_active: "on",
+  }));
+
+  assert.equal(manager.success, true);
+  if (!manager.success) return;
+  assert.equal(manager.data.role, "manager");
 });
 
 test("password change parser requires strong confirmed password", () => {

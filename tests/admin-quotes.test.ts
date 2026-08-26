@@ -42,7 +42,6 @@ test("Commercial navigation has exact quote order and role matrix", () => {
 });
 
 test("standalone quote routes enforce read and mutation roles", () => {
-  assert.match(portfolio, /requireAdminRole\(\["admin", "asesor", "operaciones", "finanzas"\]\)/);
   assert.match(detail, /requireAdminRole\(\["admin", "asesor", "operaciones", "finanzas"\]\)/);
   assert.match(createPage, /requireAdminRole\(\["admin", "asesor"\]\)/);
   for (const source of [portfolio, detail]) assert.match(source, /canMutate/);

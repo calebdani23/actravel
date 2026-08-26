@@ -30,6 +30,7 @@ export function StaffCreateForm() {
         <select className={`mt-1 ${adminSelectClassName}`} defaultValue={state.values.role} id="role" name="role">
           <option value="asesor">Asesoría</option>
           <option value="admin">Administración</option>
+          <option value="manager">Gerencia</option>
         </select>
         {fieldError(state, "role") ? <p className="mt-1 text-xs text-red-700">{fieldError(state, "role")}</p> : null}
       </div>

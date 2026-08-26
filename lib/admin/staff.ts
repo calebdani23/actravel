@@ -118,7 +118,7 @@ const deletionReferenceChecks = [
   { table: "sheet_sync_logs", column: "incident_updated_by", label: "Sheet sync incident history" },
 ] as const;
 
-const managedRoleNames = new Set<ManagedStaffRole>(["admin", "asesor"]);
+const managedRoleNames = new Set<ManagedStaffRole>(["admin", "manager", "asesor"]);
 
 function getManagedRoleNames(roles: string[]) {
   return Array.from(new Set(roles.filter((role): role is ManagedStaffRole => managedRoleNames.has(role as ManagedStaffRole))));

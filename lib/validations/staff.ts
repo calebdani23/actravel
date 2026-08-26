@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const managedStaffRoleValues = ["admin", "asesor"] as const;
+export const managedStaffRoleValues = ["admin", "manager", "asesor"] as const;
 
 const managedStaffRoleSchema = z.enum(managedStaffRoleValues);
 const normalizedEmailSchema = z.string().trim().toLowerCase().email().max(180);

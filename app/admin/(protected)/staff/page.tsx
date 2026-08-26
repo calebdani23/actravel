@@ -2,10 +2,11 @@ import { OperationDialog } from "@/components/admin/operations/operation-dialog"
 import { StaffCreateForm } from "@/components/admin/staff/staff-create-form";
 import { StaffList } from "@/components/admin/staff/staff-list";
 import { EmptyState, MetricCard, PageContainer, PageHeader, SectionCard } from "@/components/admin/admin-primitives";
-import { requireAdminRole } from "@/lib/admin/auth";
 import { formatAdminDateTime, formatAdminInteger } from "@/lib/admin/format";
-import { getStaffAccounts, getStaffAuditEvents } from "@/lib/admin/staff";
+import { getStaffAccounts } from "@/lib/admin/staff";
 import { staffAuditActionLabel } from "@/lib/admin/staff-view";
+import { composeStaffPage } from "@/lib/admin/page-compositions";
+import { getStaffAuditEvents } from "@/lib/admin/staff";
 
 function summaryCounts(staff: Awaited<ReturnType<typeof getStaffAccounts>>) {
   return {
@@ -17,8 +18,7 @@ function summaryCounts(staff: Awaited<ReturnType<typeof getStaffAccounts>>) {
 }
 
 export default async function StaffPage() {
-  await requireAdminRole(["admin"]);
-  const [staff, events] = await Promise.all([getStaffAccounts(), getStaffAuditEvents(20)]);
+  const { staff, events } = await composeStaffPage({ getStaff: getStaffAccounts, getEvents: getStaffAuditEvents });
   const counts = summaryCounts(staff);
 
   return (

@@ -1,12 +1,13 @@
 import { EmailChangeForm } from "@/components/admin/account/email-change-form";
 import { PasswordChangeForm } from "@/components/admin/account/password-change-form";
 import { DetailList, PageContainer, PageHeader, SectionCard, StatusBadge } from "@/components/admin/admin-primitives";
-import { requireAdminRole } from "@/lib/admin/auth";
-import { staffActiveStateLabel, staffRoleLabel } from "@/lib/admin/staff-view";
+import { composeAccountPage } from "@/lib/admin/page-compositions";
+import { ROLE_LABELS } from "@/lib/supabase/roles";
+import { staffActiveStateLabel } from "@/lib/admin/staff-view";
 
 export default async function AccountPage() {
-  const session = await requireAdminRole();
-  const roleLabels = session.roles.map((role) => staffRoleLabel(role));
+  const { session } = await composeAccountPage({});
+  const roleLabels = session.roles.map((role) => ROLE_LABELS[role]);
 
   return (
     <PageContainer className="max-w-5xl">

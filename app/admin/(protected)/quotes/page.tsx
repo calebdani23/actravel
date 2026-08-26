@@ -2,10 +2,11 @@ import Link from "next/link";
 import { FileWarning, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, MetricCard, PageContainer, PageHeader, SectionCard, StatusBadge, adminInputClassName, adminSelectClassName } from "@/components/admin/admin-primitives";
-import { requireAdminRole } from "@/lib/admin/auth";
 import { formatAdminCurrency, formatAdminDate, formatAdminDateTime, formatAdminInteger } from "@/lib/admin/format";
-import { getQuotePortfolio, type QuotePortfolioFilters, type QuotePortfolioItemDto } from "@/lib/admin/quotes";
+import type { QuotePortfolioFilters, QuotePortfolioItemDto } from "@/lib/admin/quotes";
+import { composeQuotesPage } from "@/lib/admin/page-compositions";
 import { getAdvisorCapableStaff } from "@/lib/admin/staff";
+import { getQuotePortfolio } from "@/lib/admin/quotes";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 type PageProps = { searchParams: Promise<SearchParams> };
@@ -67,14 +68,7 @@ function filterHref(params: SearchParams, changes: Record<string, string | undef
   return `/admin/quotes${query ? `?${query}` : ""}`;
 }
 
-export default async function QuotesPage({ searchParams }: PageProps) {
-  const [params, session, advisors] = await Promise.all([
-    searchParams,
-    requireAdminRole(["admin", "asesor", "operaciones", "finanzas"]),
-    getAdvisorCapableStaff(),
-  ]);
-  const canMutate = session.roles.includes("admin") || session.roles.includes("asesor");
-  const canOpenCrm = canMutate;
+function buildFilters(params: SearchParams): QuotePortfolioFilters {
   const status = value(params, "status");
   const currency = value(params, "currency");
   const validity = value(params, "validity");
@@ -82,12 +76,10 @@ export default async function QuotesPage({ searchParams }: PageProps) {
   const view = value(params, "view");
   const afterUpdatedAt = value(params, "afterUpdatedAt");
   const afterId = validUuid(value(params, "afterId"));
-  const filters: QuotePortfolioFilters = {
+  return {
     search: value(params, "q"),
     status: ["draft", "ready", "sent", "accepted", "rejected", "expired", "cancelled"].includes(status ?? "") ? status : null,
-    ownerId: validUuid(value(params, "advisor")),
-    contactId: validUuid(value(params, "contactId")),
-    opportunityId: validUuid(value(params, "opportunityId")),
+    ownerId: validUuid(value(params, "advisor")), contactId: validUuid(value(params, "contactId")), opportunityId: validUuid(value(params, "opportunityId")),
     currency: ["MXN", "USD"].includes(currency ?? "") ? currency : null,
     validity: ["all", "valid", "expired", "no_expiry"].includes(validity ?? "") ? validity as QuotePortfolioFilters["validity"] : "all",
     pdf: ["ready", "missing"].includes(pdf ?? "") ? pdf as QuotePortfolioFilters["pdf"] : undefined,
@@ -95,7 +87,13 @@ export default async function QuotesPage({ searchParams }: PageProps) {
     afterUpdatedAt: afterUpdatedAt && !Number.isNaN(new Date(afterUpdatedAt).getTime()) && afterId ? afterUpdatedAt : null,
     afterId: afterUpdatedAt && afterId ? afterId : null,
   };
-  const result = await getQuotePortfolio(filters);
+}
+
+export default async function QuotesPage({ searchParams }: PageProps) {
+  const { session, params, advisors, result } = await composeQuotesPage(searchParams, buildFilters, { getAdvisors: getAdvisorCapableStaff, getPortfolio: getQuotePortfolio });
+  const canMutate = session.roles.includes("admin") || session.roles.includes("asesor");
+  const canOpenCrm = canMutate;
+  const filters = buildFilters(params);
   const quotes = result.quotes;
   const totals = quotes.reduce((acc, quote) => {
     const version = quote.currentVersion;

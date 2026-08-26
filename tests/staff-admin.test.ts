@@ -12,8 +12,27 @@ import {
   updateStaffAccount,
   type StaffActor,
 } from "@/lib/admin/staff";
+import { staffRoleLabel } from "@/lib/admin/staff-view";
+import { requireAdminRole } from "@/lib/admin/auth";
 
 const actor: StaffActor = { id: "actor-1", email: "admin@example.com", roles: ["admin"] };
+
+function deniedActions() {
+  return {
+    redirect: (path: string): never => { throw new Error(`redirect:${path}`); },
+    notFound: (): never => { throw new Error("not-found"); },
+  };
+}
+
+test("staff mutation authorization denies Manager-only and Manager plus non-Admin sessions", async () => {
+  for (const roles of [["manager"], ["manager", "asesor"]] as const) {
+    await assert.rejects(() => requireAdminRole(["admin"], async () => ({
+      user: { id: "manager-actor" },
+      profile: { id: "manager-actor", full_name: "Manager", is_active: true },
+      roles: [...roles],
+    }), deniedActions()), /not-found/);
+  }
+});
 
 test("createStaffAccount provisions auth/profile/role/audit without leaking password", async () => {
   const calls: string[] = [];
@@ -52,6 +71,87 @@ test("createStaffAccount provisions auth/profile/role/audit without leaking pass
     "audit:staff_created",
   ]);
   assert.equal(result.userId, "user-1");
+});
+
+test("Admin can create a Manager account and preserve its audit role payload", async () => {
+  const calls: string[] = [];
+
+  await createStaffAccount({
+    email: "manager@example.com",
+    full_name: "Grace Manager",
+    role: "manager",
+    is_active: true,
+    initial_password: "Str0ng!Password",
+  }, actor, {
+    getManagedRoleId: async (role) => {
+      assert.equal(role, "manager");
+      return "role-manager";
+    },
+    createAuthUser: async () => ({ id: "manager-1", email: "manager@example.com" }),
+    upsertProfile: async () => undefined,
+    replaceProfileRole: async ({ roleId }) => { calls.push(`role:${roleId}`); },
+    insertAuditEvent: async (event) => {
+      calls.push(`audit:${event.action}`);
+      assert.deepEqual(event.metadata, { role: "manager", isActive: true });
+    },
+    deleteAuthUser: async () => undefined,
+  });
+
+  assert.deepEqual(calls, ["role:role-manager", "audit:staff_created"]);
+});
+
+test("Admin can edit and display Manager while Manager combinations stay read-only", async () => {
+  const calls: string[] = [];
+
+  await updateStaffAccount({
+    profile_id: "manager-1",
+    full_name: "Grace Manager Updated",
+    role: "manager",
+    is_active: true,
+  }, actor, {
+    getManagedRoleId: async (role) => {
+      assert.equal(role, "manager");
+      return "role-manager";
+    },
+    getStaffSnapshot: async () => ({
+      profile_id: "manager-1",
+      full_name: "Grace Manager",
+      is_active: true,
+      roles: ["manager"],
+      email: "manager@example.com",
+    }),
+    countActiveAdminsExcluding: async () => 1,
+    updateProfile: async () => { calls.push("profile"); },
+    replaceProfileRole: async () => { calls.push("role"); },
+    insertAuditEvent: async (event) => { calls.push(`audit:${event.action}`); },
+  });
+
+  assert.deepEqual(calls, ["profile", "role", "audit:staff_updated"]);
+  assert.equal(staffRoleLabel("manager"), "Gerencia");
+
+  await assert.rejects(() => updateStaffAccount({
+    profile_id: "manager-asesor",
+    full_name: "Combined Role",
+    role: "manager",
+    is_active: true,
+  }, actor, {
+    getManagedRoleId: async () => {
+      throw new Error("role lookup should not run");
+    },
+    getStaffSnapshot: async () => ({
+      profile_id: "manager-asesor",
+      full_name: "Combined Role",
+      is_active: true,
+      roles: ["manager", "asesor"],
+      email: "combined@example.com",
+    }),
+    countActiveAdminsExcluding: async () => 1,
+    updateProfile: async () => {
+      throw new Error("profile update should not run");
+    },
+    replaceProfileRole: async () => undefined,
+    insertAuditEvent: async () => undefined,
+  }), /gestión con rol único/i);
 });
 
 test("createStaffAccount compensates auth user when downstream write fails", async () => {
@@ -360,8 +460,9 @@ test("advisor helper keeps only active admin and asesor rows without duplicates"
 
 test("staff routes and client boundaries enforce admin-only management", () => {
   const staffModule = readFileSync("lib/admin/staff.ts", "utf8");
-  const staffPage = readFileSync("app/admin/(protected)/staff/page.tsx", "utf8");
   const staffActions = readFileSync("app/admin/(protected)/staff/actions.ts", "utf8");
+  const editForm = readFileSync("components/admin/staff/staff-action-forms.tsx", "utf8");
+  const staffView = readFileSync("lib/admin/staff-view.ts", "utf8");
   const staffActionState = readFileSync("app/admin/(protected)/staff/action-state.ts", "utf8");
   const createForm = readFileSync("components/admin/staff/staff-create-form.tsx", "utf8");
   const list = readFileSync("components/admin/staff/staff-list.tsx", "utf8");
@@ -369,15 +470,17 @@ test("staff routes and client boundaries enforce admin-only management", () => {
   const accountActions = readFileSync("app/admin/(protected)/account/actions.ts", "utf8");
   const accountActionState = readFileSync("app/admin/(protected)/account/action-state.ts", "utf8");
   const emailForm = readFileSync("components/admin/account/email-change-form.tsx", "utf8");
-  const adminShell = readFileSync("components/admin/admin-shell.tsx", "utf8");
   const leads = readFileSync("lib/admin/leads.ts", "utf8");
   const operations = readFileSync("lib/admin/operations.ts", "utf8");
 
-  assert.match(staffPage, /requireAdminRole\(\["admin"\]\)/);
-  assert.match(staffActions, /requireAdminRole\(\["admin"\]\)/);
   assert.match(staffActions, /deleteStaffAction/);
+  assert.match(staffActions, /createStaffAction[\s\S]*requireAdminRole\(\["admin"\]\)/);
+  assert.match(staffActions, /updateStaffAction[\s\S]*requireAdminRole\(\["admin"\]\)/);
+  assert.match(staffActions, /deleteStaffAction[\s\S]*requireAdminRole\(\["admin"\]\)/);
+  assert.match(createForm, /<option value="manager">Gerencia<\/option>/);
+  assert.match(editForm, /<option value="manager">Gerencia<\/option>/);
+  assert.match(staffView, /role === "manager".*Gerencia/);
   assert.match(staffActionState, /StaffDeleteActionState/);
-  assert.match(accountPage, /requireAdminRole\(\)/);
   assert.match(accountActions, /requireAdminRole\(\)/);
   assert.match(accountActions, /requestEmailChangeAction/);
   assert.match(accountActionState, /initialEmailChangeActionState/);
@@ -391,8 +494,6 @@ test("staff routes and client boundaries enforce admin-only management", () => {
   assert.match(list, /staff\.is_manageable_in_mvp \? \(/);
   assert.match(list, /Eliminación no disponible/);
   assert.match(list, /Eliminar/);
-  assert.match(adminShell, /\/admin\/staff/);
-  assert.match(adminShell, /\/admin\/account/);
   assert.match(leads, /getAdvisorCapableStaff/);
   assert.match(operations, /getAdvisorCapableStaff/);
   assert.match(staffModule, /notification_logs[\s\S]*last_retried_by/);

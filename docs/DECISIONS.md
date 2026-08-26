@@ -1,5 +1,17 @@
 # Decisiones técnicas y de producto
 
+## 2026-08-21 — Week 02 capability-scope amendment and runtime evidence correction
+
+The maintainer-authorized correction closes this foundation at Manager persistence, Admin-only assignment, the typed eight-capability registry/evaluator, fail-closed role semantics, and safe Manager route/navigation. `canCapability()` has no production callers here. No new sensitive business action is governed by the keys; `week-02-sensitive-capability-enforcement` must bind each real action to server plus RPC/RLS and existing audit/event contracts before delivery. Existing Admin/role route enforcement is authoritative and is not capability enforcement. The E2E fixture now calls `await connection()` before reading the environment, so the build reports it dynamic; Playwright observes a real fallback redirect, instrumented read counts, and typed authorization denial. Admin browser evidence is explicitly create/edit/display control availability, while server action tests remain mutation authority. Static SQL remains the accepted substitute for unavailable local Postgres; `0061` was not applied remotely.
+
+## 2026-08-21 — Week 02 work unit 4 keeps Manager migration atomic and narrow
+
+The verified local inventory ends at `0060`, so `0061_manager_capability_foundation.sql` is the next identifier. The migration only expands `roles_name_check`, upserts `manager` with the `Gerencia` label, and adds Manager to the existing role-catalog read predicate. `has_role`, `is_admin`, Admin-only role/profile-role writes, all CRM/quote/audit/`leads` policies, and physical data remain unchanged. Local Docker/PostgreSQL remains unavailable, so migration application is not claimed; static SQL contracts plus the guarded isolated Playwright fixture provide the bounded evidence without production mutation. Tasks, notifications, Mi día, generic capability schema/RPC, and broad RLS rewrites remain out of scope.
+
+## 2026-08-21 — Week 02 work unit 4 corrective retry
+
+The first work-unit-4 record incorrectly marked the browser-assigned evidence complete without executing Playwright. On retry, the isolated E2E-only route is guarded by `E2E_DISABLE_EXTERNAL_BOUNDARIES=1`, uses the production AdminShell, page-composition, authorization, and staff form seams, and is 404 outside the E2E environment. `npx playwright test e2e/manager-capability.spec.ts` passed 2/2, covering Manager navigation, dashboard healthy/unhealthy fallback, account zero dashboard reads, direct denial, Admin Manager create/edit/display, and Manager plus non-Admin assignment denial. The local SQL harness remains blocked at `127.0.0.1:54322 ECONNREFUSED`; no linked or production database was mutated.
+
 ## 2026-08-20 — Week 01 final independent gate: PASS
 
 Under final verification token `sha256:e031596ae703108ce9841aad44373afe2b0f4a301a54e52d775ca4d3c802cbf5`, the amended gate passes: `0057` did not execute; authoritative absence plus exact `0060`/live-catalog equivalence is accepted as the requirement disposition, not historical provenance. Production remains read-only, no replay/repair/mutation is authorized, Week 02 is planning-only next action, and `0061+` remains separately gated.

@@ -1,4 +1,5 @@
-import type { RoleName } from "@/lib/supabase/roles";
+import { type RoleName } from "@/lib/supabase/roles";
+import { isAdminRouteAllowed, isManagerOnlySession } from "@/lib/admin/manager-boundary";
 
 export type AdminNavIcon =
   | "layout-dashboard"
@@ -31,7 +32,7 @@ export const ADMIN_NAV_ITEMS = [
     href: "/admin/dashboard",
     label: "Resumen",
     group: "Resumen",
-    roles: ["admin", "asesor", "operaciones", "finanzas", "marketing"],
+    roles: ["admin", "manager", "asesor", "operaciones", "finanzas", "marketing"],
     icon: "layout-dashboard",
   },
   {
@@ -119,7 +120,15 @@ export const ADMIN_NAV_ITEMS = [
     href: "/admin/account",
     label: "Mi cuenta",
     group: "Administración",
-    roles: ["admin", "asesor", "operaciones", "finanzas", "marketing"],
+    roles: ["admin", "manager", "asesor", "operaciones", "finanzas", "marketing"],
     icon: "circle-user-round",
   },
 ] satisfies AdminNavItem[];
+
+export function getVisibleAdminNavItems(roles: readonly string[]) {
+  const managerOnly = isManagerOnlySession(roles);
+  const visible = ADMIN_NAV_ITEMS.filter((item) => item.roles.some((role) => roles.includes(role)));
+  return managerOnly ? visible.filter((item) => item.href === "/admin/dashboard" || item.href === "/admin/account") : visible;
+}
+
+export { isAdminRouteAllowed };

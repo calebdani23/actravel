@@ -1,5 +1,6 @@
 insert into public.roles (name, description) values
   ('admin', 'Full platform administrator'),
+  ('manager', 'Management staff for approvals and operational visibility'),
   ('asesor', 'Sales advisor for leads and quotes'),
   ('operaciones', 'Operations staff for bookings and documents'),
   ('finanzas', 'Finance staff for payments'),

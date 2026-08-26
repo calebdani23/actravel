@@ -1,9 +1,6 @@
-import "server-only";
-
-import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { isSupabaseBrowserConfigured } from "@/lib/supabase/config";
-import { hasAnyRole, isRoleName, type RoleName } from "@/lib/supabase/roles";
+import { hasAnyRole, type RoleName } from "@/lib/supabase/roles";
+import { isAdminRouteAllowed } from "@/lib/admin/manager-boundary";
+export { normalizeActiveRoles } from "@/lib/admin/role-normalization";
 
 export type AdminProfile = { id: string; full_name: string; is_active: boolean };
 export type AdminSession = {
@@ -12,48 +9,47 @@ export type AdminSession = {
   roles: RoleName[];
 };
 
-type RoleRow = { roles?: { name?: string | null } | { name?: string | null }[] | null };
+export type AdminSessionLoader = () => Promise<AdminSession | null>;
 
 export async function getUserRoles(userId: string) {
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("profile_roles").select("roles(name)").eq("profile_id", userId);
-
-  if (error) return [];
-
-  return ((data ?? []) as RoleRow[])
-    .flatMap((row) => (Array.isArray(row.roles) ? row.roles : row.roles ? [row.roles] : []))
-    .map((role) => role.name ?? "")
-    .filter(isRoleName);
+  return (await import("@/lib/admin/auth-session")).getUserRoles(userId);
 }
 
 export async function getAdminSession(): Promise<AdminSession | null> {
-  if (!isSupabaseBrowserConfigured()) return null;
-
-  const supabase = await createClient();
-  const { data: userResult, error: userError } = await supabase.auth.getUser();
-  const user = userResult.user;
-
-  if (userError || !user) return null;
-
-  const [{ data: profile }, roles] = await Promise.all([
-    supabase.from("profiles").select("id, full_name, is_active").eq("id", user.id).maybeSingle(),
-    getUserRoles(user.id),
-  ]);
-
-  if (!profile?.is_active || roles.length === 0) return null;
-
-  return {
-    user: { id: user.id, email: user.email ?? undefined },
-    profile: profile as AdminProfile,
-    roles,
-  };
+  return (await import("@/lib/admin/auth-session")).getAdminSession();
 }
 
-export async function requireAdminRole(allowed?: readonly RoleName[]) {
-  const session = await getAdminSession();
+export type AdminAuthActions = {
+  redirect: (path: string) => never;
+  notFound: () => never;
+};
 
-  if (!session) redirect("/admin/login");
-  if (allowed && !hasAnyRole(session.roles, allowed)) notFound();
+async function productionActions(): Promise<AdminAuthActions> {
+  return import("next/navigation").then(({ redirect, notFound }) => ({ redirect, notFound }));
+}
 
+export async function requireAdminRole(allowed?: readonly RoleName[], loadSession: AdminSessionLoader = getAdminSession, actions?: AdminAuthActions): Promise<AdminSession> {
+  const session = await loadSession();
+
+  if (!session) {
+    const boundary = actions ?? await productionActions();
+    return boundary.redirect("/admin/login");
+  }
+  if (allowed && !hasAnyRole(session.roles, allowed)) {
+    const boundary = actions ?? await productionActions();
+    return boundary.notFound();
+  }
+
+  return session;
+}
+
+/**
+ * Authorizes a concrete protected page before that page starts its own reads.
+ * The allowlist remains the source of existing role semantics; this adds only
+ * the bounded Manager-only route boundary.
+ */
+export async function requireAdminRoute(pathname: string, allowed?: readonly RoleName[], loadSession: AdminSessionLoader = getAdminSession, actions?: AdminAuthActions): Promise<AdminSession> {
+  const session = await requireAdminRole(allowed, loadSession, actions);
+  if (!isAdminRouteAllowed(session.roles, pathname)) (actions ?? await productionActions()).notFound();
   return session;
 }

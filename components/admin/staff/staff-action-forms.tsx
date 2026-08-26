@@ -29,8 +29,9 @@ export function StaffEditForm({ staff }: Readonly<{ staff: StaffAccount }>) {
         <label className="space-y-2" htmlFor={`role-${staff.id}`}>
           <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--admin-muted-foreground)]">Rol operativo</span>
           <select className={adminSelectClassName} defaultValue={staff.role ?? "asesor"} disabled={!staff.is_manageable_in_mvp} id={`role-${staff.id}`} name="role">
-            <option value="asesor">Asesoría</option>
-            <option value="admin">Administración</option>
+             <option value="asesor">Asesoría</option>
+             <option value="admin">Administración</option>
+             <option value="manager">Gerencia</option>
           </select>
         </label>
 

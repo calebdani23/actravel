@@ -2,8 +2,10 @@ import Link from "next/link";
 import { AlertBanner, EmptyState, MetricCard, PageContainer, PageHeader, QuietActionButton, SectionCard, StatusBadge } from "@/components/admin/admin-primitives";
 import { Button } from "@/components/ui/button";
 import { formatAdminDate, formatAdminDateTime, formatAdminDateWindowLabel, formatAdminInteger } from "@/lib/admin/format";
+import { composeDashboardPage } from "@/lib/admin/page-compositions";
 import { getDuplicateAuditSnapshot } from "@/lib/admin/data-quality";
 import { getDashboardMetrics } from "@/lib/admin/dashboard";
+import { redirect } from "next/navigation";
 
 function alertTone(level: "healthy" | "warning" | "critical") {
   if (level === "critical") return "error" as const;
@@ -27,7 +29,9 @@ function followUpTone(overdue: boolean) {
 }
 
 export default async function AdminDashboardPage() {
-  const [metrics, dataQuality] = await Promise.all([getDashboardMetrics(), getDuplicateAuditSnapshot()]);
+  const dashboard = await composeDashboardPage({ getMetrics: getDashboardMetrics, getDataQuality: getDuplicateAuditSnapshot });
+  if (dashboard.status === "redirect") redirect("/admin/account");
+  const { metrics, dataQuality } = dashboard;
   const today = new Date();
   const currentWindow = formatAdminDateWindowLabel(today, "próximos 7 días");
 

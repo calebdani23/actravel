@@ -26,7 +26,7 @@ export async function createStaffAction(_previous: StaffCreateActionState, formD
       values: {
         email: parsed.values.email,
         full_name: parsed.values.full_name,
-        role: parsed.values.role === "admin" ? "admin" : "asesor",
+         role: parsed.values.role === "admin" || parsed.values.role === "manager" ? parsed.values.role : "asesor",
         is_active: parsed.values.is_active,
       },
     };

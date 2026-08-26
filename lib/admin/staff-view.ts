@@ -2,6 +2,7 @@ import { formatAdminDateTime } from "@/lib/admin/format";
 
 export function staffRoleLabel(role?: string | null) {
   if (role === "admin") return "Administración";
+  if (role === "manager") return "Gerencia";
   if (role === "asesor") return "Asesoría";
   if (role === "marketing") return "Marketing";
   if (role === "operaciones") return "Operaciones";

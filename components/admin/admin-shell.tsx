@@ -1,11 +1,9 @@
 import { redirect } from "next/navigation";
-import { ADMIN_NAV_ITEMS } from "@/components/admin/admin-nav";
+import { getVisibleAdminNavItems } from "@/components/admin/admin-nav";
 import { AdminShellClient } from "@/components/admin/admin-shell-client";
 import { createClient } from "@/lib/supabase/server";
-import { ROLE_LABELS, hasAnyRole, type RoleName } from "@/lib/supabase/roles";
+import { ROLE_LABELS, type RoleName } from "@/lib/supabase/roles";
 import type { AdminProfile } from "@/lib/admin/auth";
-
-// Shared admin navigation still includes role-gated entries such as /admin/staff and /admin/account via ADMIN_NAV_ITEMS.
 
 async function signOut() {
   "use server";
@@ -16,7 +14,7 @@ async function signOut() {
 }
 
 export function AdminShell({ children, email, profile, roles }: Readonly<{ children: React.ReactNode; email: string; profile: AdminProfile; roles: RoleName[] }>) {
-  const visibleLinks = ADMIN_NAV_ITEMS.filter((link) => hasAnyRole(roles, link.roles));
+  const visibleLinks = getVisibleAdminNavItems(roles);
 
   return (
     <AdminShellClient

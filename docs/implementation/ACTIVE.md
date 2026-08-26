@@ -2,22 +2,26 @@
 
 ## Current milestone
 
-- **Week:** 01
-- **Theme:** Baseline & Safety
-- **Status:** Week 01 PASS; maintainer amendment accepts `0057` as `ABSENT_WITH_EFFECT_EQUIVALENCE`; Week 02 is planning-only next action
+- **Week:** 02
+- **Theme:** Manager capability foundation
+- **Status:** Week 01 PASS; maintainer amendment accepts `0057` as `ABSENT_WITH_EFFECT_EQUIVALENCE`; Week 02 work unit 4 is closed under the 2026-08-21 capability-scope amendment, with migration/static and isolated browser evidence passing; disposable PostgreSQL application remains unavailable
 - **Context preparation merged on main:** `224cc37608f8842725733a5522bbe4ab0dbfe8c1`
 - **Executable product baseline before documentation-only preparation:** `01d5a6b0bea066a0ea87943de922e39d18eb4dac`
 - **Primary brief:** [`weeks/week-01-baseline-safety.md`](./weeks/week-01-baseline-safety.md)
 
 The context-preparation merge changed documentation only. When beginning implementation, always inspect current `main` HEAD rather than assuming either SHA is still the latest commit.
 
-## Active change
+## Week 01 closure history
 
-`week-01-operational-gate-closure` is the bounded change at [`openspec/changes/week-01-operational-gate-closure/`](../../openspec/changes/week-01-operational-gate-closure/). The amended packet passed final independent verification under token `sha256:e031596ae703108ce9841aad44373afe2b0f4a301a54e52d775ca4d3c802cbf5`.
+`week-01-operational-gate-closure` remains the completed bounded Week 01 change. Its amended packet passed final independent verification under token `sha256:e031596ae703108ce9841aad44373afe2b0f4a301a54e52d775ca4d3c802cbf5`.
 
-**Next action:** Week 02 planning only; do not regenerate types or allocate/run `0061+` automatically.
+## Current change state
 
-Do not create migration `0061+` or new Business OS schema. The packet's final gate is **PASS** under the explicit amendment; `0057` did not execute, equivalent effects are evidenced, and authoritative absence is accepted as disposition rather than provenance. `0061+` remains separately gated.
+`week-02-manager-capability-foundation` is archived at [`openspec/changes/archive/2026-08-24-week-02-manager-capability-foundation/`](../../openspec/changes/archive/2026-08-24-week-02-manager-capability-foundation/). Work units 1–4 are implemented; SQL application is explicitly limited by the local environment, while guarded isolated browser and route-boundary evidence passes. The typed eight-key registry has no production callers in this slice; production action/RPC/RLS capability enforcement and audit integration remain candidates for a future independently reviewable Week 02 change. Tasks, staff notifications, and generic RBAC/RLS remain deferred.
+
+**Next action:** plan the next independently reviewable Week 02 change from current repository reality; do not invent an active change or apply `0061` to linked production automatically.
+
+Migration `0061` is present locally as the bounded Manager role compatibility change. It has not been applied to linked production; no new Business OS schema, generic capability table/RPC, or broad RLS rewrite was introduced. The packet's final gate is **PASS** under the explicit amendment; `0057` did not execute, equivalent effects are evidenced, and authoritative absence is accepted as disposition rather than provenance.
 
 ## Required context for the next action
 
