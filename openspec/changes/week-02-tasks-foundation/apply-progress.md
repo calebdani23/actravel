@@ -109,3 +109,70 @@ Slice 1 tasks 1.1–1.4 are complete. Slice 2 begins at `tests/tasks-runtime.tes
 ## Bounded ordinary-review correction
 
 - Fixed `R3-hard-delete-context`: storage now permits zero or one context after parent deletion while `create_task` still requires exactly one; contract coverage asserts both boundaries. Correction: **8 changed lines**.
+
+## Slice 2 blocked attempt
+
+- Work unit: `runtime-adapter-boundary`; authorization `tasks-foundation-slice2-20260831a`;
+  attempt 1 of 2; parent token retained; delivery `auto-chain`, `stacked-to-main`; maximum
+  300 changed lines.
+- RED evidence: `node --import tsx --test tests/tasks-runtime.test.ts` failed before the
+  adapter existed with `MODULE_NOT_FOUND`, as expected.
+- Partial GREEN evidence: the focused slice-1 plus slice-2 suite passed **6/6** after adding
+  the adapter and pure boundary tests. `npx tsc --noEmit --pretty false` passed and
+  `npm run lint -- --no-cache` passed. No build was run.
+- Authoritative runtime evidence: a fresh disposable Supabase **2.115.0** shadow applied
+  migrations `0001` through `0062` exactly once. The first authenticated `create_task`
+  assertion failed at the live RPC with `ERROR: function digest(text, unknown) does not
+  exist` in `create_task` line 30. The migration sets `search_path = public`, while
+  `digest` is installed in the `extensions` schema. Therefore runtime evidence is
+  authoritative and proves the candidate is not executable as written.
+- Cleanup: `supabase stop --no-backup` succeeded and the disposable shadow root was removed.
+  No linked, remote, staging, production, or unrelated data was mutated. The transient
+  `supabase/.temp/cli-latest` value was restored to `v2.101.0`.
+- Changed-line accounting for this attempt: **145 authored lines** (101 adapter + 44
+  runtime tests); within the 300-line slice maximum. Tasks 2.1–2.3 remain unchecked because
+  accepted runtime evidence is unavailable. Rollback boundary is only
+  `lib/admin/tasks.ts` and `tests/tasks-runtime.test.ts`; retain slice 1.
+- Blocker: do not modify `0062` silently. A bounded migration correction is required (for
+  example, schema-qualifying the proven extension dependency), followed by a fresh runtime
+  attempt. This attempt stops before task completion per the authorization instructions.
+
+## Slice 2 corrective retry — accepted GREEN
+
+- Work unit: `runtime-adapter-boundary`; authorization `tasks-foundation-slice2-retry-20260831b`;
+  attempt 2 of 2; parent token retained; delivery `auto-chain`, `stacked-to-main`; maximum
+  300 changed lines. No objective or scope expansion was made.
+- Corrective migration: changed exactly one expression in committed local-only
+  `db/migrations/0062_tasks_foundation.sql`, from unqualified `digest(...)` to
+  `extensions.digest(...)`. This preserves the fixed `search_path = public`, all existing
+  function signatures, grants, checks, RLS, replay, and lifecycle contracts. No other slice-1
+  behavior was modified.
+- Focused verification: `node --import tsx --test tests/tasks-foundation-contract.test.ts
+  tests/tasks-rls.test.ts tests/tasks-runtime.test.ts` — PASS, 6/6; `npx tsc --noEmit
+  --pretty false` — PASS; `npm run lint -- --no-cache` — PASS; `git diff --check` — PASS.
+- Fresh runtime: disposable Supabase 2.115.0 shadow
+  `/tmp/opencode/actravel-tasks-shadow-retry-20260831b` was initialized, started with
+  non-database services excluded, and reset with migrations 0001–0062 exactly once. A real
+  authenticated-role SQL harness passed canonical pending creation, exact replay without
+  duplication, conflict replay PT005, inactive actor PT003, Admin transitions, terminal
+  immutability PT006, service-role execute denial, historical read after lead deactivation,
+  stale-context denial PT004, and DELETE privilege denial. The previously observed digest
+  runtime failure did not recur.
+- SQLSTATE boundary coverage remains stable: adapter tests assert PT005/PT006 mappings and
+  unknown codes map to `TASK_DATABASE_ERROR`; the migration contains PT001–PT006. The adapter
+  retains generated `Tables<"tasks">` typing, canonical UUID/description/context validation,
+  deterministic 64-hex SHA-256 keys, and six-digit UTC formatting.
+- Cleanup: `npx --yes supabase@2.115.0 stop --workdir
+  /tmp/opencode/actravel-tasks-shadow-retry-20260831b --no-backup` completed and the shadow
+  root was removed. The temporary SQL harness was removed. No linked, remote, staging,
+  production, generated types, image, next-env, Manager/CRM/quotes/leads/dashboard/follow-up,
+  data, or unrelated state was changed.
+- Exact authored implementation delta for this retry slice: 142 physical lines total — migration
+  correction 1 added + 1 removed, retained adapter 101 lines, retained runtime test 39 lines.
+  This is within the 300-line slice limit. Rollback boundary is exactly
+  `db/migrations/0062_tasks_foundation.sql`,
+  `lib/admin/tasks.ts`, and `tests/tasks-runtime.test.ts`; retain all slice-1 artifacts.
+- Tasks 2.1–2.3 are marked `[x]` only after accepted runtime GREEN. Slice 2 is complete and
+  the next boundary is final verification tasks 3.1–3.3: independent fresh evidence review,
+  preservation/no-remote checks, and bounded review/approval. Do not run build or any remote
+  lifecycle operation in this apply.

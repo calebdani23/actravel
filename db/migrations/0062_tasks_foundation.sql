@@ -78,7 +78,7 @@ begin
     end if;
     v_context := 'quote=' || lower(p_quote_id::text);
   end if;
-  v_key := encode(digest('tasks:v1|owner=' || lower(p_owner_id::text) || '|' || v_context, 'sha256'), 'hex');
+  v_key := encode(extensions.digest('tasks:v1|owner=' || lower(p_owner_id::text) || '|' || v_context, 'sha256'), 'hex');
 
   insert into public.tasks(owner_id, lead_id, quote_id, description, due_at, idempotency_key)
   values (p_owner_id, p_lead_id, p_quote_id, v_description, p_due_at, v_key)

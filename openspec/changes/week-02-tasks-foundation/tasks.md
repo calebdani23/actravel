@@ -33,9 +33,9 @@ Chain strategy: stacked-to-main
 
 ## Phase 2: Behavior and Boundary (PR 2)
 
-- [ ] 2.1 RED: add `tests/tasks-runtime.test.ts` for canonicalization, live-context validation, pending creation, deterministic bounded SHA-256 key, exact atomic `INSERT ... ON CONFLICT DO NOTHING RETURNING` then locked-winner comparison, exact replay, conflict/stale replay, and no mutation on errors.
-- [ ] 2.2 RED: extend runtime coverage for every authorization cell, service-role creation denial, allowed transitions, terminal immutability, DELETE denial, and historical reads after lead/quote deletion or deactivation.
-- [ ] 2.3 GREEN: create `lib/admin/tasks.ts` with matching normalization and typed RPC adapters; map SQLSTATEs (never messages) to stable boundary errors and preserve UTC formatting.
+- [x] 2.1 RED: add `tests/tasks-runtime.test.ts` for canonicalization, live-context validation, pending creation, deterministic bounded SHA-256 key, exact atomic `INSERT ... ON CONFLICT DO NOTHING RETURNING` then locked-winner comparison, exact replay, conflict/stale replay, and no mutation on errors.
+- [x] 2.2 RED: extend runtime coverage for every authorization cell, service-role creation denial, allowed transitions, terminal immutability, DELETE denial, and historical reads after lead/quote deletion or deactivation.
+- [x] 2.3 GREEN: create `lib/admin/tasks.ts` with matching normalization and typed RPC adapters; map SQLSTATEs (never messages) to stable boundary errors and preserve UTC formatting.
 
 ## Phase 3: Verification and Release Gates
 
