@@ -134,17 +134,21 @@ $function$;
 
 alter function public.create_staff_notification(uuid, text, text, text, uuid, uuid, text) owner to postgres;
 alter function public.mark_staff_notification_read(uuid) owner to postgres;
+create or replace function public.staff_notification_active_recipient()
+returns boolean language sql stable security definer set search_path = public
+as $$ select exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_active) $$;
+alter function public.staff_notification_active_recipient() owner to postgres;
 revoke all on function public.create_staff_notification(uuid, text, text, text, uuid, uuid, text) from public, anon, authenticated, service_role;
 revoke all on function public.mark_staff_notification_read(uuid) from public, anon, authenticated, service_role;
+revoke all on function public.staff_notification_active_recipient() from public, anon, authenticated, service_role;
 grant execute on function public.create_staff_notification(uuid, text, text, text, uuid, uuid, text) to service_role;
 grant execute on function public.mark_staff_notification_read(uuid) to authenticated;
+grant execute on function public.staff_notification_active_recipient() to authenticated;
 
 alter table public.staff_notifications enable row level security;
 create policy "staff notifications authenticated recipient read" on public.staff_notifications
   for select to authenticated
-  using (auth.uid() = recipient_id and exists (
-    select 1 from public.profiles p where p.id = auth.uid() and p.is_active
-  ));
+  using (auth.uid() = recipient_id and public.staff_notification_active_recipient());
 
 revoke all on table public.staff_notifications from public, anon, authenticated, service_role;
 grant select on table public.staff_notifications to authenticated;

@@ -1,6 +1,7 @@
 import { strict as assert } from "node:assert"
 import { test } from "node:test"
 import type { Database } from "../lib/supabase/database.types"
+import type { StaffNotificationInput } from "../lib/admin/staff-notifications"
 
 type Notification = Database["public"]["Tables"]["staff_notifications"]["Row"]
 type CreateArgs = Database["public"]["Functions"]["create_staff_notification"]["Args"]
@@ -33,9 +34,18 @@ const createArgs: CreateArgs = {
 const markArgs: MarkArgs = { p_notification_id: row.id }
 const createReturn: CreateReturn = row
 const markReturn: MarkReturn = row
+const adapterInput: StaffNotificationInput = {
+  recipientId: row.recipient_id,
+  kind: "system",
+  title: row.title,
+  body: row.body,
+  quoteId: null,
+  taskId: null,
+}
 
 test("notification generated types expose exact table and RPC contracts", () => {
   assert.equal(createArgs.p_recipient_id, row.recipient_id)
   assert.equal(markArgs.p_notification_id, row.id)
   assert.equal(createReturn.id, markReturn.id)
+  assert.equal(adapterInput.quoteId, null)
 })
