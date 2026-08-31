@@ -208,3 +208,87 @@ Slice 1 tasks 1.1–1.4 are complete. Slice 2 begins at `tests/tasks-runtime.tes
   and bounded external review/post-apply approval plus archive (3.3) are preserved in the
   non-checkbox `Post-Task Gates` section of `tasks.md`; they are the next verify/review/archive
   boundary and are not claimed complete here.
+
+## Bounded lifecycle remediation — `tasks-foundation-remediate-20260831d`
+
+- Bound failed evidence revision: `sha256:63a42d9b53f3d35a6c14522eb4a941461a31ace0ccbbae83918469c6bf667b48`.
+  The preserved failed verify report remains unchanged (`sha256:95d79f9dded643c505f234281fa5d946ffb61e5b6878470233b8a8c52909b18c`).
+- Maintainer authorization: attempt 1 of 2, parent-retained token
+  `sha256:ef15e4eed6c24ce2aaaf6a7753c24f5c164e56e6eff97c1c4759d13d6b0a7f7a`;
+  maximum 80 changed lines. No acquire, settle, review-lifecycle, delegation, remote,
+  linked, staging, production, Notifications, UI, generated-type, or unrelated schema work.
+- Narrow change: `0062_tasks_foundation.sql` now includes `completed` in the existing
+  pending transition allow-list; all other transition and terminal guards are unchanged.
+  `tests/tasks-foundation-contract.test.ts` adds a complete 4×4 lifecycle-pair contract
+  assertion, including direct `pending -> completed`.
+- Validation: the initial focused run after the code change exposed and stopped on a defect in
+  the new assertion itself (`pending -> pending`); the assertion was corrected. The required
+  fresh runtime harness then could not start because `psql` is unavailable in the environment:
+  `psql: command not found`. Per bounded-remediation policy, execution is **BLOCKED** and no
+  runtime result is claimed. TypeScript/lint/diff checks had passed before the final assertion
+  correction; they are not re-claimed after the blocked run.
+- Runtime setup: Supabase CLI `2.115.0` initialized and started the disposable shadow, and
+  `db reset --local --no-seed` applied migrations `0001`–`0062` exactly once before the harness
+  command failed. Cleanup trap stopped the shadow and removed `/tmp/opencode/actravel-tasks-remediate-20260831d`.
+- Changed lines: 31 additions and 1 deletion in the migration/test pair; no other files changed
+  by this remediation. Rollback boundary is exactly those two files. The failed verify report
+  was not edited.
+
+## Corrective remediation retry — `tasks-foundation-remediate-retry-20260831e`
+
+- Authorization: attempt 2 of 2; parent-retained token
+  `sha256:13a0fbeafe0ff7b89fae3cd9e390e3c61aec2ae33beaf1fd3cafcbfb60cea41f`;
+  objective and 80-line limit unchanged. The retained migration fix and corrected 4×4
+  contract assertion were preserved. No acquire, settle, review-lifecycle, delegation,
+  remote/linked mutation, adapter/type/task/spec/design change, or scope expansion occurred.
+- Focused tests: `node --import tsx --test tests/tasks-foundation-contract.test.ts
+  tests/tasks-rls.test.ts tests/tasks-runtime.test.ts` — PASS, 7/7. TypeScript,
+  no-cache lint, and `git diff --check` — PASS.
+- Fresh runtime setup: Supabase CLI `2.115.0` initialized a new minimal shadow and
+  `db reset --local --no-seed` applied migrations `0001`–`0062` exactly once. The harness
+  used only `docker exec supabase_db_actravel-tasks-remediate-retry-20260831e psql`.
+- Runtime result: **BLOCKED** on the first lifecycle assertion because the harness temporary
+  table was not granted to the `authenticated` role (`ERROR: permission denied for table
+  lifecycle_cases`). No lifecycle or regression result is claimed, and execution stopped
+  immediately as required. Host `psql` was not called.
+- Cleanup: the disposable shadow was stopped with `supabase@2.115.0 stop --no-backup` and
+  `/tmp/opencode/actravel-tasks-remediate-retry-20260831e` was removed. The failed verify
+  report remains unchanged at its recorded SHA-256.
+- Changed lines: **0** in this retry. The cumulative remediation diff remains 31 additions
+  and 1 deletion across `0062_tasks_foundation.sql` and
+  `tests/tasks-foundation-contract.test.ts`, plus this evidence section. Rollback remains
+  limited to the migration, focused contract test, and apply-progress evidence.
+
+## Final harness-only validation — `tasks-foundation-remediation-validation-20260831g`
+
+- Authorization: final maintainer-authorized attempt; parent token
+  `sha256:d256088687abcc54d5d62576f92c68ae83aac18fa4c71c7af474a53de0da17be`;
+  maximum 30 changed lines. Implementation and failed verify report were untouched.
+- Static validation: focused Tasks suite PASS, 7/7; `npx tsc --noEmit --pretty false`,
+  `npm run lint -- --no-cache`, and `git diff --check` PASS.
+- Fresh minimal Supabase `2.115.0` shadow reset PASS; migrations `0001`–`0062` applied
+  exactly once. The container-only harness stopped before scenarios because the specified
+  container name was not found: `No such container`.
+- Per stop-on-first-failure, no runtime lifecycle or regression result is claimed. Cleanup
+  trap ran `supabase@2.115.0 stop --no-backup` and removed the disposable shadow root.
+- Changed lines: **0** for this validation; failed verify report SHA and contents preserved.
+
+## Supplemental reconciliation — `tasks-foundation-remediation-validation-20260831g`
+
+- Retained ignored evidence `.opencode-runtime/tasks-remediation-validation.txt` identifies
+  the actual collision-free container and records one container-only `psql` invocation after
+  fresh Supabase `2.115.0` setup/reset; migrations `0001`–`0062` applied exactly once.
+- Narrow objective accepted: all 16 lifecycle pairs passed, including direct
+  `pending -> completed`; 5 allowed pairs passed and 11 same/disallowed/terminal pairs
+  returned PT006. Canonical create/replay/conflict, authorization cells, service execute
+  denial, and DELETE denial also passed.
+- Exact cleanup/immutability: shadow and SQL harness were removed; Docker resources were zero;
+  host `psql` was never called; tracked/protected state, failed verify report SHA
+  `95d79f9dded643c505f234281fa5d946ffb61e5b6878470233b8a8c52909b18c`, and implementation
+  files were unchanged.
+- The broader harness failed only at historical hard-delete setup because its fixture omitted
+  `is_test_data=true`. Historical/stale-context verification is not claimed. A fresh independent
+  `sdd-verify` must correct that fixture and rerun those scenarios; this does not block acceptance
+  of the narrow PT006 lifecycle remediation.
+- Reconciliation changed only this evidence artifact: **17 added lines**. Rollback is the
+  appended section in `apply-progress.md`; implementation rollback remains unchanged.

@@ -36,3 +36,36 @@ test("Tasks foundation exposes only authenticated human RPCs", () => {
   assert.match(sql, /revoke all on table public\.tasks from public, anon, authenticated, service_role/i)
   assert.doesNotMatch(sql, /staff_notifications/i)
 })
+
+test("Tasks lifecycle contract accepts only the specified status pairs", () => {
+  const sql = readFileSync(migrationPath, "utf8")
+  const statuses = ["pending", "in_progress", "completed", "canceled"]
+  const allowed: Record<string, string[]> = {
+    pending: ["in_progress", "completed", "canceled"],
+    in_progress: ["completed", "canceled"],
+    completed: [],
+    canceled: [],
+  }
+
+  for (const source of ["pending", "in_progress"]) {
+    const clause = sql.match(new RegExp(
+      `v_task\\.status = '${source}' and p_target_status not in \\(([^)]*)\\)`, "i",
+    ))?.[1]
+    assert.ok(clause, `missing lifecycle guard for ${source}`)
+    const guardedTargets = [...clause.matchAll(/['"]([^'"]+)['"]/g)].map((match) => match[1])
+    for (const target of statuses) {
+      const shouldReject = source === target || !allowed[source].includes(target)
+      const rejectedByGuard = source === target
+        ? /v_task\.status = p_target_status/i.test(sql)
+        : !guardedTargets.includes(target)
+      assert.equal(rejectedByGuard, shouldReject, `${source} -> ${target}`)
+    }
+  }
+
+  assert.match(sql, /v_task\.status in \('completed','canceled'\)/i)
+  for (const source of ["completed", "canceled"]) {
+    for (const target of statuses) {
+      assert.equal(allowed[source].includes(target), false, `${source} -> ${target} is terminal`)
+    }
+  }
+})

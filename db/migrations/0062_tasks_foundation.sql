@@ -110,7 +110,7 @@ begin
   if v_task.id is null or not public.task_actor_can_manage(v_task.owner_id) then
     raise exception using errcode = 'PT003', message = 'TASK_FORBIDDEN';
   end if;
-  if v_task.status = p_target_status or (v_task.status = 'pending' and p_target_status not in ('in_progress','canceled'))
+  if v_task.status = p_target_status or (v_task.status = 'pending' and p_target_status not in ('in_progress','completed','canceled'))
      or (v_task.status = 'in_progress' and p_target_status not in ('completed','canceled'))
      or v_task.status in ('completed','canceled') then
     raise exception using errcode = 'PT006', message = 'TASK_INVALID_TRANSITION';
