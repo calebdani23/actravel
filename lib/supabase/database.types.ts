@@ -2371,6 +2371,67 @@ export type Database = {
           },
         ]
       }
+      tasks: {
+        Row: {
+          created_at: string
+          description: string
+          due_at: string
+          id: string
+          idempotency_key: string
+          lead_id: string | null
+          owner_id: string
+          quote_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          due_at: string
+          id?: string
+          idempotency_key: string
+          lead_id?: string | null
+          owner_id: string
+          quote_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          due_at?: string
+          id?: string
+          idempotency_key?: string
+          lead_id?: string | null
+          owner_id?: string
+          quote_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_clicks: {
         Row: {
           contact_id: string | null
@@ -2514,6 +2575,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_task: {
+        Args: {
+          p_description: string
+          p_due_at: string
+          p_lead_id: string
+          p_owner_id: string
+          p_quote_id: string
+        }
+        Returns: {
+          created_at: string
+          description: string
+          due_at: string
+          id: string
+          idempotency_key: string
+          lead_id: string | null
+          owner_id: string
+          quote_id: string | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tasks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       crm_accept_quote: {
         Args: {
           p_expected_accepted_quote_id: string
@@ -3563,6 +3651,28 @@ export type Database = {
       has_role: { Args: { role_name: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_assigned_lead: { Args: { lead_uuid: string }; Returns: boolean }
+      task_actor_can_manage: { Args: { p_owner_id: string }; Returns: boolean }
+      task_transition: {
+        Args: { p_target_status: string; p_task_id: string }
+        Returns: {
+          created_at: string
+          description: string
+          due_at: string
+          id: string
+          idempotency_key: string
+          lead_id: string | null
+          owner_id: string
+          quote_id: string | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tasks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       [_ in never]: never
