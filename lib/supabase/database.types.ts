@@ -2371,6 +2371,67 @@ export type Database = {
           },
         ]
       }
+      staff_notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          idempotency_key: string
+          kind: string
+          quote_id: string | null
+          read_at: string | null
+          recipient_id: string
+          task_id: string | null
+          title: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          kind: string
+          quote_id?: string | null
+          read_at?: string | null
+          recipient_id: string
+          task_id?: string | null
+          title: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          kind?: string
+          quote_id?: string | null
+          read_at?: string | null
+          recipient_id?: string
+          task_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_notifications_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_notifications_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_notifications_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           created_at: string
@@ -2575,6 +2636,35 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_staff_notification: {
+        Args: {
+          p_body: string
+          p_idempotency_key: string
+          p_kind: string
+          p_quote_id: string
+          p_recipient_id: string
+          p_task_id: string
+          p_title: string
+        }
+        Returns: {
+          body: string
+          created_at: string
+          id: string
+          idempotency_key: string
+          kind: string
+          quote_id: string | null
+          read_at: string | null
+          recipient_id: string
+          task_id: string | null
+          title: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "staff_notifications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_task: {
         Args: {
           p_description: string
@@ -3651,6 +3741,27 @@ export type Database = {
       has_role: { Args: { role_name: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_assigned_lead: { Args: { lead_uuid: string }; Returns: boolean }
+      mark_staff_notification_read: {
+        Args: { p_notification_id: string }
+        Returns: {
+          body: string
+          created_at: string
+          id: string
+          idempotency_key: string
+          kind: string
+          quote_id: string | null
+          read_at: string | null
+          recipient_id: string
+          task_id: string | null
+          title: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "staff_notifications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       task_actor_can_manage: { Args: { p_owner_id: string }; Returns: boolean }
       task_transition: {
         Args: { p_target_status: string; p_task_id: string }
