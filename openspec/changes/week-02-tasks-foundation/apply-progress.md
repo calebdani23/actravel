@@ -176,3 +176,35 @@ Slice 1 tasks 1.1–1.4 are complete. Slice 2 begins at `tests/tasks-runtime.tes
   the next boundary is final verification tasks 3.1–3.3: independent fresh evidence review,
   preservation/no-remote checks, and bounded review/approval. Do not run build or any remote
   lifecycle operation in this apply.
+
+## Final implementation-side apply — `tasks-foundation-final-apply-20260831a`
+
+- Authorization: auto/OpenSpec/auto-chain/stacked-to-main; parent-retained token
+  `sha256:8b494332c3aec69b751a00df65148cc8321b9d1285f0427c7a3003c44084dc96`; attempt 1 of 2;
+  maximum 60 changed lines. No objective or scope expansion; no acquire/settle.
+- `node --import tsx --test tests/tasks-foundation-contract.test.ts tests/tasks-rls.test.ts
+  tests/tasks-runtime.test.ts` — PASS, 6/6 tests, 0 failures.
+- `npx tsc --noEmit --pretty false` — PASS; generated `Database` types compile.
+- `npm run lint -- --no-cache` — PASS.
+- `npm run build` — PASS; Next.js 16.2.6 compiled, TypeScript completed, 96/96 static pages
+  generated, route optimization completed.
+- Build procedural restoration: build rewrote tracked `next-env.d.ts` from the pre-run SHA-256
+  `7ad303e40d4fddf44f156129e397511953a71481c5cfd86b1862649aaaf240cc` to the `.next/types`
+  import. It was explicitly restored to the pre-run tracked bytes (`./.next/dev/types/routes.d.ts`);
+  final SHA-256 is `7ad303e40d4fddf44f156129e397511953a71481c5cfd86b1862649aaaf240cc`.
+- Migration/runtime contracts remain passing from the accepted fresh disposable shadow evidence:
+  `0061` then `0062` applied exactly once; authenticated create/replay/conflict, PT003/PT004/PT005/
+  PT006, transitions, terminal immutability, historical read, service-role denial, and DELETE
+  denial all passed. No linked/remote fallback or mutation was used.
+- Preservation proof: pre-existing unrelated untracked planning directories were unchanged;
+  after restoration the only tracked working-tree edits are this tasks artifact and this
+  apply-progress artifact. No migration, application code, generated types, tests, Manager/CRM/
+  quotes/leads/dashboard/follow-up, audit, data, intake image, or unrelated state drifted.
+- `git diff --check` — PASS. Final implementation-side changed-line count: 47 lines (32
+  additions plus 15 deletions; within
+  the 60-line attempt maximum; documentation/evidence only). Rollback boundary is exactly
+  `openspec/changes/week-02-tasks-foundation/tasks.md` and `apply-progress.md`.
+- Task 3.1 is complete only after all checks above passed. Independent SDD verification (3.2)
+  and bounded external review/post-apply approval plus archive (3.3) are preserved in the
+  non-checkbox `Post-Task Gates` section of `tasks.md`; they are the next verify/review/archive
+  boundary and are not claimed complete here.

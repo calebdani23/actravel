@@ -39,6 +39,15 @@ Chain strategy: stacked-to-main
 
 ## Phase 3: Verification and Release Gates
 
-- [ ] 3.1 Run local lint/type/build plus all three Tasks tests; verify generated types compile and no production fallback or remote mutation occurred.
-- [ ] 3.2 Run independent SDD verification against fresh evidence: exact-once shadow application/teardown, schema/catalog/RLS/grants, preservation/no-remote checks, and Week 03 readiness separate from production readiness.
-- [ ] 3.3 Obtain bounded external review and post-apply approval independently; archive the complete evidence packet before marking this change ready for Notifications/Week 03.
+- [x] 3.1 Run local lint/type/build plus all three Tasks tests; verify generated types compile and no production fallback or remote mutation occurred.
+
+## Post-Task Gates
+
+The following are phase gates, not implementation tasks. They remain required after all
+implementation checkboxes are complete:
+
+- 3.2 — Run independent SDD verification against fresh evidence: exact-once shadow
+  application/teardown, schema/catalog/RLS/grants, preservation/no-remote checks, and Week 03
+  readiness separate from production readiness.
+- 3.3 — Obtain bounded external review and post-apply approval independently; archive the
+  complete evidence packet before marking this change ready for Notifications/Week 03.
