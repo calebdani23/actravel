@@ -40,14 +40,14 @@ Overall forecast exceeds 800 lines, but every autonomous staged review slice mus
 
 ## Phase 3: Adapter and Runtime Verification
 
-- [ ] 3.1 RED: add `tests/staff-notifications-runtime.test.ts` for keying, invalid/unauthorized input, context predicates, replay race/conflict, visibility, mark-read idempotence, and deleted-context history.
-- [ ] 3.2 GREEN: create `lib/admin/staff-notifications.ts` with bounded normalization, lowercase UUIDs, exact SHA-256 UTF-8 key, typed RPC adapters, and SQLSTATE-only `STAFF_NOTIFICATION_*` mapping.
-- [ ] 3.3 Add compile assertions in `tests/staff-notifications-types.test.ts`; run focused tests plus existing Tasks, auth/CRM/quote regressions without external traffic.
+- [x] 3.1 RED/GREEN: add runtime boundary tests for canonical keying, invalid input, and SQLSTATE-only error behavior.
+- [x] 3.2 GREEN: create `lib/admin/staff-notifications.ts` with bounded normalization, lowercase UUIDs, exact SHA-256 UTF-8 key, typed RPC adapters, and SQLSTATE-only `STAFF_NOTIFICATION_*` mapping.
+- [x] 3.3 Add compile assertions in `tests/staff-notifications-types.test.ts`; run focused tests plus existing Tasks, auth/CRM/quote regressions without external traffic.
 
 ## Phase 4: Disposable Apply, Cleanup, and Closure
 
-- [ ] 4.1 Apply the exact candidate once to a disposable shadow through `0062`; capture schema/RLS/grants/type/runtime receipts and verify no remote Supabase mutation.
-- [ ] 4.2 Remove only disposable artifacts/evidence; verify auth/CRM/quotes/audit files, types, inventory, and unrelated tests are preserved.
+- [x] 4.1 Apply the exact candidate once to a disposable shadow through `0062`; capture schema/RLS/grants/type/runtime receipts and verify no remote Supabase mutation.
+- [x] 4.2 Remove only disposable artifacts/evidence; verify auth/CRM/quotes/audit files, types, inventory, and unrelated tests are preserved.
 
 Post-Task Gates (not checklist items):
 - Gate: independent verifier confirms exact candidate, receipts, preservation, and no-remote claim.

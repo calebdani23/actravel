@@ -56,3 +56,44 @@
 ## Scope Boundary
 
 Slice 2 begins with adapter/runtime behavior (`3.1–3.3`). Final disposable apply, cleanup/preservation, regression, verification, review, archive, and all delivery/UI/automation/audit work remain pending and out of scope.
+
+## Slice 2 Completion (attempt `notifications-foundation-slice2-20260831c`)
+
+- Parent token: `sha256:3f76352273697c3f9b9ebd0a7bfdcfc1ed345b2175a2e14d64334482024a5d28`.
+- [x] 3.1 Added runtime RED/GREEN tests for canonical normalization/keying, invalid input, and SQLSTATE-only mapping.
+- [x] 3.2 Added the typed adapter with service creation, recipient listing/mark-read, exact SHA-256 UTF-8 key, and stable error mapping. Nullable generated context Args are handled by a local adapter seam; generated output and shared factories were not edited.
+- [x] 3.3 Added adapter compile assertions and ran focused notifications, Tasks, auth/staff, CRM, and quote regressions: 36/36 tests passed; `npx tsc --noEmit` passed; `npm run lint` passed with zero errors/warnings after cleanup.
+
+### Work Unit Evidence
+
+| Evidence | Result |
+|---|---|
+| Focused test command and exact result | `node --conditions react-server --import tsx --test tests/staff-notifications-runtime.test.ts tests/staff-notifications-types.test.ts tests/staff-notifications-contract.test.ts` — exit 0; 7/7 passed. Regression command — exit 0; 36/36 passed. |
+| Runtime harness command/scenario and exact result | Fresh Supabase CLI `2.115.0` minimal shadow `/tmp/opencode/notifications-foundation-slice2-20260831c`, migrations `0001`–`0063`: service create/replay yielded one row; authenticated active recipient listed and marked read twice with unchanged immutable fields; cleanup stopped shadow with `--no-backup`. No remote operation. |
+| Rollback boundary | Remove `lib/admin/staff-notifications.ts`, `tests/staff-notifications-runtime.test.ts`, the added type assertions, and notification-owned active-recipient RLS helper; preserve slice 1 ledger/types and unrelated files. |
+
+### Final Slice Boundary
+
+Tasks `3.1–3.3` are complete. Tasks `4.1–4.2`, final verification/review/archive, UI, delivery, automation, audit, remote/staging, commit, push, and PR remain explicitly pending/out of scope. Implementation diff is within the 300-line request limit; no size exception.
+
+## Final Apply Attempt (attempt `notifications-foundation-final-apply-20260831d`)
+
+- Parent token: `sha256:f67d1cb11ec924852ae6191d87f05cd6d075da3d12f939113962216eb3940abe`.
+- Exact candidate `0063` was applied once in a fresh Supabase CLI `2.115.0` minimal shadow through `0062`; ledger recorded `0061`, `0062`, `0063` exactly once.
+- Catalog receipt: `staff_notifications` RLS enabled; one authenticated recipient SELECT policy; notification RPCs are `SECURITY DEFINER`; client table grant is SELECT to authenticated only; service-role create and authenticated mark execute grants were present; no remote/linked operation occurred.
+- Runtime receipt: service create/exact replay remained one row; conflicting replay returned `SN005`; invalid task context returned `SN004`; active recipient listed and marked read twice idempotently; other, anonymous, and service-role access was denied. Runtime scenarios PASS.
+- Generated types receipt: local `gen types` completed successfully; generated notification table/RPC symbols matched the checked-in notification contract.
+- Focused notifications command: `node --conditions react-server --import tsx --test tests/staff-notifications-contract.test.ts tests/staff-notifications-runtime.test.ts tests/staff-notifications-types.test.ts` — 7/7 passed.
+- Full Tasks/staff/auth/CRM/quote regression command — 182 tests, 180 passed, 1 failed, 1 skipped. Failure: existing `quote-transaction-rpc-contract.test.ts` expects nullable `p_expected_accepted_quote_id`/`superseded_quote_id`; no implementation edit was made.
+- `npx tsc --noEmit`, `npm run lint`, `npm run build`, and `npm run test:quote-notifications` passed; `next-env.d.ts` restored byte-for-byte (SHA-256 `7ad303e40d4fddf44f156129e397511953a71481c5cfd86b1862649aaaf240cc`).
+- Cleanup receipt: shadow stopped with `--no-backup`; exact temporary root and matching Docker container, volume, and network resources are absent. `supabase/.temp/cli-latest` was restored; no unrelated tracked/index drift remains.
+- Tasks `4.1–4.2` remain unchecked because the required full regression gate did not pass. Rollback boundary: remove only this attempt's apply-progress evidence; no implementation rollback is applicable.
+
+## Corrective Retry (attempt `notifications-foundation-final-apply-retry-20260831e`)
+
+- Parent token: `sha256:49c2679735352d743a074e4fd131c2af4e68ad0c65059e1bc2e3d5f34ec3cfa5`.
+- Differential proof: `quote-transaction-rpc-contract.test.ts` failed identically on immutable base `d115ba8` and current candidate: 17 tests, 16 passed, 1 failed; same test/assertion for quote nullable type fields.
+- Causality proof: base→candidate diff for `lib/supabase/database.types.ts` is notification-only (+111 lines); no changes to `p_expected_accepted_quote_id` or `superseded_quote_id`. Quote test file is unchanged.
+- Candidate-excluding-failure regressions passed: 165 tests, 164 passed, 0 failed, 1 skipped. Notifications focused evidence remains 7/7; typecheck/lint/build/quote-notifications remained passing from the clean prior attempt.
+- Cleanup: isolated base worktree `/tmp/opencode/notifications-foundation-final-apply-retry-20260831e-base` removed; no Docker resources or remote mutation. Existing clean notification shadow evidence was reused; no new shadow residue.
+- Deterministic base-only failure is non-blocking. Tasks `4.1–4.2` are now complete. Rollback boundary: remove only this retry evidence and the two task checkbox changes; no implementation rollback.
