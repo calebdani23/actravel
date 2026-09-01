@@ -2440,9 +2440,16 @@ export type Database = {
           id: string
           idempotency_key: string
           lead_id: string | null
+          metadata: Json | null
           owner_id: string
           quote_id: string | null
+          source_due_at: string | null
+          source_event_created_at: string | null
+          source_event_id: string | null
+          source_event_type: string | null
+          source_payload: Json | null
           status: string
+          task_kind: string
           updated_at: string
         }
         Insert: {
@@ -2452,9 +2459,16 @@ export type Database = {
           id?: string
           idempotency_key: string
           lead_id?: string | null
+          metadata?: Json | null
           owner_id: string
           quote_id?: string | null
+          source_due_at?: string | null
+          source_event_created_at?: string | null
+          source_event_id?: string | null
+          source_event_type?: string | null
+          source_payload?: Json | null
           status?: string
+          task_kind?: string
           updated_at?: string
         }
         Update: {
@@ -2464,9 +2478,16 @@ export type Database = {
           id?: string
           idempotency_key?: string
           lead_id?: string | null
+          metadata?: Json | null
           owner_id?: string
           quote_id?: string | null
+          source_due_at?: string | null
+          source_event_created_at?: string | null
+          source_event_id?: string | null
+          source_event_type?: string | null
+          source_payload?: Json | null
           status?: string
+          task_kind?: string
           updated_at?: string
         }
         Relationships: [

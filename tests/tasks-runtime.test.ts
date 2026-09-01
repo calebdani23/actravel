@@ -5,6 +5,9 @@ import {
   mapTaskError,
   normalizeTaskInput,
   taskIdempotencyKey,
+  type FollowUpTaskMetadata,
+  type FollowUpTaskRepresentation,
+  type TaskRow,
 } from "../lib/admin/tasks"
 
 const owner = "11111111-1111-4111-8111-111111111111"
@@ -36,4 +39,27 @@ test("boundary errors use SQLSTATE only, never database messages", () => {
   assert.equal(mapTaskError({ code: "PT005", message: "arbitrary" }).code, "TASK_IDEMPOTENCY_CONFLICT")
   assert.equal(mapTaskError({ code: "PT006", message: "arbitrary" }).code, "TASK_INVALID_TRANSITION")
   assert.equal(mapTaskError({ code: "XX000", message: "TASK_FORBIDDEN" }).code, "TASK_DATABASE_ERROR")
+})
+
+test("task adapter types expose additive representation without changing writes", () => {
+  const metadata: FollowUpTaskMetadata = {
+    schema: "follow_up_task.v1",
+    source_event_id: lead,
+    source_event_type: "follow_up_registered",
+    owner_id: owner,
+    lead_id: lead,
+  }
+  const row = {
+    id: lead, owner_id: owner, lead_id: lead, quote_id: null,
+    description: "Call traveler", due_at: "2026-09-01T00:00:00.000000Z",
+    status: "pending", idempotency_key: "a".repeat(64),
+    created_at: "2026-09-01T00:00:00.000000Z", updated_at: "2026-09-01T00:00:00.000000Z",
+    task_kind: "follow_up" as const, source_event_id: lead,
+    source_event_type: "follow_up_registered" as const,
+    source_event_created_at: "2026-08-31T00:00:00.000000Z",
+    source_due_at: "2026-09-01T00:00:00.000000Z", source_payload: { followUpAt: "2026-09-01" }, metadata,
+  } satisfies FollowUpTaskRepresentation
+  const manual: TaskRow = { ...row, task_kind: "manual", source_event_id: null, source_event_type: null, source_event_created_at: null, source_due_at: null, source_payload: null, metadata: null }
+  assert.equal(manual.source_event_id, null)
+  assert.equal(row.metadata.schema, "follow_up_task.v1")
 })

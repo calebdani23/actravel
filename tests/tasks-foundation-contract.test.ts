@@ -69,3 +69,11 @@ test("Tasks lifecycle contract accepts only the specified status pairs", () => {
     }
   }
 })
+
+test("Tasks foundation preserves additive representation boundaries", () => {
+  const sql = readFileSync("db/migrations/0064_follow_up_task_representation.sql", "utf8")
+  assert.match(readFileSync(migrationPath, "utf8"), /on delete set null/i)
+  assert.match(sql, /create unique index\s+tasks_source_event_id_idx/i)
+  assert.match(sql, /immutable|is distinct from/i)
+  assert.doesNotMatch(sql, /references\s+public\.(lead_events|crm)/i)
+})

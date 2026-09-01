@@ -3,6 +3,22 @@ import type { Tables } from "@/lib/supabase/database.types"
 import { createHash } from "node:crypto"
 
 export type TaskRow = Tables<"tasks">
+export type FollowUpTaskMetadata = {
+  schema: string
+  source_event_id: string
+  source_event_type: string
+  owner_id: string
+  lead_id: string
+}
+export type FollowUpTaskRepresentation = TaskRow & {
+  task_kind: "follow_up"
+  source_event_id: string
+  source_event_type: "follow_up_registered"
+  source_event_created_at: string
+  source_due_at: string
+  source_payload: NonNullable<TaskRow["source_payload"]>
+  metadata: FollowUpTaskMetadata
+}
 export type TaskStatus = "pending" | "in_progress" | "completed" | "canceled"
 export type TaskInput = {
   ownerId: string

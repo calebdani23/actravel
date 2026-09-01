@@ -14,3 +14,10 @@ test("Tasks RLS is read-only and encodes the ownership matrix", () => {
   assert.match(sql, /public\.is_admin\(\)/i)
   assert.doesNotMatch(sql, /staff_notifications/i)
 })
+
+test("follow-up representation does not add a write or service-role path", () => {
+  const sql = readFileSync("db/migrations/0064_follow_up_task_representation.sql", "utf8")
+  assert.doesNotMatch(sql, /grant (insert|update|delete|all).*tasks/i)
+  assert.doesNotMatch(sql, /to service_role/i)
+  assert.match(sql, /create trigger/i)
+})

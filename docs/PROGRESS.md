@@ -1,5 +1,15 @@
 # Progreso AC Travel Mx MVP
 
+## 2026-09-01 — Week 03 follow-up Task representation
+
+La representación aditiva de follow-ups quedó implementada localmente en `0064`, con campos
+nullable, provenance acotada e inmutable, unicidad global del `source_event_id`, validación de
+inserción y preservación de `lead_id` en `NULL` al purgar un lead. Se alinearon los tipos generados
+desde un shadow disposable y los aliases de lectura del adapter sin cambiar creación, transición,
+RLS, CRM ni cotizaciones. La migración `0060 → 0061 → 0062 → 0063 → 0064`, el escenario SQL de
+deletion/representation, 13 pruebas enfocadas, lint, TypeScript y build pasaron. No hubo DML
+histórico de Tasks ni mutación remota; no se reclama paridad ni readiness de producción.
+
 ## 2026-09-01 — Week 02 closure and Week 03 readiness
 
 Documentation-only closure `week-02-closure-week-03-readiness` passed its exact evidence
