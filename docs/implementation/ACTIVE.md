@@ -2,9 +2,9 @@
 
 ## Current milestone
 
-- **Week:** 02
-- **Theme:** Manager capability foundation
-- **Status:** Week 01 PASS; maintainer amendment accepts `0057` as `ABSENT_WITH_EFFECT_EQUIVALENCE`; Week 02 work unit 4 is closed under the 2026-08-21 capability-scope amendment, with migration/static and isolated browser evidence passing; disposable PostgreSQL application remains unavailable
+- **Week:** 03
+- **Theme:** Tasks + Mi día
+- **Status:** Week 02 local development is literally complete within its recorded scope: Gate 0, Tasks, and Staff Notifications are independently PASS, reviewed/allowed, and archived. Dated archives captured on 2026-08-26/31 observed no remote `0061+` at capture; present remote migration/schema state was not inspected in closure and is unknown. Production rollout remains distinct and separately authorized; no current remote parity or readiness is claimed.
 - **Context preparation merged on main:** `224cc37608f8842725733a5522bbe4ab0dbfe8c1`
 - **Executable product baseline before documentation-only preparation:** `01d5a6b0bea066a0ea87943de922e39d18eb4dac`
 - **Primary brief:** [`weeks/week-01-baseline-safety.md`](./weeks/week-01-baseline-safety.md)
@@ -17,11 +17,11 @@ The context-preparation merge changed documentation only. When beginning impleme
 
 ## Current change state
 
-`week-02-manager-capability-foundation` is archived at [`openspec/changes/archive/2026-08-24-week-02-manager-capability-foundation/`](../../openspec/changes/archive/2026-08-24-week-02-manager-capability-foundation/). Work units 1–4 are implemented; SQL application is explicitly limited by the local environment, while guarded isolated browser and route-boundary evidence passes. The typed eight-key registry has no production callers in this slice; production action/RPC/RLS capability enforcement and audit integration remain candidates for a future independently reviewable Week 02 change. Tasks, staff notifications, and generic RBAC/RLS remain deferred.
+`week-02-closure-week-03-readiness` records the conjunctive closure of the three archived children without reusing receipts: Gate 0 PASS (`2026-08-26`), Tasks PASS (`2026-08-31`, archive tasks 8/8), and Staff Notifications PASS (`2026-08-31`, archive tasks 11/11). The Notifications verify prose saying “12 tasks” is a non-authoritative discrepancy. Traceable child warnings and failed-attempt histories remain preserved in their packets, including the known base-only quote regression.
 
-**Next action:** plan the next independently reviewable Week 02 change from current repository reality; do not invent an active change or apply `0061` to linked production automatically.
+**Next action:** plan `followups-to-tasks`, Week 03’s first independently reviewable change, per [`weeks/week-03-tasks-my-day.md`](./weeks/week-03-tasks-my-day.md). Begin with follow-up migration/representation only; do not bundle automation, SLA projections, or Mi día/UI work.
 
-Migration `0061` is present locally as the bounded Manager role compatibility change. It has not been applied to linked production; no new Business OS schema, generic capability table/RPC, or broad RLS rewrite was introduced. The packet's final gate is **PASS** under the explicit amendment; `0057` did not execute, equivalent effects are evidenced, and authoritative absence is accepted as disposition rather than provenance.
+Migrations `0061`–`0063` exist locally and are documented only through dated archived disposable/local evidence. The 2026-08-26/31 archives observed no remote `0061+` at capture; present remote migration/schema state was not inspected in closure and is unknown. Production rollout and any future Week 03 follow-up are separate authorized changes; no remote access or mutation occurred here, and no production readiness is claimed.
 
 ## Required context for the next action
 

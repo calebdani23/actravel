@@ -1,5 +1,27 @@
 # Progreso AC Travel Mx MVP
 
+## 2026-09-01 — Week 02 closure and Week 03 readiness
+
+Documentation-only closure `week-02-closure-week-03-readiness` passed its exact evidence
+reconciliation. Gate 0, Tasks, and Staff Notifications each have an archived packet, native
+review/allow, and independent PASS receipt; receipts are child-specific and were not reused.
+The authoritative archive task counts are Tasks **8/8** and Notifications **11/11**. The
+Notifications verification prose that says “12 tasks” is retained as a non-authoritative
+discrepancy. All warnings and failed verification/remediation histories remain in the archived
+packets, including the traceable Tasks date-normalization warning, nullable Args widening,
+delimiter-based canonical input, tautological immutable-fields check, and known base-only quote
+transaction type regression.
+
+Week 02 local development is literally complete within this recorded scope. Migrations `0061`,
+`0062`, and `0063` are local artifacts supported by dated archived disposable/local evidence only.
+The 2026-08-26/31 archives observed no remote `0061+` at capture; present remote migration/schema
+state was not inspected in closure and is unknown. No current remote parity, production rollout,
+or production readiness is claimed.
+The controlled next action is the independently reviewable Week 03 `followups-to-tasks` change,
+limited to follow-up migration/representation; automation, SLA, and Mi día are not bundled.
+No code, schema, migration, generated type, test, protected file, Week 01 artifact, or unrelated
+path was changed by this closure.
+
 ## 2026-08-21 — Week 02 Manager migration/RLS work unit
 
 Work unit 4 is implemented locally and closed under a maintainer-authorized scope amendment. `0061_manager_capability_foundation.sql` is atomic and idempotently persists `manager`/`Gerencia`, expands only `roles_name_check`, and adds Manager to the role-catalog read policy. Existing `has_role`/`is_admin`, Admin-only role writes, `leads`, CRM, quote, audit, and physical data contracts remain untouched. The typed eight-key registry is preserved but `canCapability()` has no production callers; production action/RPC/RLS capability enforcement and audit integration are deferred to named follow-up `week-02-sensitive-capability-enforcement`, while existing Admin/role route enforcement remains authoritative. Static contracts, the dynamic guarded route, no-flag 404/flag-only access proof, and corrective Playwright suite passed 2/2: real dashboard fallback redirect, observed account read counter, typed denial, and honest Admin create/edit/display control availability. `npm run lint`, `npm run build`, focused suites, quote-notification checks, and `git diff --check` passed. Local Docker/PostgreSQL remains unavailable (`127.0.0.1:54322 ECONNREFUSED`), so local migration application is not claimed; no linked production mutation occurred. Generated types remain unchanged and `roles.name` remains `string`. The intake image SHA-256 remains `fef8a13433a8084e6632b0a8c64f668f4a51cfba4fd14d951ec774d32fc58655`.

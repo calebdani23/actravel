@@ -1,5 +1,23 @@
 # Decisiones técnicas y de producto
 
+## 2026-09-01 — Documentation-only Week 02 closure and controlled Week 03 handoff
+
+Close Week 02 only because the three-child conjunction is complete: archived Gate 0, Tasks, and
+Staff Notifications each have independent PASS verification plus native review/allow and archive
+evidence. Use archive ledgers as exact counts (Tasks 8/8; Notifications 11/11), while preserving
+the Notifications verify prose “12 tasks” as a non-authoritative discrepancy. Traceable warnings
+(Tasks date normalization, nullable Args widening, delimiter-based canonical input, and the
+tautological immutable-fields check), failed attempts, and the known base-only quote regression
+remain historical provenance and are not rewritten.
+
+Record local development as literally complete within this scope, but keep production rollout
+separate. `0061`–`0063` are local artifacts described only by dated archived disposable/local
+evidence; those 2026-08-26/31 archives observed no remote `0061+` at capture, while present remote
+migration/schema state was not inspected in closure and is unknown. No current remote parity or
+production readiness is asserted, and no remote access or mutation was performed. The next independently reviewable change is exactly
+Week 03 `followups-to-tasks`, per the active brief; automation, SLA projections, and Mi día are
+explicitly deferred rather than bundled. This closure changed documentation only.
+
 ## 2026-08-21 — Week 02 capability-scope amendment and runtime evidence correction
 
 The maintainer-authorized correction closes this foundation at Manager persistence, Admin-only assignment, the typed eight-capability registry/evaluator, fail-closed role semantics, and safe Manager route/navigation. `canCapability()` has no production callers here. No new sensitive business action is governed by the keys; `week-02-sensitive-capability-enforcement` must bind each real action to server plus RPC/RLS and existing audit/event contracts before delivery. Existing Admin/role route enforcement is authoritative and is not capability enforcement. The E2E fixture now calls `await connection()` before reading the environment, so the build reports it dynamic; Playwright observes a real fallback redirect, instrumented read counts, and typed authorization denial. Admin browser evidence is explicitly create/edit/display control availability, while server action tests remain mutation authority. Static SQL remains the accepted substitute for unavailable local Postgres; `0061` was not applied remotely.
