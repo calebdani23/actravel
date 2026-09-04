@@ -47,7 +47,7 @@ Follow-up provenance MUST be bounded and sufficient to explain the Task’s hist
 - WHEN an authorized reader retrieves it
 - THEN bounded provenance still conveys its historical meaning
 
-### Requirement: Representation contract and security tests
+### Requirement: Read-only representation and security contract
 
 Contract, adapter, deletion, lifecycle, and authorization tests MUST verify the representation
 schema and existing Task invariants. Tests MUST verify global `source_event_id` uniqueness after
@@ -57,7 +57,11 @@ source/owner-idempotency/owner-lead collision algorithm, closed reasons, row nul
 precedence, accounting, canonicalization, limits, and purity. Equality compares every
 deterministic proposed value using recursive canonical JSON (ASCII-sorted object keys, ordered
 arrays, exact primitives), excluding generated `id`, `created_at`, and `updated_at`. Existing
-Task IDs are identity/reporting only.
+Task IDs are identity/reporting only. The reader MUST represent every Task row as occupancy regardless
+of kind/source, while `ExistingTaskFact` remains limited to exact complete follow-up-source equality.
+A complete follow-up DTO has exactly the 0064 selected fields, exact five-key string metadata, and
+exact `{followUpAt:string,hasNote:boolean}` payload; an incomplete follow-up representation is
+`MalformedRow`.
 
 Invalid raw dates always produce null raw and due fields. Rows use
 `[eventId,leadId,ownerId,eventCreatedAt,dueAt,hasNote,rawFollowUpAt,disposition,reason]`;
@@ -69,6 +73,12 @@ all dispositions and closed reasons, nullability, duplicate IDs as `InvalidFact`
 matches as `DUPLICATE_SOURCE`, mutually exclusive owner collision branches,
 selected/non-selected accounting, error precedence, Task equality/idempotency, count/limit
 behavior, and no live seam. Tests construct legal facts; exact fixtures are owned by tasks.
+
+Contract tests MUST verify source-namespaced idempotency, exact-match conversion semantics as a
+pure decision, source, owner-idempotency, and owner-lead collision reasons, closed reasons,
+nullability, precedence, accounting, canonicalization, and limits. Tests MUST use injected local
+transports and perform zero Task insert, update, delete, convert, or other mutation, schema change,
+remote access, or UI work.
 
 #### Scenario: Representation regression suite passes
 - GIVEN valid manual and follow-up representations plus a purged source context
@@ -90,6 +100,27 @@ historical Task DML.
 - GIVEN migration order, reconciliation, or shadow evidence is missing or ambiguous
 - WHEN preparation runs
 - THEN no remote mutation occurs and no historical Task DML occurs
+
+### Requirement: Closed row and response boundaries
+
+Raw follow-up dates MUST produce null due fields when invalid. Projections MUST use closed column
+allowlists and bounded 200/2001 paging. The reader response MUST be exactly
+`{ok:true,plan,readerSnapshotHash,eventCutoff:{createdAt,id},taskCutoff:{createdAt,id}|null,diagnostics:{logicalReads,physicalAttempts}}` or `{ok:false,error:{code:ReaderErrorCode,message:constant},diagnostics?:{logicalReads,physicalAttempts}}`, with no provider message or PII. Cutoffs are acquired once after auth/client and before P1 and reused by every pass. Approval, execution, ledger, cancellation, revalidation, cutover, rollout, operational Task creation, automation, SLA, notifications, Mi día, and UI are deferred.
+
+#### Scenario: Representation remains pure
+- GIVEN valid manual and follow-up representations
+- WHEN pure classification runs
+- THEN existing decisions remain unchanged and no DML occurs
+
+#### Scenario: Collision coverage preserves manual Tasks
+- GIVEN a manual Task and a source-linked Task in the bounded population
+- WHEN preview facts are decoded and classified
+- THEN both are occupancy facts, only the exact source match is existing, and canonical output is unchanged
+
+#### Scenario: Preview has no operational effect
+- GIVEN the preview suite runs with an injected local transport
+- WHEN it completes
+- THEN no Task row, schema, approval, execution, or remote state changes
 
 ## Non-Goals
 
