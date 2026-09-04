@@ -5,6 +5,7 @@ import {
   classifyFollowUpBackfillPreview,
   canonicalJson,
   type ExistingTaskFact,
+  type TaskOccupancyFact,
   parseUtcDate,
   type FollowUpBackfillInput,
   type OwnerFact,
@@ -25,6 +26,15 @@ const input = (events: FollowUpBackfillInput["events"]): FollowUpBackfillInput =
   cutoffCreatedAt: "2026-01-31T23:59:59.123456Z",
   cutoffId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
   events,
+  taskOccupancies: [],
+})
+
+const occupancy = (overrides: Partial<TaskOccupancyFact> = {}): TaskOccupancyFact => ({
+  id: "99999999-9999-4999-8999-999999999999",
+  owner_id: active.ownerId,
+  lead_id: "22222222-2222-4222-8222-222222222222",
+  idempotency_key: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  ...overrides,
 })
 
 test("strictly parses and normalizes supported UTC dates", () => {
@@ -83,10 +93,12 @@ test("projects the exact future Task and applies collision precedence", () => {
     idempotency_key: "f44b1020cf8c806af9763f16caa79037358a472a866519467e246c1f59d8e3f5",
   })
   const existing = { id: "99999999-9999-4999-8999-999999999999", ...result.tasks[0] } as ExistingTaskFact
-  assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), existingTasks: [existing] }).rows[0][7], "already-converted")
-  assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), existingTasks: [{ ...existing, description: "changed" } as unknown as ExistingTaskFact] }).rows[0][8], "SOURCE_MISMATCH")
-  assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), existingTasks: [existing] }).tasks.length, 0)
-  assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), existingTasks: [{ ...existing, description: "changed" } as unknown as ExistingTaskFact] }).tasks.length, 0)
+  const matchingOccupancy = occupancy({ id: existing.id, owner_id: existing.owner_id, lead_id: existing.lead_id, idempotency_key: existing.idempotency_key })
+  assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), existingTasks: [existing], taskOccupancies: [matchingOccupancy] }).rows[0][7], "already-converted")
+  assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), existingTasks: [{ ...existing, description: "changed" } as unknown as ExistingTaskFact], taskOccupancies: [matchingOccupancy] }).rows[0][8], "SOURCE_MISMATCH")
+  assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), existingTasks: [existing], taskOccupancies: [matchingOccupancy] }).tasks.length, 0)
+  assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), existingTasks: [{ ...existing, description: "changed" } as unknown as ExistingTaskFact], taskOccupancies: [matchingOccupancy] }).tasks.length, 0)
+  assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), existingTasks: [{ ...existing, created_at: "2026-02-01T00:00:00.000000Z", updated_at: "2026-02-02T00:00:00.000000Z" }], taskOccupancies: [matchingOccupancy] }).rows[0][7], "already-converted")
 })
 
 test("returns tasks deterministically and bounds existing task input", () => {
@@ -96,7 +108,8 @@ test("returns tasks deterministically and bounds existing task input", () => {
   const reverse = classifyFollowUpBackfillPreview(input([second, first]))
   assert.deepEqual(forward.tasks, reverse.tasks)
   assert.throws(() => classifyFollowUpBackfillPreview({ ...input([]), existingTasks: Array.from({ length: 2001 }, () => ({}) as ExistingTaskFact) }), /CanonicalizationFailure/)
-  const bounded = classifyFollowUpBackfillPreview({ ...input([first]), existingTasks: Array.from({ length: 2000 }, (_, i) => ({ id: `${String(i + 1).padStart(8, "0")}-9999-4999-8999-999999999999`, ...forward.tasks[0] })) as ExistingTaskFact[] })
+  const boundedExisting = Array.from({ length: 2000 }, (_, i) => ({ id: `${String(i + 1).padStart(8, "0")}-9999-4999-8999-999999999999`, ...forward.tasks[0] })) as ExistingTaskFact[]
+  const bounded = classifyFollowUpBackfillPreview({ ...input([first]), existingTasks: boundedExisting, taskOccupancies: boundedExisting.map(({ id, owner_id, lead_id, idempotency_key }) => ({ id, owner_id, lead_id, idempotency_key })) })
   assert.equal(bounded.tasks.length, 0)
 })
 
@@ -120,4 +133,21 @@ test("enforces exact owner shape, normalized year bounds, and purity", () => {
   const frozen = JSON.stringify(event)
   classifyFollowUpBackfillPreview(input([event]))
   assert.equal(JSON.stringify(event), frozen)
+})
+
+test("accounts every Task occupancy and derives both collision branches", () => {
+  const event = base("11111111-1111-4111-8111-111111111111", "2026-01-01T00:00:00.000000Z", "2026-01-02")
+  const idempotencyCollision = occupancy({ id: "88888888-8888-4888-8888-888888888888", lead_id: "44444444-4444-4444-8444-444444444444", idempotency_key: "f44b1020cf8c806af9763f16caa79037358a472a866519467e246c1f59d8e3f5" })
+  assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), taskOccupancies: [idempotencyCollision] }).rows[0][8], "IDEMPOTENCY_COLLISION")
+  const leadCollision = occupancy({ id: "77777777-7777-4777-8777-777777777777" })
+  assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), taskOccupancies: [leadCollision] }).rows[0][8], "OWNER_LEAD_COLLISION")
+  assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), taskOccupancies: [occupancy({ lead_id: null })] }).rows[0][7], "eligible")
+})
+
+test("validates occupancy IDs, fields, cardinality, and exact existing matches", () => {
+  const event = base("11111111-1111-4111-8111-111111111111", "2026-01-01T00:00:00.000000Z", "2026-01-02")
+  const invalid = occupancy({ id: "BAD" })
+  assert.throws(() => classifyFollowUpBackfillPreview({ ...input([event]), taskOccupancies: [invalid] }), /InvalidFact/)
+  assert.throws(() => classifyFollowUpBackfillPreview({ ...input([event]), taskOccupancies: Array.from({ length: 2001 }, () => occupancy()) }), /CanonicalizationFailure/)
+  assert.throws(() => classifyFollowUpBackfillPreview({ ...input([event]), existingTasks: [{ ...classifyFollowUpBackfillPreview(input([event])).tasks[0], id: "99999999-9999-4999-8999-999999999999" } as ExistingTaskFact], taskOccupancies: [] }), /InvariantViolation/)
 })

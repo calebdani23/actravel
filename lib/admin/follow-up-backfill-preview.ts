@@ -39,11 +39,18 @@ export type ExistingTaskFact = {
   source_event_created_at: string; source_payload: { followUpAt: unknown; hasNote: unknown }
   metadata: Record<string, unknown>; idempotency_key: string; created_at?: string; updated_at?: string
 }
+export type TaskOccupancyFact = {
+  id: string
+  owner_id: string
+  lead_id: string | null
+  idempotency_key: string
+}
 export type FollowUpBackfillInput = {
   ruleVersion: string
   cutoffCreatedAt: string
   cutoffId: string
   events: readonly FollowUpFact[]
+  taskOccupancies: readonly TaskOccupancyFact[]
   existingTasks?: readonly ExistingTaskFact[]
 }
 export type PreviewRow = [string, string, string | null, string, string | null, boolean | null, string | null, Disposition, Reason]
@@ -169,9 +176,20 @@ function validateExistingTask(task: unknown): asserts task is ExistingTaskFact {
   invalid(typeof metadata.schema === "string" && typeof metadata.source_event_id === "string" && typeof metadata.source_event_type === "string" && typeof metadata.owner_id === "string" && typeof metadata.lead_id === "string")
 }
 
+function validateTaskOccupancy(task: unknown): asserts task is TaskOccupancyFact {
+  invalid(!!task && typeof task === "object")
+  const value = task as Record<string, unknown>
+  invalid(Object.keys(value).length === 4)
+  invalid(typeof value.id === "string" && UUID.test(value.id) && value.id === value.id.toLowerCase())
+  invalid(typeof value.owner_id === "string" && UUID.test(value.owner_id) && value.owner_id === value.owner_id.toLowerCase())
+  invalid(value.lead_id === null || (typeof value.lead_id === "string" && UUID.test(value.lead_id) && value.lead_id === value.lead_id.toLowerCase()))
+  invalid(typeof value.idempotency_key === "string" && /^[0-9a-f]{64}$/.test(value.idempotency_key))
+}
+
 export function classifyFollowUpBackfillPreview(input: FollowUpBackfillInput): PreviewResult {
-  if (!input || !Array.isArray(input.events) || typeof input.ruleVersion !== "string" || typeof input.cutoffCreatedAt !== "string" || typeof input.cutoffId !== "string") throw new IncompleteFacts("IncompleteFacts")
+  if (!input || !Array.isArray(input.events) || !Array.isArray(input.taskOccupancies) || typeof input.ruleVersion !== "string" || typeof input.cutoffCreatedAt !== "string" || typeof input.cutoffId !== "string") throw new IncompleteFacts("IncompleteFacts")
   if (input.events.length > 2000) throw new CanonicalizationFailure("CanonicalizationFailure")
+  if (input.taskOccupancies.length > 2000) throw new CanonicalizationFailure("CanonicalizationFailure")
   const existing = input.existingTasks ?? []
   if (existing.length > 2000) throw new CanonicalizationFailure("CanonicalizationFailure")
   let cutoff: string
@@ -210,9 +228,16 @@ export function classifyFollowUpBackfillPreview(input: FollowUpBackfillInput): P
     if (!candidates.length) selected.add(latest.eventId)
   }
   const counts = [0, 0, 0, 0, 0, 0, 0] as [number, number, number, number, number, number, number]
+  const occupancyIds = new Set<string>(), ownerIdempotency = new Set<string>(), ownerLead = new Set<string>()
+  for (const task of input.taskOccupancies) {
+    validateTaskOccupancy(task)
+    if (occupancyIds.has(task.id)) throw new InvalidFact("InvalidFact")
+    occupancyIds.add(task.id)
+    ownerIdempotency.add(`${task.owner_id}|${task.idempotency_key}`)
+    if (task.lead_id !== null) ownerLead.add(`${task.owner_id}|${task.lead_id}`)
+  }
   const existingIds = new Set<string>()
   const sourceMatches = new Map<string, ExistingTaskFact[]>()
-  const ownerIdempotency = new Set<string>(), ownerLead = new Set<string>()
   for (const task of existing) {
     validateExistingTask(task)
     if (existingIds.has(task.id)) throw new InvalidFact("InvalidFact")
@@ -220,8 +245,8 @@ export function classifyFollowUpBackfillPreview(input: FollowUpBackfillInput): P
     const bySource = sourceMatches.get(task.source_event_id) ?? []
     bySource.push(task)
     sourceMatches.set(task.source_event_id, bySource)
-    ownerIdempotency.add(`${task.owner_id}|${task.idempotency_key}`)
-    ownerLead.add(`${task.owner_id}|${task.lead_id}`)
+    const matches = input.taskOccupancies.filter((occupancy) => occupancy.id === task.id && occupancy.owner_id === task.owner_id && occupancy.lead_id === task.lead_id && occupancy.idempotency_key === task.idempotency_key)
+    if (matches.length !== 1) throw new InvariantViolation("InvariantViolation")
   }
   const tasks: FutureFollowUpTask[] = []
   const rows = facts.map((event) => {
