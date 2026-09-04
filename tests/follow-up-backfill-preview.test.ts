@@ -151,3 +151,11 @@ test("validates occupancy IDs, fields, cardinality, and exact existing matches",
   assert.throws(() => classifyFollowUpBackfillPreview({ ...input([event]), taskOccupancies: Array.from({ length: 2001 }, () => occupancy()) }), /CanonicalizationFailure/)
   assert.throws(() => classifyFollowUpBackfillPreview({ ...input([event]), existingTasks: [{ ...classifyFollowUpBackfillPreview(input([event])).tasks[0], id: "99999999-9999-4999-8999-999999999999" } as ExistingTaskFact], taskOccupancies: [] }), /InvariantViolation/)
 })
+
+test("uses an ID map for exact existing occupancy matching", () => {
+  const event = base("11111111-1111-4111-8111-111111111111", "2026-01-01T00:00:00.000000Z", "2026-01-02")
+  const result = classifyFollowUpBackfillPreview(input([event]))
+  const existing = { id: "99999999-9999-4999-8999-999999999999", ...result.tasks[0] } as ExistingTaskFact
+  const occupancyFact = occupancy({ id: existing.id, owner_id: existing.owner_id, lead_id: existing.lead_id, idempotency_key: existing.idempotency_key })
+  assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), existingTasks: [existing], taskOccupancies: [occupancyFact] }).rows[0][7], "already-converted")
+})

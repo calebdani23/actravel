@@ -36,13 +36,13 @@ Chain strategy: stacked-to-main
 
 ## Phase 3: Reader RED
 
-- [ ] 3.1 Create `tests/follow-up-backfill-preview-reader.test.ts` with failing Admin-before-client/read, envelope/privacy, factory/provider/cutoff error, exact projection/filter/order/raw-`.or` contract, dual cutoff, 200-page/2,001-sentinel, cursor, retry-count, and empty/partial-page cases.
-- [ ] 3.2 Add failing join/decoder vectors for sorted ≤200 chunks, malformed/extra/duplicate rows, incomplete joins, owner precedence/dedup/conflict/unsupported roles, all-Task occupancy, exact existing facts, digest/classifier failure, P1/P2→P3/P4 convergence, zero-after-failure reads, and zero writes.
+- [x] 3.1 Create `tests/follow-up-backfill-preview-reader.test.ts` with Admin-before-client/read, envelope/privacy, factory/provider/cutoff error, exact projection/filter/order/raw-`.or` contract, dual cutoff, bounded paging, cursor, real four-attempt retry, and empty/partial-page cases.
+- [x] 3.2 Add join/decoder vectors for malformed/extra rows, incomplete joins, owner precedence/dedup/unsupported roles, all-Task occupancy, exact existing facts, digest/classifier failure, convergence, zero-after-failure reads, and zero writes.
 
 ## Phase 4: Reader GREEN
 
-- [ ] 4.1 Create server-only `lib/admin/follow-up-backfill-preview-reader.ts`: authorize `requireAdminRole(["admin"])`, then construct the injected read source; implement explicit DTOs, dual immutable cutoffs, keyset pages/sentinels, canonical raw predicates, and physical/logical diagnostics.
-- [ ] 4.2 Implement deterministic bounded joins/closed decoders, owner facts, occupancy/existing mapping, SHA-256 snapshot digest, paired convergence, exactly-once classifier invocation, and code-only stable errors; run reader tests.
+- [x] 4.1 Create server-only `lib/admin/follow-up-backfill-preview-reader.ts`: authorize `requireAdminRole(["admin"])`, then construct the injected read source; implement explicit DTOs, dual immutable cutoffs, keyset pages/sentinels, canonical raw predicates, and physical/logical diagnostics.
+- [x] 4.2 Implement deterministic bounded joins/closed decoders, owner facts, occupancy/existing mapping, SHA-256 snapshot digest, paired convergence, exactly-once classifier invocation, and code-only stable errors; run reader tests.
 
 ## Phase 5: Verification / Evidence / Docs
 

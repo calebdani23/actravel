@@ -11,8 +11,8 @@ Define an Admin-gated, server-only, read-only, convergent snapshot reader for th
 The module MUST export `readFollowUpBackfillPreview(deps): Promise<ReaderResult>` and a read-only
 `PreviewReadDataSource`. Authorization MUST finish before client construction or any source read. Auth
 throws map to `Unauthorized`; factory throws map to `ClientUnavailable`. Provider text, raw payloads, and
-PII MUST never be returned. The only response shapes are `{ok:true,plan,readerSnapshotHash,eventCutoff,taskCutoff}`
-and `{ok:false,error:{code,message}}`, with `message` equal to `code`.
+PII MUST never be returned. The only response shapes are `{ok:true,plan,readerSnapshotHash,eventCutoff:{createdAt,id},taskCutoff:{createdAt,id}|null,diagnostics:{logicalReads,physicalAttempts}}`
+and `{ok:false,error:{code,message},diagnostics?:{logicalReads,physicalAttempts}}`, with `message` equal to `code`.
 
 ```ts
 type ReaderDeps = {
@@ -79,7 +79,7 @@ and the eleventh `limit(1)` row is a `LimitExceeded` sentinel. Empty or partial 
 The production data source MUST use an injected/custom fetch wrapper. The wrapper increments
 `physicalAttempts` for every underlying HTTP fetch attempt. Each reader method call increments
 `logicalReads` exactly once. Provider retries add physical attempts only and MUST NOT add logical pages,
-cursors, sentinels, or join chunks. Safe diagnostics MAY expose aggregate `physicalAttempts` and
+cursors, sentinels, or join chunks. Safe diagnostics expose aggregate `physicalAttempts` and
 `logicalReads`, but MUST NOT expose URLs, provider text, or PII.
 
 #### Scenario: Fixed cutoffs and complete page chains
@@ -101,7 +101,7 @@ leads are exactly `deleted_at IS NULL AND archived_at IS NULL`. Missing leads ar
 unassigned leads produce `unassigned`.
 
 Role precedence is exact: malformed `profile_roles.profile_id`/`role_id` or roles `id`/`name` →
-`MalformedRow`; a requested valid role ID missing from returned roles → `IncompleteJoin`; absent profile →
+`MalformedRow`; every requested role ID is validated globally before profile-state precedence, and a valid role ID missing from returned roles → `IncompleteJoin`; absent profile →
 `missing-profile`; `is_active:false` → `inactive-profile`; `is_active:true` with zero mappings or a
 well-formed unsupported role name → an `OwnerFact` with `invalid-role`; otherwise emit sorted unique
 nonempty exact roles `admin|manager|asesor`. Identical duplicate mappings dedupe; conflicting duplicate

@@ -238,6 +238,8 @@ export function classifyFollowUpBackfillPreview(input: FollowUpBackfillInput): P
   }
   const existingIds = new Set<string>()
   const sourceMatches = new Map<string, ExistingTaskFact[]>()
+  const occupancyById = new Map<string, TaskOccupancyFact>()
+  for (const occupancy of input.taskOccupancies) occupancyById.set(occupancy.id, occupancy)
   for (const task of existing) {
     validateExistingTask(task)
     if (existingIds.has(task.id)) throw new InvalidFact("InvalidFact")
@@ -245,8 +247,8 @@ export function classifyFollowUpBackfillPreview(input: FollowUpBackfillInput): P
     const bySource = sourceMatches.get(task.source_event_id) ?? []
     bySource.push(task)
     sourceMatches.set(task.source_event_id, bySource)
-    const matches = input.taskOccupancies.filter((occupancy) => occupancy.id === task.id && occupancy.owner_id === task.owner_id && occupancy.lead_id === task.lead_id && occupancy.idempotency_key === task.idempotency_key)
-    if (matches.length !== 1) throw new InvariantViolation("InvariantViolation")
+    const occupancy = occupancyById.get(task.id)
+    if (!occupancy || occupancy.owner_id !== task.owner_id || occupancy.lead_id !== task.lead_id || occupancy.idempotency_key !== task.idempotency_key) throw new InvariantViolation("InvariantViolation")
   }
   const tasks: FutureFollowUpTask[] = []
   const rows = facts.map((event) => {
