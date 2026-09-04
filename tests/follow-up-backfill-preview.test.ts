@@ -85,6 +85,19 @@ test("projects the exact future Task and applies collision precedence", () => {
   const existing = { id: "99999999-9999-4999-8999-999999999999", ...result.tasks[0] } as ExistingTaskFact
   assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), existingTasks: [existing] }).rows[0][7], "already-converted")
   assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), existingTasks: [{ ...existing, description: "changed" } as unknown as ExistingTaskFact] }).rows[0][8], "SOURCE_MISMATCH")
+  assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), existingTasks: [existing] }).tasks.length, 0)
+  assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), existingTasks: [{ ...existing, description: "changed" } as unknown as ExistingTaskFact] }).tasks.length, 0)
+})
+
+test("returns tasks deterministically and bounds existing task input", () => {
+  const first = base("11111111-1111-4111-8111-111111111111", "2026-01-01T00:00:00.000000Z", "2026-01-02")
+  const second = { ...base("22222222-2222-4222-8222-222222222222", "2026-01-02T00:00:00.000000Z", "2026-01-03"), leadId: "44444444-4444-4444-8444-444444444444" }
+  const forward = classifyFollowUpBackfillPreview(input([first, second]))
+  const reverse = classifyFollowUpBackfillPreview(input([second, first]))
+  assert.deepEqual(forward.tasks, reverse.tasks)
+  assert.throws(() => classifyFollowUpBackfillPreview({ ...input([]), existingTasks: Array.from({ length: 2001 }, () => ({}) as ExistingTaskFact) }), /CanonicalizationFailure/)
+  const bounded = classifyFollowUpBackfillPreview({ ...input([first]), existingTasks: Array.from({ length: 2000 }, (_, i) => ({ id: `${String(i + 1).padStart(8, "0")}-9999-4999-8999-999999999999`, ...forward.tasks[0] })) as ExistingTaskFact[] })
+  assert.equal(bounded.tasks.length, 0)
 })
 
 test("canonical JSON is recursive, sorted, and preserves array order", () => {

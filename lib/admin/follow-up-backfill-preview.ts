@@ -172,6 +172,8 @@ function validateExistingTask(task: unknown): asserts task is ExistingTaskFact {
 export function classifyFollowUpBackfillPreview(input: FollowUpBackfillInput): PreviewResult {
   if (!input || !Array.isArray(input.events) || typeof input.ruleVersion !== "string" || typeof input.cutoffCreatedAt !== "string" || typeof input.cutoffId !== "string") throw new IncompleteFacts("IncompleteFacts")
   if (input.events.length > 2000) throw new CanonicalizationFailure("CanonicalizationFailure")
+  const existing = input.existingTasks ?? []
+  if (existing.length > 2000) throw new CanonicalizationFailure("CanonicalizationFailure")
   let cutoff: string
   try { cutoff = parseUtcDate(input.cutoffCreatedAt) } catch { throw new InvalidBoundary("InvalidBoundary") }
   if (cutoff !== input.cutoffCreatedAt || !UUID.test(input.cutoffId) || input.cutoffId !== input.cutoffId.toLowerCase()) throw new InvalidBoundary("InvalidBoundary")
@@ -192,7 +194,11 @@ export function classifyFollowUpBackfillPreview(input: FollowUpBackfillInput): P
     facts.push({ ...raw, created, due })
   }
   const selected = new Set<string>(), groups = new Map<string, typeof facts>()
-  for (const fact of facts) groups.set(fact.leadId, [...(groups.get(fact.leadId) ?? []), fact])
+  for (const fact of facts) {
+    const group = groups.get(fact.leadId)
+    if (group) group.push(fact)
+    else groups.set(fact.leadId, [fact])
+  }
   for (const all of groups.values()) {
     const latest = [...all].sort((a, b) => b.created.localeCompare(a.created) || b.eventId.localeCompare(a.eventId))[0]
     if (!latest.leadOperational) { selected.add(latest.eventId); continue }
@@ -204,14 +210,20 @@ export function classifyFollowUpBackfillPreview(input: FollowUpBackfillInput): P
     if (!candidates.length) selected.add(latest.eventId)
   }
   const counts = [0, 0, 0, 0, 0, 0, 0] as [number, number, number, number, number, number, number]
-  const tasks: FutureFollowUpTask[] = []
-  const existing = input.existingTasks ?? []
   const existingIds = new Set<string>()
+  const sourceMatches = new Map<string, ExistingTaskFact[]>()
+  const ownerIdempotency = new Set<string>(), ownerLead = new Set<string>()
   for (const task of existing) {
     validateExistingTask(task)
     if (existingIds.has(task.id)) throw new InvalidFact("InvalidFact")
     existingIds.add(task.id)
+    const bySource = sourceMatches.get(task.source_event_id) ?? []
+    bySource.push(task)
+    sourceMatches.set(task.source_event_id, bySource)
+    ownerIdempotency.add(`${task.owner_id}|${task.idempotency_key}`)
+    ownerLead.add(`${task.owner_id}|${task.lead_id}`)
   }
+  const tasks: FutureFollowUpTask[] = []
   const rows = facts.map((event) => {
     if (!selected.has(event.eventId)) { counts[4]++; return rowFor(event, "excluded/non-selected-history", "NON_SELECTED_HISTORY", null, null, false) }
     if (!event.leadOperational) { counts[3]++; return rowFor(event, "excluded/lead-not-operational", "LEAD_NOT_OPERATIONAL", null, null, true) }
@@ -222,20 +234,19 @@ export function classifyFollowUpBackfillPreview(input: FollowUpBackfillInput): P
       counts[2]++; return rowFor(event, "manual-review/unassigned-owner", map[owner.tag], event.due, owner.tag === "unassigned" ? null : owner.ownerId, true)
     }
     const task = taskFor(event as FollowUpFact & { created: string; due: string }, owner.ownerId)
-    tasks.push(task)
-    const sourceMatches = existing.filter((candidate) => candidate.source_event_id === task.source_event_id)
-    if (sourceMatches.length > 1) { counts[6]++; return rowFor(event, "collision/manual-review", "DUPLICATE_SOURCE", event.due, owner.ownerId, true) }
-    if (sourceMatches.length === 1) {
-      const match = sourceMatches[0]
+    const matches = sourceMatches.get(task.source_event_id) ?? []
+    if (matches.length > 1) { counts[6]++; return rowFor(event, "collision/manual-review", "DUPLICATE_SOURCE", event.due, owner.ownerId, true) }
+    if (matches.length === 1) {
+      const match = matches[0]
       if (taskEqual(task, match)) { counts[5]++; return rowFor(event, "already-converted", "ALREADY_CONVERTED", event.due, owner.ownerId, true) }
       counts[6]++; return rowFor(event, "collision/manual-review", "SOURCE_MISMATCH", event.due, owner.ownerId, true)
     }
-    const ownerIdem = existing.some((candidate) => candidate.owner_id === task.owner_id && candidate.idempotency_key === task.idempotency_key)
-    if (ownerIdem) { counts[6]++; return rowFor(event, "collision/manual-review", "IDEMPOTENCY_COLLISION", event.due, owner.ownerId, true) }
-    const ownerLead = existing.some((candidate) => candidate.owner_id === task.owner_id && candidate.lead_id === task.lead_id)
-    if (ownerLead) { counts[6]++; return rowFor(event, "collision/manual-review", "OWNER_LEAD_COLLISION", event.due, owner.ownerId, true) }
+    if (ownerIdempotency.has(`${task.owner_id}|${task.idempotency_key}`)) { counts[6]++; return rowFor(event, "collision/manual-review", "IDEMPOTENCY_COLLISION", event.due, owner.ownerId, true) }
+    if (ownerLead.has(`${task.owner_id}|${task.lead_id}`)) { counts[6]++; return rowFor(event, "collision/manual-review", "OWNER_LEAD_COLLISION", event.due, owner.ownerId, true) }
+    tasks.push(task)
     counts[0]++; return rowFor(event, "eligible", "ELIGIBLE", event.due, owner.ownerId, true)
   }).sort((a, b) => a[3].localeCompare(b[3]) || a[0].localeCompare(b[0]))
+  tasks.sort((a, b) => a.source_event_created_at.localeCompare(b.source_event_created_at) || a.source_event_id.localeCompare(b.source_event_id))
   for (const row of rows) if (new TextEncoder().encode(JSON.stringify(row)).length > 512) throw new CanonicalizationFailure("CanonicalizationFailure")
   const totalCount = rows.length
   const plan: CanonicalPlan = [input.ruleVersion, input.cutoffCreatedAt, input.cutoffId, rows, counts, totalCount, 0, 0, 0, false]

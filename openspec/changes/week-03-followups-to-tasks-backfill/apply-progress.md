@@ -48,3 +48,25 @@ Slice 1 (tasks 1.1–1.6) and Slice 2 (tasks 2.1–2.6) are complete after paren
 - Mode: stacked-to-main chained PR slice; auto-forecast; slice budget 650.
 - Boundary: parent-confirmed Slice 1 commit through Task projection/collisions/canonical plan/limits/regressions/evidence.
 - Slice 2 remained within the 650-line budget; next route is verification.
+
+## Bounded Remediation Evidence
+
+- Token: `sha256:7185647381e4b133e1d39434f18793b693cb2cf3945e491e0631f774961ae799`
+- Fixed demonstrated blockers: actionable `tasks` now exclude already-converted and collision/manual-review rows; task output is sorted by source event creation time then source event ID.
+- Added linear existing-task indexes for source ID, owner/idempotency, and owner/lead, plus mutation-based per-lead event grouping, with a 2,000-entry bound checked before validation. Duplicate Task IDs remain `InvalidFact` and collision precedence is unchanged.
+- RED→GREEN coverage added for collision task suppression, permutation-invariant task arrays, 2,001 existing-task rejection, and bounded 2,000-entry behavior.
+- Golden canonical plan/hash preserved because tasks remain outside the canonical tuple.
+- Failed verification report preserved verbatim at `history/failed-verify-actionable-tasks.md`; active `verify-report.md` removed so independent verification can regenerate it.
+- Runtime harness: N/A — pure immutable classifier has no runtime/I/O boundary.
+- Rollback boundary: revert `lib/admin/follow-up-backfill-preview.ts`, `tests/follow-up-backfill-preview.test.ts`, remediation evidence, and history provenance move only.
+
+## Post-Remediation Verification
+
+| Exact command | Result |
+|---|---|
+| `node --import tsx --test tests/follow-up-backfill-preview.test.ts` | PASS / exit 0 — 9/9 tests |
+| `npx tsc --noEmit` | PASS / exit 0 |
+| `npm run lint` | PASS / exit 0 |
+| `git diff --check` | PASS / exit 0 |
+
+Active `verify-report.md` is absent; failed verification report is preserved at `history/failed-verify-actionable-tasks.md`.
