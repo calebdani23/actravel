@@ -3,6 +3,8 @@ import test from "node:test"
 
 import {
   classifyFollowUpBackfillPreview,
+  canonicalJson,
+  type ExistingTaskFact,
   parseUtcDate,
   type FollowUpBackfillInput,
   type OwnerFact,
@@ -66,4 +68,43 @@ test("uses typed precedence errors and rejects duplicates/out-of-cutoff facts", 
     base("11111111-1111-4111-8111-111111111111", "2026-01-01T00:00:00.000000Z", "2026-01-02"),
     base("11111111-1111-4111-8111-111111111111", "2026-01-01T00:00:00.000000Z", "2026-01-02"),
   ])), /InvalidFact/)
+})
+
+test("projects the exact future Task and applies collision precedence", () => {
+  const event = base("11111111-1111-4111-8111-111111111111", "2026-01-01T00:00:00.000000Z", "2026-01-02")
+  const result = classifyFollowUpBackfillPreview(input([event]))
+  assert.deepEqual(result.tasks[0], {
+    status: "pending", task_kind: "follow_up", owner_id: active.ownerId, lead_id: event.leadId,
+    quote_id: null, description: "Follow up with lead", due_at: "2026-01-02T00:00:00.000000Z",
+    source_due_at: "2026-01-02T00:00:00.000000Z", source_event_id: event.eventId,
+    source_event_type: "follow_up_registered", source_event_created_at: event.createdAt,
+    source_payload: { followUpAt: "2026-01-02", hasNote: true },
+    metadata: { schema: "follow_up_task.v1", source_event_id: event.eventId, source_event_type: "follow_up_registered", owner_id: active.ownerId, lead_id: event.leadId },
+    idempotency_key: "f44b1020cf8c806af9763f16caa79037358a472a866519467e246c1f59d8e3f5",
+  })
+  const existing = { id: "99999999-9999-4999-8999-999999999999", ...result.tasks[0] } as ExistingTaskFact
+  assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), existingTasks: [existing] }).rows[0][7], "already-converted")
+  assert.equal(classifyFollowUpBackfillPreview({ ...input([event]), existingTasks: [{ ...existing, description: "changed" } as unknown as ExistingTaskFact] }).rows[0][8], "SOURCE_MISMATCH")
+})
+
+test("canonical JSON is recursive, sorted, and preserves array order", () => {
+  assert.equal(canonicalJson({ z: 1, a: { b: true, a: [2, 1] } }), '{"a":{"a":[2,1],"b":true},"z":1}')
+  assert.notEqual(canonicalJson({ a: [1, 2] }), canonicalJson({ a: [2, 1] }))
+})
+
+test("retains the verified vectors and rejects oversized plans", () => {
+  const event = base("11111111-1111-4111-8111-111111111111", "2026-01-15T10:20:30.123456Z", "2026-01-20T00:00:00.000000Z")
+  const result = classifyFollowUpBackfillPreview(input([event]))
+  assert.equal(result.canonicalBytes.length, 362)
+  assert.equal(result.canonicalHash, "57826a371b4e8db51258ac6aec3098518a0a8f0255f6d0d2ebcb28ccb93870af")
+  assert.throws(() => classifyFollowUpBackfillPreview(input(Array.from({ length: 2001 }, (_, i) => base(`${String(i + 1).padStart(8, "0")}-1111-4111-8111-111111111111`, "2026-01-01T00:00:00.000000Z", "2026-01-02")))), /CanonicalizationFailure/)
+})
+
+test("enforces exact owner shape, normalized year bounds, and purity", () => {
+  const event = base("11111111-1111-4111-8111-111111111111", "2026-01-01T00:00:00.000000Z", "2026-01-02")
+  assert.throws(() => classifyFollowUpBackfillPreview(input([{ ...event, owner: { ...active, extra: true } as OwnerFact }])), /InvalidFact/)
+  assert.throws(() => parseUtcDate("1970-01-01T00:00:00+01:00"))
+  const frozen = JSON.stringify(event)
+  classifyFollowUpBackfillPreview(input([event]))
+  assert.equal(JSON.stringify(event), frozen)
 })

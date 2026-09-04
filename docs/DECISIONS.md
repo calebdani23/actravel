@@ -1,5 +1,15 @@
 # Decisiones técnicas y de producto
 
+## 2026-09-04 — Week 03 follow-up classifier canonical plan
+
+Keep follow-up backfill Slice 2 as a synchronous, dependency-free pure projection: future Tasks
+are descriptive only, with source-namespaced SHA-256 idempotency and recursive ASCII-key-sorted
+canonical JSON. Enforce the 2,000-row gate before grouping, use linear Map grouping, bound each
+row/static header/serialized plan, and preserve the sole verified vectors. Manual-review rows expose
+null decision fields; owner tags are exact closed shapes, and normalized UTC years are rechecked
+after offsets. This slice changes no reader, auth, Supabase, schema, DML, remote, approval,
+execution, or UI boundary.
+
 ## 2026-09-01 — Documentation-only Week 02 closure and controlled Week 03 handoff
 
 Close Week 02 only because the three-child conjunction is complete: archived Gate 0, Tasks, and

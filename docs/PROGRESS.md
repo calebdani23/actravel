@@ -1,5 +1,16 @@
 # Progreso AC Travel Mx MVP
 
+## 2026-09-04 — Week 03 follow-up classifier Slice 2
+
+Completed Slice 2 (tasks 2.1–2.6) after parent-confirmed Slice 1 commit `75b2b58`. The pure
+classifier now emits exact future follow-up Tasks, source-namespaced SHA-256 idempotency,
+recursive canonical JSON plans, collision dispositions, and bounded UTF-8/hash artifacts. The
+verified vectors remain 362 bytes (`57826a...870af`) and 70 bytes (`f44b...e3f5`). Focused tests
+8/8, TypeScript, lint, build, and diff check passed. Slice 1 advisories were corrected: early
+2,000-row gate with linear Map grouping, exact owner shape, manual-review null decision fields,
+removed dead calendar check, and post-offset UTC year bounds. No reader/auth/Supabase/schema/DML,
+remote, approval, execution, or UI surface changed; no staging, commit, or push occurred.
+
 ## 2026-09-01 — Week 03 follow-up Task representation
 
 La representación aditiva de follow-ups quedó implementada localmente en `0064`, con campos

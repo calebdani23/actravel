@@ -35,9 +35,9 @@ Size exception: No; decision resolved
 
 ## Phase 2: Slice 2 — RED → GREEN Task and Canonical Plan
 
-- [ ] 2.1 Start only after parent confirms the Slice 1 work-unit commit. RED: test exact future Task fields, source-namespaced idempotency, equality, duplicate IDs, source mismatch, and collision precedence/mutual exclusion; GREEN: implement mapping/collisions.
-- [ ] 2.2 RED: test recursive canonical equality and repeatability; GREEN: implement canonical JSON tuple, UTF-8 serialization, and SHA-256.
-- [ ] 2.3 RED: assert the sole 362-byte golden hash and complete 70-byte idempotency vector; GREEN: enforce exact vectors without extra fixtures.
-- [ ] 2.4 RED: test 2,000/2,001 rows, enumerate/property-assert that every legal row variant is ≤512 bytes (no exact 512-byte fixture), 4,096-byte header, and 1MiB defense; GREEN: enforce static and defensive plan bounds.
-- [ ] 2.5 RED: add exhaustive regressions for frozen-input purity and no I/O/logging/auth/mutation/live seam; GREEN: fix regressions and run full verification.
-- [ ] 2.6 Record verified evidence in `openspec/changes/week-03-followups-to-tasks-backfill/apply-progress.md`, `docs/PROGRESS.md`, and `docs/DECISIONS.md`; stop after verification/evidence. Agents never stage, commit, or review; parent performs bounded review and the Slice 2 work-unit commit.
+- [x] 2.1 Start only after parent confirms the Slice 1 work-unit commit. RED: test exact future Task fields, source-namespaced idempotency, equality, duplicate IDs, source mismatch, and collision precedence/mutual exclusion; GREEN: implement mapping/collisions.
+- [x] 2.2 RED: test recursive canonical equality and repeatability; GREEN: implement canonical JSON tuple, UTF-8 serialization, and SHA-256.
+- [x] 2.3 RED: assert the sole 362-byte golden hash and complete 70-byte idempotency vector; GREEN: enforce exact vectors without extra fixtures.
+- [x] 2.4 RED: test 2,000/2,001 rows, enumerate/property-assert that every legal row variant is ≤512 bytes (no exact 512-byte fixture), 4,096-byte header, and 1MiB defense; GREEN: enforce static and defensive plan bounds.
+- [x] 2.5 RED: add exhaustive regressions for frozen-input purity and no I/O/logging/auth/mutation/live seam; GREEN: fix regressions and run full verification.
+- [x] 2.6 Record verified evidence in `openspec/changes/week-03-followups-to-tasks-backfill/apply-progress.md`, `docs/PROGRESS.md`, and `docs/DECISIONS.md`; stop after verification/evidence. Agents never stage, commit, or review; parent performs bounded review and the Slice 2 work-unit commit.
