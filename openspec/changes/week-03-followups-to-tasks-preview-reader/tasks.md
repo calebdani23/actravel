@@ -46,5 +46,5 @@ Chain strategy: stacked-to-main
 
 ## Phase 5: Verification / Evidence / Docs
 
-- [ ] 5.1 Per slice, run its focused command and stop for parent review/commit; after PR 3, run both test files, `npx tsc --noEmit`, `npm run lint`, `npm run build`, and `git diff --check`; confirm no UI/schema/DML/remote access.
-- [ ] 5.2 Record verified results and rollback boundary in `docs/DECISIONS.md` and `docs/PROGRESS.md`; preserve the injected-only evidence, exact retry counts, and deferred operational scope.
+- [x] 5.1 Per slice, run its focused command and stop for parent review/commit; after PR 3, run both test files, `npx tsc --noEmit`, `npm run lint`, `npm run build`, and `git diff --check`; confirm no UI/schema/DML/remote access.
+- [x] 5.2 Record verified results and rollback boundary in `docs/DECISIONS.md` and `docs/PROGRESS.md`; preserve the injected-only evidence, exact retry counts, and deferred operational scope.

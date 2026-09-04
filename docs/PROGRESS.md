@@ -1,5 +1,24 @@
 # Progreso AC Travel Mx MVP
 
+## 2026-09-04 — Week 03 follow-up preview reader Slice 3
+
+Preview-reader Slice 3 is verified locally and tasks **5.1–5.2 are complete (10/10 cumulative)**.
+The fresh reader/classifier suite passed **30/30** (reader 18/18, classifier 12/12); TypeScript,
+lint, build, and diff checks passed. The aggregate React Server suite passed **454/457** with one
+skip and two known baseline failures: `tests/lead-template-actions.test.tsx` cannot load
+`react-dom/server` under React Server Components, and the existing quote generated-type contract
+rejects the `crm_accept_quote` parameter shape. Both reproduced against clean baseline `745d6c6`,
+so no unrelated correction was made. Build-owned `next-env.d.ts` output was restored to its exact
+pre-build state.
+
+No application code changed in this slice. No UI, schema, DML, linked remote, or production
+operation was performed. The reader remains an Admin-authorized, read-only boundary, while all
+runtime evidence used injected local transport only; production readiness is not claimed. Exact
+retry evidence remains four physical attempts for one logical read, and local query-contract
+coverage proves the raw cursor/cutoff expression is conjunctive. Timeout/backoff behavior and
+reader readability/complexity remain review advisories for follow-up work. Rollback is limited to
+the preview-reader tasks/apply-progress and living documentation records.
+
 ## 2026-09-04 — Week 03 follow-up classifier Slice 2
 
 Completed Slice 2 (tasks 2.1–2.6) after parent-confirmed Slice 1 commit `75b2b58`. The pure

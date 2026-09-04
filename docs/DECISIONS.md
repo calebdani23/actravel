@@ -1,5 +1,25 @@
 # Decisiones técnicas y de producto
 
+## 2026-09-04 — Week 03 follow-up preview reader Slice 3 verification
+
+Close preview-reader tasks 5.1–5.2 locally after commits `6a0d2cc` and `745d6c6`. The fresh
+reader/classifier focused suite passed **30/30** (reader 18/18, classifier 12/12); `npx tsc
+--noEmit`, `npm run lint`, `npm run build`, and `git diff --check` passed. The build-owned
+`next-env.d.ts` rewrite was restored to its exact captured preimage. The aggregate React Server
+suite passed **454/457**, with two known baseline failures and one skip: `lead-template-actions`
+fails because `react-dom/server` is unsupported under React Server Components, and the quote
+generated-type contract rejects the existing `crm_accept_quote` parameter shape. Both failures
+were reproduced against clean baseline `745d6c6`; neither is caused by this slice, and no unrelated
+fix was made.
+
+This slice changed documentation/evidence only after the reader implementation: no UI, schema,
+DML, linked remote, or production operation was performed. The reader's runtime boundary remains
+Admin-authorized and read-only, while verification used injected local transport only; production
+readiness is not claimed. The local query-contract evidence proves the cursor/cutoff predicate is
+raw and conjunctive. Follow-up review remains required for provider timeout/backoff behavior and
+reader readability/complexity; these are advisories, not reasons to widen this slice. Rollback is
+limited to the preview-reader evidence/docs/task records, with no data or remote state to undo.
+
 ## 2026-09-04 — Week 03 follow-up classifier canonical plan
 
 Keep follow-up backfill Slice 2 as a synchronous, dependency-free pure projection: future Tasks
