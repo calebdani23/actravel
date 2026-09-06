@@ -33,11 +33,11 @@ Chain strategy: stacked-to-main
 
 ## Phase 2: Consumer Refactor (PR 2)
 
-- [ ] 2.1 **RED:** Validate the import/type contract while retaining `prepareDatabase`, 0057/0058/0059/0060 order, `beginSql`/`insertObject`, fixtures, flag, timeout, concurrency, and assertions; record the expected pre-GREEN failure if applicable.
-- [ ] 2.2 **GREEN:** Modify only `tests/quote-registration-intents-runtime.test.ts`: import helper symbols, remove duplicates, and replace readiness/cleanup blocks at the same call sites; retain all quote ownership and behavior.
-- [ ] 2.3 Run `node --import tsx --test tests/quote-registration-intents-runtime.test.ts` and expect pass/skip; run `RUN_QUOTE_REGISTRATION_DB_TESTS=1 node --import tsx --test tests/quote-registration-intents-runtime.test.ts` and capture full output, assertions, and 240000 timeout. If Docker/image is unavailable, stop and report unverified—never claim pass.
-- [ ] 2.4 Run `npx tsc --noEmit`, `npm run lint`, and `git diff --check`; capture source/hash mapping, changed-line count, consumer-only review boundary, container cleanup evidence, and proof of no host/remote access. Rollback only the consumer refactor.
+- [x] 2.1 **RED:** Validate the import/type contract while retaining `prepareDatabase`, 0057/0058/0059/0060 order, `beginSql`/`insertObject`, fixtures, flag, timeout, concurrency, and assertions; record the expected pre-GREEN failure if applicable.
+- [x] 2.2 **GREEN:** Modify only `tests/quote-registration-intents-runtime.test.ts`: import helper symbols, remove duplicates, and replace readiness/cleanup blocks at the same call sites; retain all quote ownership and behavior.
+- [x] 2.3 Run `node --import tsx --test tests/quote-registration-intents-runtime.test.ts` and expect pass/skip; run `RUN_QUOTE_REGISTRATION_DB_TESTS=1 node --import tsx --test tests/quote-registration-intents-runtime.test.ts` and capture full output, assertions, and 240000 timeout. If Docker/image is unavailable, stop and report unverified—never claim pass.
+- [x] 2.4 Run `npx tsc --noEmit`, `npm run lint`, and `git diff --check`; capture source/hash mapping, changed-line count, consumer-only review boundary, container cleanup evidence, and proof of no host/remote access. Rollback only the consumer refactor.
 
 ## Boundaries
 
-- [ ] 3.1 Confirm the final diff contains only the two permitted files; record evidence that no packages, scripts, docs, business logic, synthetic/approval tests, migrations, remote databases, host ports, Docker network/pull changes, or threat-matrix cases (all N/A in design) were added.
+- [x] 3.1 Confirm the final diff contains only the two permitted files; record evidence that no packages, scripts, docs, business logic, synthetic/approval tests, migrations, remote databases, host ports, Docker network/pull changes, or threat-matrix cases (all N/A in design) were added.

@@ -1,14 +1,20 @@
 import assert from "node:assert/strict";
-import { execFile, execFileSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
 import test from "node:test";
-import { promisify } from "node:util";
-
-const execFileAsync = promisify(execFile);
+import {
+  actorSession,
+  applyMigration,
+  cleanupPostgres,
+  containerName,
+  docker,
+  postgresImage,
+  prepareBaseDatabase,
+  psql,
+  psqlAsync,
+  serviceSession,
+  sqlLiteral,
+  waitForPostgres,
+} from "./helpers/postgres-runtime";
 const enabled = process.env.RUN_QUOTE_REGISTRATION_DB_TESTS === "1";
-const migrationDirectory = "db/migrations";
-const containerName = `actravel-quote-registration-${process.pid}`;
-const postgresImage = process.env.QUOTE_REGISTRATION_POSTGRES_IMAGE ?? "postgres:16-alpine";
 const adminId = "11111111-1111-4111-8111-111111111111";
 const advisorId = "22222222-2222-4222-8222-222222222222";
 const contactId = "33333333-3333-4333-8333-333333333333";
@@ -16,52 +22,6 @@ const opportunityId = "44444444-4444-4444-8444-444444444444";
 const requestId = "55555555-5555-4555-8555-555555555555";
 const statusId = "66666666-6666-4666-8666-666666666666";
 const advisorySha = "a".repeat(64);
-
-function docker(args: string[], input?: string) {
-  return execFileSync("docker", args, {
-    encoding: "utf8",
-    input,
-    stdio: input === undefined ? ["ignore", "pipe", "pipe"] : ["pipe", "pipe", "pipe"],
-  }).trim();
-}
-
-function psql(database: string, source: string) {
-  return docker([
-    "exec", "-i", containerName, "psql", "-X", "-qAt",
-    "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", database,
-  ], `set search_path = public, extensions;\n${source}\n`);
-}
-
-async function psqlAsync(database: string, source: string) {
-  const result = await execFileAsync("docker", [
-    "exec", "-i", containerName, "psql", "-X", "-qAt",
-    "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", database,
-    "-c", `set search_path = public, extensions;\n${source}\n`,
-  ], {
-    encoding: "utf8",
-  });
-  return result.stdout.trim();
-}
-
-function sqlLiteral(value: string) {
-  return `'${value.replaceAll("'", "''")}'`;
-}
-
-function actorSession(actorId: string, role = "authenticated") {
-  return `
-    select set_config('request.jwt.claim.sub', ${sqlLiteral(actorId)}, false);
-    select set_config('request.jwt.claim.role', ${sqlLiteral(role)}, false);
-    set role ${role};
-  `;
-}
-
-function serviceSession() {
-  return `
-    select set_config('request.jwt.claim.sub', '', false);
-    select set_config('request.jwt.claim.role', 'service_role', false);
-    set role service_role;
-  `;
-}
 
 function beginSql(key: string, actorId = adminId, request: string | null = requestId, sha = advisorySha, size = 20) {
   return `${actorSession(actorId)}
@@ -85,81 +45,6 @@ function parseRow<T>(output: string): T {
   const line = output.split("\n").findLast((value) => value.trim().startsWith("{"));
   assert.ok(line, `Expected a JSON row, received: ${output}`);
   return JSON.parse(line) as T;
-}
-
-const bootstrap = `
-  do $bootstrap$
-  begin
-    if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
-    if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
-    if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role nologin bypassrls; end if;
-  end
-  $bootstrap$;
-  create schema if not exists auth;
-  create schema if not exists storage;
-  create schema if not exists extensions;
-  create extension if not exists pgcrypto with schema extensions;
-  create table if not exists auth.users (
-    id uuid primary key,
-    email text,
-    created_at timestamptz not null default now()
-  );
-  create or replace function auth.uid()
-  returns uuid
-  language sql
-  stable
-  set search_path = ''
-  as $auth$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $auth$;
-  create or replace function auth.role()
-  returns text
-  language sql
-  stable
-  set search_path = ''
-  as $auth$ select nullif(current_setting('request.jwt.claim.role', true), '') $auth$;
-  create table if not exists storage.buckets (
-    id text primary key,
-    name text not null,
-    public boolean not null default false,
-    file_size_limit bigint,
-    allowed_mime_types text[]
-  );
-  create table if not exists storage.objects (
-    id uuid primary key default extensions.gen_random_uuid(),
-    bucket_id text not null references storage.buckets(id) on delete cascade,
-    name text not null,
-    owner_id text,
-    metadata jsonb not null default '{}'::jsonb,
-    created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now(),
-    last_accessed_at timestamptz not null default now(),
-    constraint objects_bucket_name_key unique (bucket_id, name)
-  );
-  alter table storage.objects enable row level security;
-  create or replace function storage.extension(name text)
-  returns text
-  language sql
-  immutable
-  set search_path = ''
-  as $storage$ select substring(name from '\\.([^.]*)$') $storage$;
-  grant usage on schema public, auth, storage to anon, authenticated, service_role;
-  grant execute on function auth.uid(), auth.role(), storage.extension(text) to anon, authenticated, service_role;
-  grant select, insert, update, delete on storage.objects to authenticated, service_role;
-`;
-
-function migrationNames() {
-  return readdirSync(migrationDirectory)
-    .filter((name) => /^\d{4}_.+\.sql$/.test(name))
-    .sort();
-}
-
-function applyMigration(database: string, name: string) {
-  psql(database, readFileSync(`${migrationDirectory}/${name}`, "utf8"));
-}
-
-function prepareBaseDatabase() {
-  psql("postgres", "create database quote_base;");
-  psql("quote_base", bootstrap);
-  for (const name of migrationNames().filter((name) => Number(name.slice(0, 4)) <= 56)) applyMigration("quote_base", name);
 }
 
 function prepareDatabase(database: string, includeCutover: boolean) {
@@ -214,23 +99,7 @@ test("0059 and 0060 apply on live-compatible and full chains and enforce registr
 }, async () => {
   docker(["run", "--rm", "-d", "--name", containerName, "-e", "POSTGRES_PASSWORD=postgres", postgresImage]);
   try {
-    let ready = false;
-    let consecutiveReadyChecks = 0;
-    for (let attempt = 0; attempt < 60; attempt += 1) {
-      try {
-        docker(["exec", containerName, "pg_isready", "-U", "postgres"]);
-        docker(["exec", containerName, "psql", "-X", "-qAt", "-U", "postgres", "-d", "postgres", "-c", "select 1"]);
-        consecutiveReadyChecks += 1;
-        if (consecutiveReadyChecks >= 3) {
-          ready = true;
-          break;
-        }
-      } catch {
-        consecutiveReadyChecks = 0;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 250));
-    }
-    assert.equal(ready, true, "PostgreSQL container did not become ready");
+    await waitForPostgres();
 
     prepareBaseDatabase();
     prepareDatabase("quote_live", false);
@@ -363,10 +232,6 @@ test("0059 and 0060 apply on live-compatible and full chains and enforce registr
         (select count(*) from public.quote_events where quote_id = '${concurrent.target_quote_id}' and event_type = 'quote_registered_with_pdf');
     `), "1,1,1,1");
   } finally {
-    try {
-      docker(["rm", "-f", containerName]);
-    } catch {
-      // The --rm container may already have exited and removed itself.
-    }
+    cleanupPostgres();
   }
 });
