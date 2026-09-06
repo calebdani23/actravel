@@ -1,14 +1,14 @@
 ```yaml
 schema: gentle-ai.verify-result/v1
-evidence_revision: sha256:c052519096d3a45fbe4cdaac051f30f2393c0b1e0fd94448324933efbd4c2cf1
+evidence_revision: sha256:066c83bb5be2a042da1c6b2e6de45f11efe8ac316caffcd9e7e490b5b2db2e65
 verdict: pass
 blockers: 0
 critical_findings: 0
-requirements: 10/10
-scenarios: 1/1
+requirements: 4/4
+scenarios: 5/5
 test_command: RUN_QUOTE_REGISTRATION_DB_TESTS=1 node --import tsx --test tests/quote-registration-intents-runtime.test.ts
 test_exit_code: 0
-test_output_hash: sha256:4bd0b369991f4b45028eb6731f331aae87b785a04a74e7dddcec6ae3a1f4ff9e
+test_output_hash: sha256:303e7c51ecdea9079f7483b50142d71f82e362e60c7799ed442f47f981ac78a3
 build_command: npx tsc --noEmit
 build_exit_code: 0
 build_output_hash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
@@ -18,61 +18,58 @@ build_output_hash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca49599
 
 ## Outcome
 
-**PASS.** All 8/8 tasks are checked, the extracted helper and sole consumer preserve the reviewed behavior, the default and disposable PostgreSQL runtime checks passed, and no named PostgreSQL container remains.
+**PASS.** All 8/8 tasks are checked; all 4 requirements and 5 scenarios pass. Fresh default, Docker opt-in, type-check, lint, and diff checks exited 0, and no named PostgreSQL container remains.
 
-## Scope and artifacts
-
-- Reviewed `proposal.md`, `design.md`, `tasks.md`, `apply-progress.md`, and `exploration.md`.
-- Reviewed commits `d1c4d73` and `8c7075e` and the final source at both permitted implementation paths.
-- The standalone spec artifact is `specs/postgres-integration-harness/spec.md`. The requirement count above is the ten normative contract checks derived from the proposal/design; the one executable runtime scenario is the quote-registration test.
-- The repository had unrelated pre-existing untracked OpenSpec directories; they were not modified.
-- No code, test, planning, task, progress, package, migration, application, or remote files were changed by this verification. Only this report is written.
-
-## Completeness
+## Completeness and scope
 
 | Area | Result | Evidence |
 |---|---|---|
-| Tasks | 8/8 complete | Every checkbox in `tasks.md` is checked, including boundary task 3.1. |
-| Requirements | 10/10 pass | Helper ownership, exact extraction, consumer ownership, timeout, cleanup, SQL literal reuse, branch order, and exclusions verified below. |
-| Scenarios | 1/1 pass | Opt-in quote runtime scenario passed with one test and zero failures. |
-| Design coherence | Pass | Named exports and direct call-site replacement match `design.md`; no generic framework or lifecycle redesign was introduced. |
+| Tasks | 8/8 complete | Every checkbox in `tasks.md`, including boundary task 3.1, is checked. |
+| Requirements | 4/4 pass | The four normalized `### Requirement:` headings in `spec.md` are covered below. |
+| Scenarios | 5/5 pass | All five normalized `#### Scenario:` headings are named and covered below. |
+| Design coherence | Pass | The named helper exports, ownership split, direct call-site replacement, and no-framework scope match `design.md`. |
+| Scope | Pass | Only this report was written during verification; implementation/spec/planning files were not edited. Pre-existing unrelated untracked OpenSpec directories remain untouched. |
 
-## Runtime and build evidence
+Reviewed `proposal.md`, normalized `spec.md`, `design.md`, `tasks.md`, `apply-progress.md`, `exploration.md`, `tests/helpers/postgres-runtime.ts`, and `tests/quote-registration-intents-runtime.test.ts`.
 
-- Default test: exit 0; one test skipped before Docker discovery, zero failures.
-- Opt-in test: exit 0; one test passed, zero failures, zero skips; runtime approximately 96 seconds; the test retains `timeout: 240_000`.
-- The opt-in run created and removed the disposable `actravel-quote-registration-${process.pid}` container. A post-run `docker ps -a --filter 'name=actravel-quote-registration' --format '{{.Names}}'` returned no output.
-- `npx tsc --noEmit`: exit 0.
-- `npm run lint`: exit 0 with no warnings or errors.
-- `git diff --check`: exit 0.
-- Output hashes are the exact hashes recorded in the YAML envelope.
+## Fresh runtime and tool evidence
 
-## Behavioral compliance matrix
+- Default: `node --import tsx --test tests/quote-registration-intents-runtime.test.ts` — exit 0; 1 test, 0 pass, 0 fail, 1 skipped before Docker. Output hash: `sha256:d3744f8ce5995018a14c1d96df1cf166cbf437d2acf72a6fbc46440bdd59300b`.
+- Opt-in: `RUN_QUOTE_REGISTRATION_DB_TESTS=1 node --import tsx --test tests/quote-registration-intents-runtime.test.ts` — exit 0; 1 pass, 0 fail, 0 skipped; configured timeout remains `240_000`. Output hash is in the envelope.
+- Container proof: `docker ps -a --filter 'name=actravel-quote-registration' --format '{{.Names}}'` — exit 0 and empty output (`sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`).
+- `npx tsc --noEmit` — exit 0; output hash `sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+- `npm run lint` — exit 0 with no warnings/errors; output hash `sha256:27d2a3a01cf47711571e5517e9f3873f661da7f93befc61bb867f649be9b1aaf`.
+- `git diff --check` — exit 0; empty output hash `sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
 
-| Requirement / scenario | Evidence | Status |
+## Requirements matrix
+
+| Requirement | Evidence | Status |
 |---|---|---|
-| Fixture-neutral Docker, psql, async psql, readiness, base database, migration, sessions, and cleanup primitives are helper-owned | `tests/helpers/postgres-runtime.ts` exports the used primitives; the consumer imports them and has no duplicate definitions. | PASS |
-| Consumer retains quote-owned IDs, hashes, SQL builders, fixtures, seeding, parsing, quote setup, and assertions | Consumer lines 18–95 and 109–233 retain these definitions and assertions. | PASS |
-| `sqlLiteral` is shared and behavior-equivalent | Helper implementation is the exact apostrophe-doubling encoder; retained `beginSql` and `insertObject` call the imported function. | PASS |
-| Bootstrap is private and invoked only through `prepareBaseDatabase` | `bootstrap` is non-exported; `prepareBaseDatabase` is the sole invocation path. | PASS |
-| Docker command contract is preserved without host ports or pulls | Source uses `execFile`/`execFileSync` argument arrays; `docker run` has `--rm -d --name`, image, and password only, with no `-p`, `--publish`, or pull command. | PASS |
-| Readiness and timeout contract is preserved | `waitForPostgres` has 60 attempts, three consecutive checks, and 250 ms delay; test timeout is exactly `240_000`. | PASS |
-| Quote migration branch sequence is preserved | `prepareDatabase` applies 0057 conditionally, then 0058 and 0059; the test applies 0060 in both live and full branches. | PASS |
-| Fixtures, RLS/SECURITY DEFINER assertions, and concurrency are preserved | Runtime passed the fixture setup, cutover assertions, permission assertions, and `Promise.all` two-registration contention assertion. | PASS |
-| Cleanup remains unconditional and container is absent | Existing `finally` calls `cleanupPostgres`; post-run Docker inspection returned no names. Cleanup suppression is the reviewed behavior. | PASS |
-| Scope excludes packages, migrations, business changes, network/remote access, and new tests/frameworks | Diff/source inspection found only the helper and consumer implementation paths for the code change; package/migration/application path checks were empty, and no network/remote command was used. | PASS |
-| Executable quote scenario | Both default skip and opt-in runtime executions passed their expected outcomes. | PASS |
+| Fixture-neutral shared helper contract | `postgres-runtime.ts` exports the exact 13 listed primitives; Docker/psql argv, SQL search path, readiness loop, bootstrap, migrations, and cleanup preserve the specified mechanics. | PASS |
+| Ownership map remains exact | The helper owns infrastructure and `sqlLiteral`; the consumer retains quote IDs, SQL, fixtures, `prepareDatabase`, 0057/0058/0059/0060 order, assertions, and `finally`. No circular import or duplicate infrastructure remains. | PASS |
+| Quote runtime behavior is preserved | The consumer imports `sqlLiteral` and the required helper symbols, retains the opt-in gate and `240_000` timeout, and the fresh default/opt-in executions passed. | PASS |
+| Verification and rollback remain bounded | All requested fresh checks passed; only the two approved implementation paths exist in the reviewed apply state, with no package, migration, application, remote, or synthetic-test change. | PASS |
 
-## Ownership and byte-equivalent behavior
+## Scenario matrix
 
-The source diff from the pre-extraction quote test removes only infrastructure definitions and replaces the readiness and cleanup blocks with calls at the same positions. Quote-specific `prepareDatabase`, its 0057/0058/0059 order, 0060 invocation, fixtures, SQL, assertions, `Promise.all`, and `finally` shape remain in the consumer. The helper source hash is `sha256:14a0908cba81f3635b09284c73623883c061864ce5f0ab8e78bebddbcf041d3f`; the current consumer hash is `sha256:2893a126f4e46a8fc626ae450d80b297d15ba319cd914244f2da4faacb9101f7`. The reviewed apply record also preserves the pre-extraction consumer hash and the approved helper hash.
+| Scenario | Runtime/source evidence | Status |
+|---|---|---|
+| Helper exports preserve existing mechanics | Source inspection confirms exact `execFile`/`execFileSync` options and argv, container-local psql behavior, 60 attempts/3 successes/250 ms readiness, private bootstrap invocation, and cleanup catch. | PASS |
+| Quote-owned behavior remains in the consumer | Source inspection confirms quote fixtures, IDs, SQL builders, assertions, literal migration branch order, and concurrency remain consumer-owned. | PASS |
+| Default run skips before Docker | Fresh default test exited 0 with one skip and no Docker activity. | PASS |
+| Opt-in runtime remains green | Fresh disposable Docker run exited 0 with one passing test and zero failures/skips; post-run named-container query was empty. | PASS |
+| Scope and rollback are exact | Reviewed diff/apply boundaries contain only the helper extraction and quote-test imports; no synthetic or approval test was added. | PASS |
+
+## Ownership and integrity
+
+`tests/helpers/postgres-runtime.ts` SHA-256 is `sha256:14a0908cba81f3635b09284c73623883c061864ce5f0ab8e78bebddbcf041d3f`; `tests/quote-registration-intents-runtime.test.ts` SHA-256 is `sha256:2893a126f4e46a8fc626ae450d80b297d15ba319cd914244f2da4faacb9101f7`. The opt-in run used the disposable process-derived container and cleanup in `finally`; the explicit post-run query proves it is absent.
 
 ## Issues
 
 ### WARNING
 
 - The reviewed advisory about the Docker command timeout remains nonblocking; no implementation change is requested.
-- The reviewed advisory about cleanup error suppression remains nonblocking; the `--rm` behavior is preserved and the container was proven absent.
+- The reviewed advisory about cleanup error suppression remains nonblocking; `--rm` behavior is preserved and the container was proven absent.
 - The reviewed advisory about numeric `56` naming remains nonblocking.
 - The reviewed advisory about staged-scope wording remains nonblocking.
 
@@ -80,4 +77,4 @@ No critical findings, blockers, failing checks, untested required scenarios, or 
 
 ## Final verdict
 
-**PASS** — requirements 10/10, scenarios 1/1, tasks 8/8, all requested fresh commands exit 0, and no disposable container remains.
+**PASS** — requirements 4/4, scenarios 5/5, tasks 8/8, all requested fresh checks exit 0, and no disposable container remains.
