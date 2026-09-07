@@ -28,9 +28,9 @@ Chain strategy: stacked-to-main
 
 ## Phase 1: Migration and Static Contracts (PR 1)
 
-- [ ] RED 1.1 Add static tests in `tests/follow-up-task-approval.test.ts` for 0065’s exact DDL/checks, canonical SQL/hash/UTF-8 equations, seven counts/scenarios, predicate order, grants/RLS/trigger, advisory lock, and no Task DML/remote markers.
-- [ ] GREEN 1.2 Create `db/migrations/0065_follow_up_task_approval_ledger.sql` with one-row DDL, immutable trigger, forced RLS/Admin SELECT, revoked writes, helper, and exact RPC auth/validation/lock/replay/conflict/insert contracts; static command passes.
-- [ ] STOP 1.3 Parent reviews/commits PR 1; rollback removes migration/tests.
+- [x] RED 1.1 Add static tests in `tests/follow-up-task-approval.test.ts` for 0065’s exact DDL/checks, canonical SQL/hash/UTF-8 equations, seven counts/scenarios, predicate order, grants/RLS/trigger, advisory lock, and no Task DML/remote markers.
+- [x] GREEN 1.2 Create/correct `db/migrations/0065_follow_up_task_approval_ledger.sql` with one-row DDL, immutable UPDATE/DELETE triggers, forced RLS/Admin SELECT, revoked writes, helper, and exact RPC auth/validation/lock/replay/conflict/insert contracts; static command passes. Corrective PR1 SQL precedence, nested-header, limit-category, count-exception, and replay-field contracts are covered.
+- [x] STOP 1.3 Parent reviews/commits PR 1; rollback removes migration/tests.
 
 ## Phase 2: Local PostgreSQL Runtime Proof (PR 2)
 
