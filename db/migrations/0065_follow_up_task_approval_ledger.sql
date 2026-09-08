@@ -194,10 +194,9 @@ begin
        pg_catalog.jsonb_build_array(v_counts->0, v_counts->1, v_counts->2, v_counts->3, v_counts->4, v_counts->5, v_counts->6), 0, 0, 0, 0, false);
      if public.follow_up_canonical_json(v_plan) <> p_canonical_plan
        or pg_catalog.jsonb_typeof(v_plan) <> 'array' or pg_catalog.jsonb_array_length(v_plan) <> 10
-       or pg_catalog.jsonb_build_array(v_plan->0, v_plan->1, v_plan->2, '[]'::jsonb, v_plan->4, v_plan->5, v_plan->6, v_plan->7, v_plan->8, v_plan->9) <> v_expected_header
+        or pg_catalog.jsonb_build_array(v_plan->0, v_plan->1, v_plan->2, '[]'::jsonb, v_plan->4, 0, 0, 0, 0, false) <> v_expected_header
        or pg_catalog.jsonb_typeof(v_plan->3) <> 'array' or pg_catalog.jsonb_typeof(v_plan->4) <> 'array'
-       or pg_catalog.jsonb_array_length(v_plan->4) <> 7 or v_plan->6 <> 0 or v_plan->7 <> 0
-       or v_plan->8 <> 0 or v_plan->9 <> false then v_code := 'INVALID_PLAN'; end if;
+        or pg_catalog.jsonb_array_length(v_plan->4) <> 7 then v_code := 'INVALID_PLAN'; end if;
      if v_plan->1 <> to_jsonb(p_event_cutoff_created_at) or v_plan->2 <> to_jsonb(p_event_cutoff_id::text) then v_code := 'INVALID_CUTOFF'; end if;
      if exists (select 1 from pg_catalog.jsonb_array_elements(v_plan->3) row
        where pg_catalog.jsonb_typeof(row) <> 'array' or pg_catalog.jsonb_array_length(row) <> 9
@@ -219,10 +218,10 @@ begin
            ('already-converted','ALREADY_CONVERTED'),('collision/manual-review','DUPLICATE_SOURCE'),
            ('collision/manual-review','SOURCE_MISMATCH'),('collision/manual-review','IDEMPOTENCY_COLLISION'),
            ('collision/manual-review','OWNER_LEAD_COLLISION'))
-         or (row->>7 in ('eligible','already-converted','collision/manual-review') and (row->>2 is null or row->>4 is null or row->5 is null or row->>6 is null))
-         or (row->>7 = 'manual-review/unassigned-owner' and row->>8 = 'UNASSIGNED_OWNER' and (row->>2 is not null or row->>4 is not null or row->5 is not null or row->>6 is not null))
-         or (row->>7 = 'manual-review/unassigned-owner' and row->>8 in ('PROFILE_MISSING','PROFILE_INACTIVE','ROLE_INVALID') and (row->>2 is null or row->>4 is not null or row->5 is not null or row->>6 is not null))
-         or (row->>7 in ('invalid-date/no-task','excluded/lead-not-operational','excluded/non-selected-history') and (row->>2 is not null or row->>4 is not null or row->5 is not null or row->>6 is not null))) then v_code := 'INVALID_PLAN'; end if;
+          or (row->>7 in ('eligible','already-converted','collision/manual-review') and (row->>2 is null or row->>4 is null or row->>5 is null or row->>6 is null))
+          or (row->>7 = 'manual-review/unassigned-owner' and row->>8 = 'UNASSIGNED_OWNER' and (row->>2 is not null or row->>4 is not null or row->>5 is not null or row->>6 is not null))
+          or (row->>7 = 'manual-review/unassigned-owner' and row->>8 in ('PROFILE_MISSING','PROFILE_INACTIVE','ROLE_INVALID') and (row->>2 is null or row->>4 is not null or row->>5 is not null or row->>6 is not null))
+          or (row->>7 in ('invalid-date/no-task','excluded/lead-not-operational','excluded/non-selected-history') and (row->>2 is not null or row->>4 is not null or row->>5 is not null or row->>6 is not null))) then v_code := 'INVALID_PLAN'; end if;
     if exists (select 1 from pg_catalog.jsonb_array_elements(v_plan->3) as plan_row
       where (plan_row->>7, plan_row->>8) not in (
         ('eligible','ELIGIBLE'), ('invalid-date/no-task','INVALID_DATE_NO_TASK'),

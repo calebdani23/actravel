@@ -54,7 +54,10 @@ test("RPC has exact precedence and canonical cutoff/plan validation", () => {
   assert.match(source, /UNASSIGNED_OWNER'[\s\S]*PROFILE_MISSING'[\s\S]*ROLE_INVALID/i)
   assert.match(source, /v_total <> v_row_count[\s\S]*sum\(\(v_counts->i\)::integer\)/i)
   assert.match(source, /v_expected_header := pg_catalog\.jsonb_build_array\(p_rule_version, p_event_cutoff_created_at, p_event_cutoff_id::text, '\[\]'::jsonb,[\s\S]*jsonb_build_array\(v_counts->0, v_counts->1, v_counts->2, v_counts->3, v_counts->4, v_counts->5, v_counts->6\), 0, 0, 0, 0, false\)/i)
-  assert.match(source, /jsonb_build_array\(v_plan->0, v_plan->1, v_plan->2, '\[\]'::jsonb, v_plan->4, v_plan->5, v_plan->6, v_plan->7, v_plan->8, v_plan->9\) <> v_expected_header/i)
+  assert.match(source, /jsonb_build_array\(v_plan->0, v_plan->1, v_plan->2, '\[\]'::jsonb, v_plan->4, 0, 0, 0, 0, false\) <> v_expected_header/i)
+  assert.doesNotMatch(source, /v_plan->[6789]\s*<>\s*(?:0|false)/i)
+  assert.match(source, /row->>5 is null[\s\S]*row->>5 is not null/i)
+  assert.doesNotMatch(source, /row->5\s+is\s+(?:not\s+)?null/i)
 })
 
 test("RPC derives the exact ordered 14-field projection and all limits", () => {
