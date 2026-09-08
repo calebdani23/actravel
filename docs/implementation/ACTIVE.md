@@ -4,10 +4,10 @@
 
 - **Week:** 03
 - **Theme:** Tasks + Mi día
-- **Status:** Week 02 local development is literally complete within its recorded scope: Gate 0, Tasks, and Staff Notifications are independently PASS, reviewed/allowed, and archived. Dated archives captured on 2026-08-26/31 observed no remote `0061+` at capture; present remote migration/schema state was not inspected in closure and is unknown. Production rollout remains distinct and separately authorized; no current remote parity or readiness is claimed.
+- **Status:** Five Week 03 support changes are complete and archived locally. The parent followups-to-tasks outcome remains open pending approved-plan Task apply, disposition parity, future-write conversion, and read cutover.
 - **Context preparation merged on main:** `224cc37608f8842725733a5522bbe4ab0dbfe8c1`
 - **Executable product baseline before documentation-only preparation:** `01d5a6b0bea066a0ea87943de922e39d18eb4dac`
-- **Primary brief:** [`weeks/week-01-baseline-safety.md`](./weeks/week-01-baseline-safety.md)
+- **Primary brief:** [`weeks/week-03-tasks-my-day.md`](./weeks/week-03-tasks-my-day.md)
 
 The context-preparation merge changed documentation only. When beginning implementation, always inspect current `main` HEAD rather than assuming either SHA is still the latest commit.
 
@@ -17,18 +17,26 @@ The context-preparation merge changed documentation only. When beginning impleme
 
 ## Current change state
 
-`week-02-closure-week-03-readiness` records the conjunctive closure of the three archived children without reusing receipts: Gate 0 PASS (`2026-08-26`), Tasks PASS (`2026-08-31`, archive tasks 8/8), and Staff Notifications PASS (`2026-08-31`, archive tasks 11/11). The Notifications verify prose saying “12 tasks” is a non-authoritative discrepancy. Traceable child warnings and failed-attempt histories remain preserved in their packets, including the known base-only quote regression.
+The completed Week 03 support archives are:
 
-**Next action:** plan `followups-to-tasks`, Week 03’s first independently reviewable change, per [`weeks/week-03-tasks-my-day.md`](./weeks/week-03-tasks-my-day.md). Begin with follow-up migration/representation only; do not bundle automation, SLA projections, or Mi día/UI work.
+- [Follow-up Task representation](../../openspec/changes/archive/2026-09-01-week-03-followups-to-tasks/archive-report.md)
+- [Classifier/backfill preview](../../openspec/changes/archive/2026-09-04-week-03-followups-to-tasks-backfill/archive-report.md)
+- [Preview reader](../../openspec/changes/archive/2026-09-04-week-03-followups-to-tasks-preview-reader/archive-report.md)
+- [PostgreSQL helper](../../openspec/changes/archive/2026-09-06-week-03-postgres-integration-harness/archive-report.md)
+- [Approval ledger](../../openspec/changes/archive/2026-09-08-week-03-followup-task-approval-ledger/archive-report.md), archived in commit `5f65d42`; its canonical capability is [`follow-up-task-approval-ledger`](../../openspec/specs/follow-up-task-approval-ledger/spec.md).
 
-Migrations `0061`–`0063` exist locally and are documented only through dated archived disposable/local evidence. The 2026-08-26/31 archives observed no remote `0061+` at capture; present remote migration/schema state was not inspected in closure and is unknown. Production rollout and any future Week 03 follow-up are separate authorized changes; no remote access or mutation occurred here, and no production readiness is claimed.
+No active Week 03 OpenSpec packet currently exists.
+
+**Next action:** create the independently reviewable change `week-03-followup-task-approved-plan-apply`. That change must apply an approved immutable plan to Tasks before the separately bounded parity/write/read cutover; do not create its OpenSpec packet as part of this routing correction.
+
+Migrations `0061`-`0065` are local artifacts supported only by archived local/disposable evidence. Current remote migration and schema state is unknown because it was not inspected; no remote parity, migration application, production readiness, or rollout is claimed.
 
 ## Required context for the next action
 
 Read only:
 
-1. [`weeks/week-01-baseline-safety.md`](./weeks/week-01-baseline-safety.md)
-2. Technical Blueprint Volume III sections: `Gate 0`, `Migration strategy`, `Testing and release`, `Agent execution contract`
+1. [`weeks/week-03-tasks-my-day.md`](./weeks/week-03-tasks-my-day.md)
+2. [`follow-up-task-approval-ledger` canonical specification](../../openspec/specs/follow-up-task-approval-ledger/spec.md)
 3. `docs/PROGRESS.md`
 4. `docs/ENVIRONMENT.md`
 5. `db/migrations/` **inventory/state**, not every file body by default
@@ -38,8 +46,9 @@ Read only:
 - Remote Supabase migration history must be checked, not inferred from docs.
 - `main` may move after this file is written; inspect current HEAD when starting the change.
 - If remote schema differs from documented baseline, update the active change with discovered reality before implementing features.
+- Approved-plan apply must preserve zero-duplicate/idempotency guarantees and must not silently collapse explicit non-eligible dispositions.
 - Archived MVP documents under `docs/archive/**` are provenance only and must not be used as implementation instructions.
 
 ## Not active yet
 
-Do not begin Tasks/Mi día, Portal Identity, quote acceptance, Trips, Travelers, payment plan, Suppliers, incidents, or Marketing Studio until Week 01 baseline gates are complete.
+Do not begin SLA/task automation or role-aware Mi día before approved-plan apply and follow-up parity/write/read cutover are complete. Portal Identity, quote acceptance, Trips, Travelers, payment plan, Suppliers, incidents, and Marketing Studio remain outside the active Week 03 route.

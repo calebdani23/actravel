@@ -1,18 +1,20 @@
 # Progreso AC Travel Mx MVP
 
-## 2026-09-08 — Week 03 approval ledger PR4 types and verification preparation
+## 2026-09-08 — Week 03 approval ledger archived
 
-PR4 adds the manual `0065` Supabase contract to `lib/supabase/database.types.ts`, including the
-exact `follow_up_task_approvals` Row/Insert/Update/Relationships shapes and the
-`approve_follow_up_task_plan` Args/`Json` return contract. Focused compile-time assertions cover
-keys, optionality, nullability, relationships, RPC arguments, and the adapter argument boundary
-without exporting or duplicating its private RPC result unions.
+The approval-ledger support change is complete and archived at commit `5f65d42`. Its canonical
+specification is `openspec/specs/follow-up-task-approval-ledger/spec.md`. Archive evidence records
+12/12 tasks, 7/7 requirements and 7/7 scenarios, focused tests 8/8, disposable PostgreSQL 1/1,
+and TypeScript, lint, build (96/96 pages), and diff check all PASS.
 
-The focused approval suite, TypeScript, lint, build (if run by the parent), and diff checks are
-the final-verification inputs for this work unit. This is local-only preparation: migration
-`0065` was not applied remotely, remote migration/schema state remains unknown, no linked or
-remote Supabase was used, and no Task/CRM/quote/profile/source DML, cutover, automation, UI, or
-rollout was performed. Task 4.3 remains parent-owned review/commit preparation.
+Review closure used the v2.6 unmanaged-compatibility interpretation with `reviewGate.result: allow`,
+`nativeAllowed: false`, and `policyInterpretationOnly: true`. It retains the approved closure and
+independent verification evidence but makes no native review receipt or native allow claim.
+
+This remains local-only evidence: migrations `0061`-`0065` are supported only by archived
+local/disposable proof. The recorded work did not apply them remotely; the approval change performed
+zero Task DML, no downstream apply or cutover, and no linked or remote Supabase access. Current remote
+migration and schema state remains unknown; no remote parity, production readiness, or rollout is claimed.
 
 ## 2026-09-04 — Week 03 follow-up preview reader Slice 3
 
