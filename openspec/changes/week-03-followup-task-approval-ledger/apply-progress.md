@@ -1,21 +1,29 @@
 # Apply Progress: Week 03 Follow-up Task Approval Ledger
 
-## AUTHORITATIVE CURRENT STATE — PR2 correction transaction
+## AUTHORITATIVE CURRENT STATE — PR2 complete
 
-- Status: runtime proof passed exactly once after the required DELETE immutability assertion was
-  added. Evidence revision: `sha256:d814a4923222d8be1203c1387d26209c5f55706f74911de3e5103dedbb58beb6`.
+- Status: parent review, independent final verification, and commit are complete. PR2 was
+  committed as `b74196f` (`test: prove follow-up approval ledger runtime`). The runtime proof
+  passed exactly once after the required DELETE immutability assertion was added; its evidence
+  revision is `sha256:d814a4923222d8be1203c1387d26209c5f55706f74911de3e5103dedbb58beb6`.
   This supersedes all earlier apply-progress outcomes and failed-attempt conclusions below.
+- Parent review: lineage `review-c661fb92961154cb` approved with one informational warning and
+  no blocker.
+- Independent final verification: PASS. Evidence file SHA-256:
+  `0f1bd238a6307ed8f3bae705378e4c677b04c793f5a6c28b68ba6823a8f0f495`.
+- Delivery compatibility: the exact v2.6 unmanaged pre-commit tuple was proved under the
+  repository's new compatibility policy.
 - Native authorization: token
   `sha256:4b02cf1e25a2c5d9db831e25ba8d88bdbfcddfda873042db27c009fd53170b0c`, request
-  `approval-ledger-pr2-runtime-20260907-14`; acquire/settle remain parent-owned. No review or
-  commit evidence is claimed.
+  `approval-ledger-pr2-runtime-20260907-14`; acquire/settle remained parent-owned.
 - Checks: focused static approval test 5/5 PASS; TypeScript PASS; lint PASS; diff check PASS;
   disposable runtime PASS 1/1 exactly once. Runtime covered approval, replay, idempotency
   conflict, AUTH_REQUIRED, authenticated advisor RLS visibility, concurrent convergence, UPDATE
   rejection, DELETE rejection, purge survival, and zero Task-DML behavior. Cleanup and container
   absence passed.
-- Tasks: 2.1 complete; 2.2 complete; 2.3 **PENDING** for parent review/commit. This status does
-  not claim parent review, commit, push, or lifecycle completion.
+- Tasks: 2.1 complete; 2.2 complete; 2.3 complete. PR3 and PR4 task states remain unchanged.
+- Remote boundary: no push occurred, no remote access was performed for this completion update,
+  and remote state remains unknown.
 - Transaction classification and boundary: cumulative migration 0065 and static-contract edits
   are runtime-discovered PR1 foundation corrections included in the PR2 correction transaction;
   PR2 was not runtime-test-only. The honest rollback/review boundary is

@@ -36,7 +36,7 @@ Chain strategy: stacked-to-main
 
 - [x] RED 2.1 Add scenarios to `tests/follow-up-task-approval-ledger-runtime.test.ts` using shared helper symbols for lexical 0057–0065, auth/RLS, replay, conflict/concurrency, append-only, purge survival, and zero Task DML.
 - [x] GREEN 2.2 Implement guarded Docker lifecycle with skip-before-Docker, `try/finally` cleanup, post-absence assertion, exact JSON failures, and one-row convergence; no linked/remote access or migration application. Applying 0057–0065 inside the disposable local database is required.
-- [ ] STOP 2.3 Parent reviews/commits PR 2; rollback deletes test; container absent.
+- [x] STOP 2.3 Parent reviews/commits PR 2; rollback deletes test; container absent.
 
 ## Phase 3: Server Adapter and Injected Unit Contracts (PR 3)
 
