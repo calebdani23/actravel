@@ -48,4 +48,4 @@ Chain strategy: stacked-to-main
 
 - [x] RED 4.1 Add type-contract assertions for exact table Row/Insert/Update/Relationships and RPC Args/Returns `Json` in `tests/follow-up-task-approval.test.ts`; reject key, optionality, nullability, and extra-field drift.
 - [x] GREEN 4.2 Manually update `lib/supabase/database.types.ts`; do not run linked generation. Record evidence and unchanged remote/Task-DML boundary in `docs/DECISIONS.md` and `docs/PROGRESS.md`; run tests, lint, and `npx tsc --noEmit --incremental false`.
-- [ ] STOP 4.3 Parent reviews/commits PR 4; rollback is the type/docs diff. Evidence confirms no protected/unrelated changes or remote work.
+- [x] STOP 4.3 Parent reviews/commits PR 4; rollback is the type/docs diff. Evidence confirms no protected/unrelated changes or remote work.

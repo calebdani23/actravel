@@ -1,9 +1,13 @@
 # Apply Progress: Week 03 Follow-up Task Approval Ledger
 
-## AUTHORITATIVE CURRENT STATE — PR4 complete
+## AUTHORITATIVE CURRENT STATE — PR4 parent completion complete
 
-- Status: PR4 types, documentation, and final-verification preparation are complete. Parent review,
-  commit, and the STOP 4.3 handoff remain pending.
+- Status: PR4 parent review, independent final verification, commit, and STOP 4.3 handoff are
+  complete. PR4 was committed as `52c1fcb` (`feat: complete follow-up approval ledger contracts`).
+- Parent review: lineage `review-d69e57936c73f26e` approved with no findings.
+- Independent final verification: PASS. Evidence SHA-256:
+  `43f44c404dc247b0185c937034f9c427cdbcc464af582ac9195ab9402a7fe0ec`.
+- Delivery compatibility: the exact v2.6 unmanaged compatibility tuple was proved.
 - Evidence revision SHA-256:
   `sha256:7e0d2240158ec7af86f25d780bdde9cbde3252c0816254099c69ead626815603`.
 - Focused approval test: `node --conditions react-server --import tsx --test
@@ -17,10 +21,11 @@
   state.
 - Boundary: local-only documentation/type work. No migration application, Task/CRM/quote/profile/
   source DML, cutover, automation, UI, Docker/database operation, linked Supabase, remote access,
-  rollout, lifecycle action, staging, commit, or push occurred. Remote migration/schema status is
-  unknown and production readiness is not claimed.
-- Tasks: 4.1 complete; 4.2 complete; parent-owned STOP 4.3 remains pending. PR1–PR3 evidence is
-  preserved below, with PR3 retained as the immediate historical predecessor.
+  rollout, or push occurred. Remote migration/schema status is unknown and production readiness
+  is not claimed.
+- Tasks: all 12/12 tasks complete, including parent-owned STOP 4.3. PR1–PR3 evidence and the PR4
+  preparation history are preserved below, with PR3 retained as the immediate historical
+  predecessor.
 - Rollback boundary: revert only the PR4 type, focused test, documentation, task, and progress
   records; the pre-existing untracked Week1 path remains excluded.
 
