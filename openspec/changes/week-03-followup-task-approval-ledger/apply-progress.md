@@ -333,6 +333,68 @@ disposable container.
 - Changed path for this work unit: `tests/follow-up-task-approval-ledger-runtime.test.ts` only;
   all prior migration/static corrections and unrelated paths remain untouched.
 
+## PR3 automatic gatekeeper corrective rerun
+
+- Work unit: `PR3 adapter contract correction`; native authorization token
+  `sha256:82ef2e36964fcc47cafe9b686c6956967b1c5bb67aad7bc66f240e3de1a7d613`, request
+  `approval-ledger-pr3-correction-20260908-01`; max attempts one. Parent settlement request
+  `approval-ledger-pr3-correction-settle-20260908-01` completed with outcome `passed` and state
+  `complete` against evidence revision
+  `sha256:78d7229f2c1389b1b423d5362ff35cc69ca399d198a8a7b82d65aa0b83176657`: focused tests 7/7,
+  TypeScript, lint, and diff passed; no processes or remotes were used for settlement.
+- Corrections: replaced the broad private RPC result with exact private
+  `RpcApprovalSuccess`, `RpcApprovalFailure`, and `RpcApprovalResult` unions; strict decoding now
+  rejects task-cutoff nullability mismatches; injected tests cover complete args, ordered
+  14-field eligible projection, canonical plan/projection/request hashes, fingerprint,
+  dependency injection, domain/transport distinction, and malformed provider shapes.
+- Focused command: `node --conditions react-server --import tsx --test tests/follow-up-task-approval.test.ts`
+  — PASS, 7/7 tests, 0 failures.
+- Verification: `npx tsc --noEmit --incremental false` PASS; `npm run lint` PASS with no warnings;
+  `git diff --check` PASS.
+- Evidence revision SHA-256: `sha256:78d7229f2c1389b1b423d5362ff35cc69ca399d198a8a7b82d65aa0b83176657`.
+- Harness disposition: injected unit harness reused; no Docker, database, linked Supabase, or
+  remote access. No cleanup was necessary.
+- Changed paths: `lib/admin/follow-up-task-approval.ts`,
+  `tests/follow-up-task-approval.test.ts`, this apply-progress artifact. Task checkboxes remain
+  3.1/3.2 complete and STOP 3.3 pending. PR1/PR2 history and unrelated Week1 files are preserved.
+
+## Work unit 3 — PR3 server adapter and injected unit contracts
+
+PR3 implements only the authenticated adapter and its injected unit contracts. Prior PR1/PR2
+evidence above is authoritative and preserved. The parent owns review and commit; Task 3.3 stays
+pending.
+
+### Completed tasks
+
+- [x] 1.1–1.3 PR1 migration/static contracts (preserved).
+- [x] 2.1–2.3 PR2 runtime proof (preserved).
+- [x] 3.1 Injected adapter behavior contracts.
+- [x] 3.2 Auth-first adapter and closed RPC/public mappings.
+- [ ] 3.3 Parent review/commit handoff.
+
+### Implementation evidence
+
+| Evidence | Result |
+|---|---|
+| Focused test command and exact result | `node --conditions react-server --import tsx --test tests/follow-up-task-approval.test.ts` — PASS, 7/7 tests, 0 failures. The plain command is incompatible with the adapter's required `server-only` boundary and fails before test execution; the server-condition command is the valid focused harness. |
+| Runtime harness command/scenario and exact result | N/A — PR3 is an injected unit boundary; `invokeRpc` is injected and no network, database, Docker, or linked Supabase access is required. |
+| Rollback boundary | Remove `lib/admin/follow-up-task-approval.ts` and the PR3 adapter-contract additions in `tests/follow-up-task-approval.test.ts`; revert only PR3 checkbox/progress entries. PR1 migration/static contracts and PR2 runtime proof remain. |
+
+### Verification and process
+
+- `npx tsc --noEmit --incremental false` — PASS.
+- `npm run lint` — PASS with no warnings/errors.
+- `git diff --check` — PASS.
+- Evidence revision SHA-256: `sha256:2223e916f023d857fdd172005960b035865bb76f9a2f0fbd7ea5282cfff9b78f` for the adapter source; final test source SHA-256 is `sha256:3c6cd15d318a3d337c8e3c4b5a6a08565a518f8f199295aea42b3c9cb229efbc`.
+- Diagnosis: the first plain focused invocation was a harness-condition failure from importing `server-only`, not an application/test assertion failure; rerunning under `react-server` passed all contracts.
+- Cleanup/process evidence: no Docker/container/database/remote access started; no cleanup was necessary. Untracked `openspec/changes/week-01-recovery-adapters/` was pre-existing and excluded from this work unit.
+- Changed paths for PR3: `lib/admin/follow-up-task-approval.ts`, `tests/follow-up-task-approval.test.ts`, this progress artifact, and the PR3 task checkboxes only. No PR4 types/docs, Task DML, cutover, automation, UI, migration, or Week1 files were changed.
+
+### Handoff
+
+Status is ready for parent review/commit. Task 3.3 remains pending until that review and commit
+actually occur.
+
 ## Automatic gatekeeper PR2 corrective retry — passing runtime proof
 
 - Work unit: `PR2 advisor fixture parsing correction`; native authorization token

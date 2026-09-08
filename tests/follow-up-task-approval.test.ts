@@ -1,6 +1,10 @@
 import assert from "node:assert/strict"
+import { createHash } from "node:crypto"
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { existsSync, readFileSync } from "node:fs"
 import test from "node:test"
+import { approveFollowUpTask, type ApproveRpcArgs } from "../lib/admin/follow-up-task-approval"
+import { canonicalJson } from "../lib/admin/follow-up-backfill-preview"
 
 const path = "db/migrations/0065_follow_up_task_approval_ledger.sql"
 const sql = () => readFileSync(path, "utf8")
@@ -104,4 +108,61 @@ test("0065 is local and contains no Task DML or remote markers", () => {
   assert.doesNotMatch(source, /insert\s+into\s+public\.tasks|update\s+public\.tasks|delete\s+from\s+public\.tasks/i)
   assert.doesNotMatch(source, /supabase|docker|remote|http|fetch\(|apply migration/i)
   assert.ok(source.split("\n").length <= 500)
+})
+
+const actor = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+const requestId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+const lead = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
+const event = "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
+const taskKey = createHash("sha256").update(`follow-up-task:v1|source_event_id=${event}`).digest("hex")
+const preview = {
+  ok: true as const, readerSnapshotHash: "a".repeat(64), eventCutoff: { createdAt: "2026-09-01T12:00:00.000Z", id: actor }, taskCutoff: null,
+  plan: ["follow-up-backfill.v1", "2026-09-01T12:00:00.000Z", actor, [[event, lead, actor, "2026-08-31T12:00:00.000Z", "2026-09-02T12:00:00.000Z", true, "2026-09-02T12:00:00.000Z", "eligible", "ELIGIBLE"]], [1, 0, 0, 0, 0, 0, 0], 1, 0, 0, 0, false] as any,
+  tasks: [],
+  diagnostics: { physicalAttempts: 0, logicalReads: 0 },
+}
+const row = (status: "approved" | "replayed" = "approved") => Object.fromEntries([
+  ["ok", true], ["status", status], ...["id", "request_id", "actor_id", "event_cutoff_id"].map((key) => [key, actor]),
+  ["actor_role", "admin"], ["schema_version", "follow-up-approval.v1"], ["rule_version", "follow-up-backfill.v1"], ["event_cutoff_created_at", preview.eventCutoff.createdAt],
+  ["task_cutoff_created_at", null], ["task_cutoff_id", null], ...["reader_snapshot_hash", "canonical_plan_hash", "request_fingerprint", "projection_hash"].map((key) => [key, "a".repeat(64)]),
+  ["canonical_plan", "[]"], ["eligible_projections", []], ...["eligible_count", "invalid_date_no_task_count", "manual_review_unassigned_owner_count", "excluded_lead_not_operational_count", "excluded_non_selected_history_count", "already_converted_count", "collision_manual_review_count", "total_count", "row_count", "projection_count", "canonical_plan_byte_count", "projection_byte_count", "request_byte_count"].map((key) => [key, 0]), ["created_at", preview.eventCutoff.createdAt],
+])
+
+test("adapter authenticates first, constructs exact injected RPC args, and maps success/replay", async () => {
+  const calls: string[] = []; let captured: ApproveRpcArgs | undefined
+  const result = await approveFollowUpTask({ requestId, preview }, {
+    requireAdminRole: (async () => { calls.push("auth"); return { user: { id: actor } } }) as any,
+    createClient: async () => { calls.push("client"); return {} as any },
+    invokeRpc: async (_client, args) => { calls.push("rpc"); captured = args; return { data: row(), error: null } },
+  })
+  assert.deepEqual(calls, ["auth", "client", "rpc"]); assert.equal(result.ok, true); if (result.ok) assert.equal(result.replayed, false)
+  assert.deepEqual(Object.keys(captured ?? {}).sort(), ["p_canonical_plan", "p_canonical_plan_hash", "p_event_cutoff_created_at", "p_event_cutoff_id", "p_expected_actor_id", "p_eligible_projections", "p_projection_hash", "p_reader_snapshot_hash", "p_request_fingerprint", "p_request_id_text", "p_rule_version", "p_schema_version", "p_task_cutoff_created_at", "p_task_cutoff_id"].sort())
+  assert.deepEqual(captured?.p_eligible_projections, [{ owner_id: actor, lead_id: lead, quote_id: null, description: "Follow up with lead", due_at: "2026-09-02T12:00:00.000Z", status: "pending", idempotency_key: taskKey, task_kind: "follow_up", source_event_id: event, source_event_type: "follow_up_registered", source_event_created_at: "2026-08-31T12:00:00.000Z", source_due_at: "2026-09-02T12:00:00.000Z", source_payload: { followUpAt: "2026-09-02T12:00:00.000Z", hasNote: true }, metadata: { schema: "follow_up_task.v1", source_event_id: event, source_event_type: "follow_up_registered", owner_id: actor, lead_id: lead }}])
+  assert.equal(captured?.p_canonical_plan, JSON.stringify(preview.plan))
+  const digest = (value: string) => createHash("sha256").update(new TextEncoder().encode(value)).digest("hex")
+  assert.equal(captured?.p_canonical_plan_hash, digest(captured?.p_canonical_plan ?? "")); assert.equal(captured?.p_projection_hash, digest(canonicalJson(captured?.p_eligible_projections)))
+  const request = canonicalJson(["follow-up-approval-request.v1", requestId, actor, "follow-up-approval.v1", "follow-up-backfill.v1", [preview.eventCutoff.createdAt, actor], null, preview.readerSnapshotHash, captured?.p_canonical_plan_hash, captured?.p_projection_hash, preview.plan, captured?.p_eligible_projections])
+  assert.equal(captured?.p_request_fingerprint, digest(request))
+  assert.equal(captured?.p_task_cutoff_id, null); assert.equal(captured?.p_task_cutoff_created_at, null)
+  const replay = await approveFollowUpTask({ requestId, preview }, { requireAdminRole: async () => ({ user: { id: actor } }), createClient: async () => ({} as any), invokeRpc: async () => ({ data: row("replayed"), error: null }) } as any)
+  assert.equal(replay.ok && replay.replayed, true)
+})
+
+test("adapter preserves auth throws, maps transport/domain failures, and rejects malformed providers", async () => {
+  const authError = new Error("auth sentinel")
+  await assert.rejects(() => approveFollowUpTask({ requestId, preview }, { requireAdminRole: async () => { throw authError } } as any), authError)
+  const domain = await approveFollowUpTask({ requestId, preview }, { requireAdminRole: async () => ({ user: { id: actor } }), createClient: async () => ({} as any), invokeRpc: async () => ({ data: { ok: false, error: { code: "INVALID_PLAN", message: "INVALID_PLAN" } }, error: null }) } as any)
+  if (domain.ok) assert.fail("expected domain failure")
+  assert.equal(domain.error.code, "INVALID_PLAN")
+  const failed = await approveFollowUpTask({ requestId, preview }, { requireAdminRole: async () => ({ user: { id: actor } }), createClient: async () => ({} as any), invokeRpc: async () => { throw new Error("provider secret") } } as any)
+  assert.deepEqual(failed, { ok: false, error: { code: "PERSISTENCE_FAILURE", message: "PERSISTENCE_FAILURE" } })
+  const rpcFailure = await approveFollowUpTask({ requestId, preview }, { requireAdminRole: async () => ({ user: { id: actor } }), createClient: async () => ({} as any), invokeRpc: async () => ({ data: { ok: false, error: { code: "APPROVAL_IDEMPOTENCY_CONFLICT", message: "APPROVAL_IDEMPOTENCY_CONFLICT" } }, error: null }) } as any)
+  if (rpcFailure.ok) assert.fail("expected RPC domain failure")
+  assert.equal(rpcFailure.error.code, "APPROVAL_IDEMPOTENCY_CONFLICT")
+  const malformed = await approveFollowUpTask({ requestId, preview }, { requireAdminRole: async () => ({ user: { id: actor } }), createClient: async () => ({} as any), invokeRpc: async () => ({ data: { ok: true }, error: null }) } as any)
+  assert.equal(malformed.ok ? "unexpected" : malformed.error.code, "PERSISTENCE_FAILURE")
+  for (const data of [{ ...row(), extra: true }, null, [], { ...row(), id: 3 }, { ...row(), task_cutoff_created_at: "2026-09-01T00:00:00.000Z" }]) {
+    const result = await approveFollowUpTask({ requestId, preview }, { requireAdminRole: async () => ({ user: { id: actor } }), createClient: async () => ({} as any), invokeRpc: async () => ({ data, error: null }) } as any)
+    assert.equal(result.ok ? "unexpected" : result.error.code, "PERSISTENCE_FAILURE")
+  }
 })

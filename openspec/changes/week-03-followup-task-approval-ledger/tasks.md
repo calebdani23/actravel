@@ -40,8 +40,8 @@ Chain strategy: stacked-to-main
 
 ## Phase 3: Server Adapter and Injected Unit Contracts (PR 3)
 
-- [ ] RED 3.1 Add injected tests for `approveFollowUpTask`, `ApprovalDeps`, `ApproveRpcArgs`, projection/hash/request construction, auth-before-client, exact 7/7 contracts, strict decoding, malformed/provider errors, replay, and precedence.
-- [ ] GREEN 3.2 Create `lib/admin/follow-up-task-approval.ts` with exact unions, 14-field projection, UTF-8 SHA-256 values, auth before client, RPC mapping, and closed response/error contracts; run the focused command.
+- [x] RED 3.1 Add injected tests for `approveFollowUpTask`, `ApprovalDeps`, `ApproveRpcArgs`, projection/hash/request construction, auth-before-client, exact 7/7 contracts, strict decoding, malformed/provider errors, replay, and precedence.
+- [x] GREEN 3.2 Create `lib/admin/follow-up-task-approval.ts` with exact unions, 14-field projection, UTF-8 SHA-256 values, auth before client, RPC mapping, and closed response/error contracts; run the focused command.
 - [ ] STOP 3.3 Parent reviews/commits PR 3; rollback removes adapter/tests.
 
 ## Phase 4: Types, Documentation, and Final Verification (PR 4)
