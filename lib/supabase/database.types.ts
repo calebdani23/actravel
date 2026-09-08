@@ -593,6 +593,105 @@ export type Database = {
           },
         ]
       }
+      follow_up_task_approvals: {
+        Row: {
+          id: string
+          request_id: string
+          actor_id: string
+          actor_role: string
+          schema_version: string
+          rule_version: string
+          event_cutoff_created_at: string
+          event_cutoff_id: string
+          task_cutoff_created_at: string | null
+          task_cutoff_id: string | null
+          reader_snapshot_hash: string
+          canonical_plan_hash: string
+          request_fingerprint: string
+          projection_hash: string
+          canonical_plan: string
+          eligible_projections: Json
+          eligible_count: number
+          invalid_date_no_task_count: number
+          manual_review_unassigned_owner_count: number
+          excluded_lead_not_operational_count: number
+          excluded_non_selected_history_count: number
+          already_converted_count: number
+          collision_manual_review_count: number
+          total_count: number
+          row_count: number
+          projection_count: number
+          canonical_plan_byte_count: number
+          projection_byte_count: number
+          request_byte_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          request_id: string
+          actor_id: string
+          actor_role: string
+          schema_version: string
+          rule_version: string
+          event_cutoff_created_at: string
+          event_cutoff_id: string
+          task_cutoff_created_at: string | null
+          task_cutoff_id: string | null
+          reader_snapshot_hash: string
+          canonical_plan_hash: string
+          request_fingerprint: string
+          projection_hash: string
+          canonical_plan: string
+          eligible_projections: Json
+          eligible_count: number
+          invalid_date_no_task_count: number
+          manual_review_unassigned_owner_count: number
+          excluded_lead_not_operational_count: number
+          excluded_non_selected_history_count: number
+          already_converted_count: number
+          collision_manual_review_count: number
+          total_count: number
+          row_count: number
+          projection_count: number
+          canonical_plan_byte_count: number
+          projection_byte_count: number
+          request_byte_count: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          request_id?: string
+          actor_id?: string
+          actor_role?: string
+          schema_version?: string
+          rule_version?: string
+          event_cutoff_created_at?: string
+          event_cutoff_id?: string
+          task_cutoff_created_at?: string | null
+          task_cutoff_id?: string | null
+          reader_snapshot_hash?: string
+          canonical_plan_hash?: string
+          request_fingerprint?: string
+          projection_hash?: string
+          canonical_plan?: string
+          eligible_projections?: Json
+          eligible_count?: number
+          invalid_date_no_task_count?: number
+          manual_review_unassigned_owner_count?: number
+          excluded_lead_not_operational_count?: number
+          excluded_non_selected_history_count?: number
+          already_converted_count?: number
+          collision_manual_review_count?: number
+          total_count?: number
+          row_count?: number
+          projection_count?: number
+          canonical_plan_byte_count?: number
+          projection_byte_count?: number
+          request_byte_count?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
       lead_events: {
         Row: {
           actor_id: string | null
@@ -2657,6 +2756,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_follow_up_task_plan: {
+        Args: {
+          p_request_id_text: string
+          p_expected_actor_id: string
+          p_schema_version: string
+          p_rule_version: string
+          p_event_cutoff_created_at: string
+          p_event_cutoff_id: string
+          p_task_cutoff_created_at: string | null
+          p_task_cutoff_id: string | null
+          p_reader_snapshot_hash: string
+          p_canonical_plan_hash: string
+          p_projection_hash: string
+          p_request_fingerprint: string
+          p_canonical_plan: string
+          p_eligible_projections: Json
+        }
+        Returns: Json
+      }
       create_staff_notification: {
         Args: {
           p_body: string

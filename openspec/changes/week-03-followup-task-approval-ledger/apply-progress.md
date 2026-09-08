@@ -1,12 +1,50 @@
 # Apply Progress: Week 03 Follow-up Task Approval Ledger
 
-## AUTHORITATIVE CURRENT STATE — PR2 complete
+## AUTHORITATIVE CURRENT STATE — PR4 complete
+
+- Status: PR4 types, documentation, and final-verification preparation are complete. Parent review,
+  commit, and the STOP 4.3 handoff remain pending.
+- Evidence revision SHA-256:
+  `sha256:7e0d2240158ec7af86f25d780bdde9cbde3252c0816254099c69ead626815603`.
+- Focused approval test: `node --conditions react-server --import tsx --test
+  tests/follow-up-task-approval.test.ts` — PASS, 8/8 tests, 0 failures.
+- Checks: `npx tsc --noEmit --incremental false` — PASS; `npm run lint` — PASS with 0 warnings;
+  `npm run build` — PASS, 96/96 static pages; `git diff --check` — PASS.
+- Scope: manually added the exact `0065` table Row/Insert/Update/Relationships and RPC Args/Json
+  Returns contract, plus focused type assertions. The adapter’s private RPC result unions remain
+  private and are not duplicated publicly.
+- Build hygiene: the build-owned `next-env.d.ts` import change was restored to its exact pre-build
+  state.
+- Boundary: local-only documentation/type work. No migration application, Task/CRM/quote/profile/
+  source DML, cutover, automation, UI, Docker/database operation, linked Supabase, remote access,
+  rollout, lifecycle action, staging, commit, or push occurred. Remote migration/schema status is
+  unknown and production readiness is not claimed.
+- Tasks: 4.1 complete; 4.2 complete; parent-owned STOP 4.3 remains pending. PR1–PR3 evidence is
+  preserved below, with PR3 retained as the immediate historical predecessor.
+- Rollback boundary: revert only the PR4 type, focused test, documentation, task, and progress
+  records; the pre-existing untracked Week1 path remains excluded.
+
+## HISTORICAL PREDECESSOR — PR3 complete
+
+- Status: parent review, independent final verification, and commit are complete. PR3 was
+  committed as `56468e4` (`feat: add follow-up approval adapter`).
+- Parent review: lineage `review-22a47c992cc09da3` approved with two informational warnings and
+  no blocker.
+- Independent final verification: PASS. Evidence file SHA-256:
+  `ecc3cdc559e53e9efa973d2daf1bd17f065489476065e872629994c6173e8c90`.
+- Delivery compatibility: the exact v2.6 unmanaged compatibility tuple was proved.
+- Tasks: 3.1 complete; 3.2 complete; 3.3 complete. PR4 task states remain unchanged.
+- Handoff: PR3 is complete. Its rollback boundary remains the adapter and PR3 test additions;
+  PR1/PR2 evidence remains preserved, and PR4 remains pending.
+- Remote boundary: no push occurred and no remote access was performed.
+
+## HISTORICAL PREDECESSOR — PR2 complete
 
 - Status: parent review, independent final verification, and commit are complete. PR2 was
   committed as `b74196f` (`test: prove follow-up approval ledger runtime`). The runtime proof
   passed exactly once after the required DELETE immutability assertion was added; its evidence
   revision is `sha256:d814a4923222d8be1203c1387d26209c5f55706f74911de3e5103dedbb58beb6`.
-  This supersedes all earlier apply-progress outcomes and failed-attempt conclusions below.
+  This supersedes only the earlier PR2 failed-attempt conclusions below.
 - Parent review: lineage `review-c661fb92961154cb` approved with one informational warning and
   no blocker.
 - Independent final verification: PASS. Evidence file SHA-256:
@@ -33,10 +71,11 @@
   artifacts. Adapter/types/PR3+ work and unrelated Week1 files are outside the boundary.
   Production grants remain unchanged; metadata grants are disposable fixture setup only.
 
-## Superseded historical evidence
+## Superseded PR1/PR2 failed-attempt history
 
-All sections below preserve prior evidence for auditability. Their failed outcomes and earlier
-passing state are superseded by the authoritative state above.
+The following PR1/PR2 failed-attempt records are retained for auditability only. They are obsolete
+failed-attempt conclusions; valid passing evidence for PR2 and the PR3/PR4 work units is not
+superseded.
 
 ## Work unit
 
@@ -333,6 +372,57 @@ disposable container.
 - Changed path for this work unit: `tests/follow-up-task-approval-ledger-runtime.test.ts` only;
   all prior migration/static corrections and unrelated paths remain untouched.
 
+## Work unit 4 — PR4 manual types, documentation, and final-verification preparation
+
+PR4 is the final implementation slice in the stacked-to-main chain. PR1, PR2, and PR3 task
+states and evidence above are preserved unchanged. This slice is limited to the manual database
+contract, focused type assertions, living documentation, and verification preparation. Parent
+review/commit remains Task 4.3 and is intentionally still pending.
+
+### Completed tasks
+
+- [x] 1.1–1.3 PR1 migration/static contracts (preserved).
+- [x] 2.1–2.3 PR2 runtime proof (preserved).
+- [x] 3.1–3.3 PR3 adapter and parent handoff (preserved).
+- [x] 4.1 Type-contract assertions for exact table and RPC shapes.
+- [x] 4.2 Manual database types and durable documentation boundary.
+- [ ] 4.3 Parent review/commit and final verification handoff.
+
+### Implementation evidence
+
+| Evidence | Result |
+|---|---|
+| Focused test command and exact result | `node --conditions react-server --import tsx --test tests/follow-up-task-approval.test.ts` — PASS, 8/8 tests, 0 failures. |
+| Type/static command and exact result | `npx tsc --noEmit --incremental false` — PASS; compile-time assertions cover exact Row/Insert/Update/Relationships, RPC Args/`Json` Returns, and the adapter’s `unknown[]` boundary. |
+| Lint command and exact result | `npm run lint` — PASS, 0 errors and 0 warnings. |
+| Build command and exact result | `npm run build` — PASS; Next.js production build compiled, type-checked, generated 96/96 static pages, and finalized route output. |
+| Diff command and exact result | `git diff --check` — PASS. Authored PR4 diff is 205 changed lines before this evidence append, within the 300-line authorization. |
+| Runtime harness command/scenario and exact result | N/A — type/documentation-only boundary; no runtime database or external process is required or authorized for PR4. |
+| Harness disposition | Not started; no Docker, PostgreSQL, linked Supabase, or remote operation was used. |
+| Cleanup/process evidence | No cleanup was necessary. The pre-existing untracked `openspec/changes/week-01-recovery-adapters/` path was inspected only by status and remains excluded; no Week 01 file was changed. |
+| Rollback boundary | Revert `lib/supabase/database.types.ts`, the PR4 type-contract additions in `tests/follow-up-task-approval.test.ts`, `docs/DECISIONS.md`, `docs/PROGRESS.md`, and this PR4 progress/task record only. |
+
+### Boundary and handoff
+
+- No linked/generated type command was run; the manual contract remains authoritative while remote
+  migration/schema state is unknown.
+- No migration was applied, no Task/CRM/quote/profile/source DML was performed, and no cutover,
+  automation, UI, rollout, lifecycle, staging, commit, or push action occurred.
+- Evidence revision SHA-256: `sha256:7e0d2240158ec7af86f25d780bdde9cbde3252c0816254099c69ead626815603`
+  (ordered SHA-256 manifest of the PR4 implementation, focused test, documentation, and task files).
+- Parent owns Task 4.3 review/commit and final-verification lifecycle actions.
+
+### Parent settlement
+
+- Work unit: `PR4 types documentation and final preparation`; native authorization token
+  `sha256:30d43426598f1bd257725ec8c110bf39f14b371c6ca925c34eafc91dfcfe096a`, request
+  `approval-ledger-pr4-settle-20260908-01`; outcome `passed` and state `complete` against evidence
+  revision `sha256:7e0d2240158ec7af86f25d780bdde9cbde3252c0816254099c69ead626815603`.
+- Validation: focused tests 8/8, TypeScript, lint, build 96/96, and diff check passed;
+  `next-env.d.ts` was restored.
+- Boundary: no Docker, database, or remote operation occurred. Parent STOP Task 4.3 remains
+  pending, and all prior history is preserved.
+
 ## PR3 automatic gatekeeper corrective rerun
 
 - Work unit: `PR3 adapter contract correction`; native authorization token
@@ -370,7 +460,7 @@ pending.
 - [x] 2.1–2.3 PR2 runtime proof (preserved).
 - [x] 3.1 Injected adapter behavior contracts.
 - [x] 3.2 Auth-first adapter and closed RPC/public mappings.
-- [ ] 3.3 Parent review/commit handoff.
+- [x] 3.3 Parent review/commit handoff.
 
 ### Implementation evidence
 
@@ -392,8 +482,11 @@ pending.
 
 ### Handoff
 
-Status is ready for parent review/commit. Task 3.3 remains pending until that review and commit
-actually occur.
+Parent review and commit are complete: lineage `review-22a47c992cc09da3` was approved with two
+informational warnings and no blocker; independent final verification passed with evidence file
+SHA-256 `ecc3cdc559e53e9efa973d2daf1bd17f065489476065e872629994c6173e8c90`; the exact v2.6
+unmanaged compatibility tuple was proved; and PR3 was committed as `56468e4`
+(`feat: add follow-up approval adapter`). No push or remote access occurred. PR4 remains pending.
 
 ## Automatic gatekeeper PR2 corrective retry — passing runtime proof
 

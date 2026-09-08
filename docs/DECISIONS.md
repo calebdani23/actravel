@@ -1,5 +1,19 @@
 # Decisiones técnicas y de producto
 
+## 2026-09-08 — Week 03 approval ledger PR4 type boundary
+
+The approval ledger keeps a manually maintained Supabase type contract for migration `0065`:
+`follow_up_task_approvals` exposes exact Row/Insert/Update/Relationships shapes, while
+`approve_follow_up_task_plan` exposes its exact argument shape and `Json` return type. The
+adapter’s private RPC unions remain private; generated or linked type regeneration is expressly
+not used because the current remote schema and migration history are unknown.
+
+PR4 is documentation/type preparation only. The local migration, approval RPC, adapter, and
+tests are not applied or cut over remotely; no Task, CRM, quote, profile, or source DML was
+performed. Local verification is recorded separately, and production readiness or remote parity
+is not claimed. Rollback is limited to the manual type, focused type-contract test, and these
+documentation/apply-progress records.
+
 ## 2026-09-04 — Week 03 follow-up preview reader Slice 3 verification
 
 Close preview-reader tasks 5.1–5.2 locally after commits `6a0d2cc` and `745d6c6`. The fresh

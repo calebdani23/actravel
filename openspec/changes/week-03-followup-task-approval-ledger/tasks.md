@@ -42,10 +42,10 @@ Chain strategy: stacked-to-main
 
 - [x] RED 3.1 Add injected tests for `approveFollowUpTask`, `ApprovalDeps`, `ApproveRpcArgs`, projection/hash/request construction, auth-before-client, exact 7/7 contracts, strict decoding, malformed/provider errors, replay, and precedence.
 - [x] GREEN 3.2 Create `lib/admin/follow-up-task-approval.ts` with exact unions, 14-field projection, UTF-8 SHA-256 values, auth before client, RPC mapping, and closed response/error contracts; run the focused command.
-- [ ] STOP 3.3 Parent reviews/commits PR 3; rollback removes adapter/tests.
+- [x] STOP 3.3 Parent reviews/commits PR 3; rollback removes adapter/tests.
 
 ## Phase 4: Types, Documentation, and Final Verification (PR 4)
 
-- [ ] RED 4.1 Add type-contract assertions for exact table Row/Insert/Update/Relationships and RPC Args/Returns `Json` in `tests/follow-up-task-approval.test.ts`; reject key, optionality, nullability, and extra-field drift.
-- [ ] GREEN 4.2 Manually update `lib/supabase/database.types.ts`; do not run linked generation. Record evidence and unchanged remote/Task-DML boundary in `docs/DECISIONS.md` and `docs/PROGRESS.md`; run tests, lint, and `npx tsc --noEmit --incremental false`.
+- [x] RED 4.1 Add type-contract assertions for exact table Row/Insert/Update/Relationships and RPC Args/Returns `Json` in `tests/follow-up-task-approval.test.ts`; reject key, optionality, nullability, and extra-field drift.
+- [x] GREEN 4.2 Manually update `lib/supabase/database.types.ts`; do not run linked generation. Record evidence and unchanged remote/Task-DML boundary in `docs/DECISIONS.md` and `docs/PROGRESS.md`; run tests, lint, and `npx tsc --noEmit --incremental false`.
 - [ ] STOP 4.3 Parent reviews/commits PR 4; rollback is the type/docs diff. Evidence confirms no protected/unrelated changes or remote work.

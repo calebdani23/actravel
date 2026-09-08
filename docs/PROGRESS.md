@@ -1,5 +1,19 @@
 # Progreso AC Travel Mx MVP
 
+## 2026-09-08 — Week 03 approval ledger PR4 types and verification preparation
+
+PR4 adds the manual `0065` Supabase contract to `lib/supabase/database.types.ts`, including the
+exact `follow_up_task_approvals` Row/Insert/Update/Relationships shapes and the
+`approve_follow_up_task_plan` Args/`Json` return contract. Focused compile-time assertions cover
+keys, optionality, nullability, relationships, RPC arguments, and the adapter argument boundary
+without exporting or duplicating its private RPC result unions.
+
+The focused approval suite, TypeScript, lint, build (if run by the parent), and diff checks are
+the final-verification inputs for this work unit. This is local-only preparation: migration
+`0065` was not applied remotely, remote migration/schema state remains unknown, no linked or
+remote Supabase was used, and no Task/CRM/quote/profile/source DML, cutover, automation, UI, or
+rollout was performed. Task 4.3 remains parent-owned review/commit preparation.
+
 ## 2026-09-04 — Week 03 follow-up preview reader Slice 3
 
 Preview-reader Slice 3 is verified locally and tasks **5.1–5.2 are complete (10/10 cumulative)**.
