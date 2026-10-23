@@ -1,5 +1,18 @@
 # Progreso AC Travel Mx MVP
 
+## 2026-10-23 — Week 03 pushed; Week 04 implemented locally, closure pending
+
+- Week 03 and its publication follow-ups were pushed to `origin/main` at `0b09b60`.
+- Week 04 code on `feat/week-04-customer-identity` includes `0090` customer identity,
+  invitations/audit/RLS, Admin invitation controls, OTP login and `/mis-viajes`.
+- Own checks: full disposable PostgreSQL security scenario passed; 37 focused and
+  legacy-route tests passed; TypeScript, lint, diff and production build passed.
+  Loopback Chromium passed 2/2 without contacting hosted Auth or sending emails.
+- Independent static/Auth-boundary checks found no reproduced application defect,
+  but independent DB/browser execution was unavailable. Full independent security
+  verification and Week 04 closure remain pending. No remote migration, live Auth
+  delivery, deployment, or Week 05 functionality is claimed.
+
 ## 2026-10-06 — Week 03 closed locally after final reconciliation
 
 The final passive reconciliation passed against unchanged product and test bytes: **10/10 archives**, **132/132 packet task rows**, **19/19 canonical specifications**, unchanged serial aggregates **97/97** and **81/81** with zero skips, TypeScript, lint, the **96/96-page** build, protected migrations **28/28**, exact `0089`, generated-file restoration, mixed-worktree/diff preservation, and zero remaining `actravel-*` containers. Packet counts remain overlapping compositions rather than deduplicated Week 03 coverage.

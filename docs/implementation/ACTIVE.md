@@ -2,12 +2,12 @@
 
 ## Current milestone
 
-- **Week:** 04 planning
+- **Week:** 04 implementation — independent runtime verification pending
 - **Theme:** Customer identity foundation
 - **Status:** Week 03 is **closed locally** through `week-03-final-closure-reconciliation`: 10/10 archives, 132/132 packet task rows, 19/19 canonical specifications, fresh unchanged 97/97 and 81/81 aggregates with zero skips, TypeScript, lint, the 96/96-page build, protected hashes 28/28, exact `0089`, diff/restoration, and cleanup passed.
 - **Context preparation merged on main:** `224cc37608f8842725733a5522bbe4ab0dbfe8c1`
 - **Executable product baseline before documentation-only preparation:** `01d5a6b0bea066a0ea87943de922e39d18eb4dac`
-- **Primary brief:** bounded Week 04 `customer-identity-foundation` planning; no Week 04 implementation is authorized by this route.
+- **Primary brief:** [`weeks/week-04-portal-identity.md`](./weeks/week-04-portal-identity.md). The user's explicit implementation request superseded the planning-only handoff. Current code is local-only; see [`week-04-customer-identity.md`](./week-04-customer-identity.md) and `odd/tasks/week-04-customer-identity.md`.
 
 The context-preparation merge changed documentation only. When beginning implementation, always inspect current `main` HEAD rather than assuming either SHA is still the latest commit.
 
@@ -63,7 +63,7 @@ The packet completed local implementation through S18: local unapplied `0081`–
 
 Final local evidence is 21/21 requirements, 81/81 scenarios, and 11/11 tasks. Focused Mi día/routing **33/33**, UI **5/5**, Chromium E2E **5/5**, Mi día runtime **1/1**, combined action/automation/source/historical regression **97/97**, and follow-up/Task/CRM preservation **81/81** passed with zero skips. TypeScript, lint, the 96/96-page build, diff checks, the protected 28/28 manifest, and cleanup passed; verify-report SHA-256 is `f3a178dd5d71b6c1479992efa3f2c66ff56a6ec2052e97f47bc8cdee0f91206d`.
 
-**Next action:** perform only a separate bounded Week 04 `customer-identity-foundation` planning change. Do not begin implementation, remote work, migration application, bootstrap execution, deployment, or rollout from this handoff.
+**Next action:** resolve Week 04 independent runtime verification. Parent-run disposable PostgreSQL and a separate loopback Chromium/build worker passed; the independent verifier could run static/Auth-boundary checks only. Week 04 remains open. Do not deploy, apply remote migrations, or advance Week 05 from these local results.
 
 Migrations `0061`–`0089` are local artifacts supported only by local/disposable evidence. No remote state was inspected or changed during archive.
 
@@ -71,7 +71,7 @@ Migrations `0061`–`0089` are local artifacts supported only by local/disposabl
 
 Read only:
 
-1. [`weeks/week-03-tasks-my-day.md`](./weeks/week-03-tasks-my-day.md) for the locally closed predecessor and preserved qualifications.
+1. [`weeks/week-04-portal-identity.md`](./weeks/week-04-portal-identity.md) and `odd/tasks/week-04-customer-identity.md` for current scope and missing proof; Week 03 remains the locally closed predecessor.
 2. `docs/blueprints/INDEX.md` to locate only the customer-identity business, product, and architecture sections needed for bounded planning.
 3. Current customer/contact schema, RLS, generated types, and identity-adjacent tests as executable reality; inspect narrowly before drafting any Week 04 proposal.
 4. `docs/PROGRESS.md` and `docs/DECISIONS.md` for the exact local-only boundary and remote unknowns.
@@ -88,4 +88,4 @@ Read only:
 
 ## Not active yet
 
-Do not infer remote parity, migration application, operational bootstrap execution, deployment, rollout, or production readiness from local Week 03 closure. The active route is bounded Week 04 `customer-identity-foundation` planning only. Portal delivery, quote acceptance, Trips, Travelers, payment plans, Suppliers, incidents, notifications, Marketing Studio, release hardening, and Weeks 05–12 remain future work.
+Do not infer remote parity, migration application, operational bootstrap execution, deployment, rollout, or production readiness from local closure evidence. Week 04 identity/invitation/shell implementation is present but closure remains pending. Customer quote acceptance, Trips, Travelers, payment plans, Suppliers, incidents, notifications, Marketing Studio, release hardening, and Weeks 05–12 remain future work.

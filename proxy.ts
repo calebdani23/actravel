@@ -15,6 +15,10 @@ export function isProtectedAdminPath(pathname: string) {
   return isAdminPath(pathname) && !isAdminLoginPath(pathname);
 }
 
+export function isProtectedCustomerPath(pathname: string) {
+  return (pathname === "/mis-viajes" || pathname.startsWith("/mis-viajes/")) && pathname !== "/mis-viajes/acceso";
+}
+
 function redirectTo(request: NextRequest, pathname: string, cookiesToSet: CookieToSet[]) {
   const url = request.nextUrl.clone();
   url.pathname = pathname;
@@ -30,7 +34,7 @@ type CookieToSet = { name: string; value: string; options: CookieOptions };
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  if (!isAdminPath(pathname)) return NextResponse.next();
+  if (!isAdminPath(pathname) && pathname !== "/mis-viajes" && !pathname.startsWith("/mis-viajes/")) return NextResponse.next();
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -62,10 +66,13 @@ export async function proxy(request: NextRequest) {
   if (!hasUser && isProtectedAdminPath(pathname)) {
     return redirectTo(request, ADMIN_LOGIN_PATH, cookiesToSet);
   }
+  if (!hasUser && isProtectedCustomerPath(pathname)) {
+    return redirectTo(request, "/mis-viajes/acceso", cookiesToSet);
+  }
 
   return response;
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/mis-viajes/:path*"],
 };

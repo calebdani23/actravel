@@ -118,6 +118,13 @@ export const ADMIN_NAV_ITEMS = [
     icon: "user-cog",
   },
   {
+    href: "/admin/portal-invitations",
+    label: "Customer portal",
+    group: "Administración",
+    roles: ["admin"],
+    icon: "users-round",
+  },
+  {
     href: "/admin/account",
     label: "Mi cuenta",
     group: "Administración",

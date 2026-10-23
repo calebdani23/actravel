@@ -14,7 +14,7 @@ Branch: `feat/week-04-customer-identity`; delivery: auto-chain, stacked-to-main;
 
 ## Tasks
 
-- T1 [S2,S3,S5,S6] inline — implemented/self-verified, independent runtime unavailable — `0090` and full disposable adversarial DB proof passed; Risk: items 1,2,3,4; commit pending.
+- T1 [S2,S3,S5,S6] inline — implemented/self-verified, independent runtime unavailable — `0090` and full disposable adversarial DB proof passed; Risk: items 1,2,3,4; commit `11f2806`.
 - T2 [S3,S4,S6] inline — implemented/self-verified — OTP boundary, Admin controls, shell, 37 focused/regression tests, Chromium 2/2, production build, types/lint passed; Risk: items 2,3; commit pending.
 - T3 [S1,S6,S7] inline — blocked on independent runtime proof — verifier ran 36 tests, TypeScript and four independent Auth-boundary probes with no reproduced defect, but cannot run DB/browser under its scratch-only boundary. Parent DB proof and separate browser worker passed. Week 04 closure remains pending; commit pending.
 

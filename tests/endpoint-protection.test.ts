@@ -123,7 +123,7 @@ test("admin proxy refreshes Supabase sessions and keeps role checks out of redir
 
   assert.match(source, /createServerClient\(supabaseUrl, supabasePublishableKey/);
   assert.match(source, /auth\.getUser\(\)/);
-  assert.match(source, /matcher: \["\/admin\/:path\*"\]/);
+  assert.match(source, /matcher: \["\/admin\/:path\*", "\/mis-viajes\/:path\*"\]/);
   assert.match(source, /isProtectedAdminPath\(pathname\)/);
   assert.match(source, /redirectTo\(request, ADMIN_LOGIN_PATH/);
   assert.match(source, /isAdminLoginPath\(pathname\)/);

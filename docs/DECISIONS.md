@@ -1,5 +1,21 @@
 # Decisiones técnicas y de producto
 
+## 2026-10-23 — Invitation-only customer identity, separate from staff
+
+The user's Week 04 implementation authorization supersedes the prior planning-only
+handoff. Use Admin-issued 72-hour invitations, explicit canonical Contact binding,
+verified exact email, one account per Contact, and no automatic identity merging.
+Customers never receive staff profiles or roles; reciprocal profile creation is
+rejected once a customer account exists. Blocked/deleted Contacts and disabled
+accounts lose portal access on the next identity read, including existing sessions.
+
+Migration `0090` adds customer RLS and constrains legacy authenticated reads to
+their existing staff rules or their existing anonymous published visibility.
+Invitation delivery eligibility is service-only; customer data reads use the
+verified session and minimal DTO. Audit is append-only. Remote application and
+SMTP/GoTrue delivery remain separately configured and unverified. Independent
+runtime verification is still unavailable, so Week 04 is not closed yet.
+
 ## 2026-10-06 — Close Week 03 locally and hand off only to bounded Week 04 planning
 
 Week 03 is **closed locally** after passive reconciliation of 10/10 archives, 132/132 packet task rows, 19/19 canonical specifications, the unchanged role-aware Mi día route, fresh serial 97/97 and 81/81 aggregates with zero skips, TypeScript, lint, the 96/96-page build, protected hashes 28/28, exact `0089`, restoration/diff preservation, and runtime cleanup. Overlapping archive counts remain compositions and are not promoted as deduplicated coverage.
