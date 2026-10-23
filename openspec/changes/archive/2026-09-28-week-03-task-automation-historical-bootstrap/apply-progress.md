@@ -956,3 +956,295 @@ S8 freezes actor plus exact source/snapshot boundaries, accepts only equal adjac
 ### Preservation and Next Boundary
 
 `0086` exposes no public RPC and changes no RLS policy or grant. Its private fixed-search-path helpers consume approved projections after the S13 lock/revalidation order, insert exact native state once, return only ordered identity JSON, and reduce every failure to one code without partial writes. Public coordination, receipt finalization, adapters, operational bootstrap execution, remote work, rollout, production readiness, Mi día, and Week 03 closure remain absent.
+
+## S14 Correction — Quote Suppression Null-Context Integrity
+
+**Task:** 4.3 correction only; no checkbox or living-document ownership.
+**State:** Complete after GREEN and final aggregate verification.
+**Mode:** Strict TDD.
+**Boundary:** Quote suppression context closure in private `0086`, one focused runtime regression, and this correction receipt only.
+
+### TDD Cycle Evidence
+
+| Task | RED | GREEN | REFACTOR |
+|---|---|---|---|
+| 4.3 correction | After adding the regression first, the exact focused command exited `1`: **5 passed, 1 failed, 0 skipped**. A quote suppression projection with `quoteId:null` returned `UNEXPECTED_SUCCESS` instead of `TASK_AUTOMATION_HISTORICAL_WRITE_INTEGRITY_FAILURE`. | The same command exited `0`: **6 passed, 0 failed, 0 skipped**. Null `opportunityId`, `quoteId`, `quoteVersionId`, or `sentEventId` each returns the fixed integrity failure and leaves tombstone/outcome/Task/origin counts at zero. | Added explicit canonical UUID domain guards before casts and used null-safe `IS DISTINCT FROM` canonical comparisons for all four quote suppression context fields; no valid writer output or state shape changed. |
+
+### Correction Result
+
+- Quote suppression now requires non-null canonical UUID text for `opportunityId`, `quoteId`, `quoteVersionId`, and `sentEventId` before any cast, occupancy read, or write.
+- Post-cast canonical checks are null-safe and cannot allow SQL three-valued comparison results to bypass rejection.
+- Every malformed null-context call maps to `TASK_AUTOMATION_HISTORICAL_WRITE_INTEGRITY_FAILURE` and commits zero tombstones, outcomes, Tasks, or origins.
+- Valid generation/suppression, source order, occupancy, rollback, helper privacy, RLS/grants, task state, and all S1–S14 evidence remain unchanged.
+
+### Work Unit Evidence
+
+| Evidence | Result |
+|---|---|
+| Focused test command and exact result | `RUN_TASK_AUTOMATION_HISTORICAL_DB_TESTS=1 node --conditions react-server --import tsx --test --test-concurrency=1 tests/task-automation-historical-apply-writers-runtime.test.ts tests/task-automation-historical-preservation.test.ts` → disposable PostgreSQL 16 **6 passed, 0 failed, 0 skipped**. |
+| Runtime harness command/scenario and exact result | The new runtime scenario applies local migrations through `0086`, submits each of the four quote suppression context fields as JSON null, requires the fixed private integrity code, and checks `[tombstones,outcomes,Tasks,origins]=[0,0,0,0]` after every call; cleanup leaves no test container. |
+| Rollback boundary | Revert only the quote-suppression UUID guard/comparison lines in `0086`, the new null-context runtime case, and this receipt. Retain original S14, all task state, S1–S13, local `0081`–`0085`, and protected `0077`–`0080`. |
+
+### Verification and Preservation
+
+- Historical aggregate with database opt-in: **58 passed, 0 failed, 0 skipped**.
+- Protected disposable PostgreSQL calendar parity: **2 passed, 0 failed, 0 skipped**.
+- `npx tsc --noEmit` and `npm run lint` exited `0` with no diagnostics or findings.
+- Tracked/staged/scoped-untracked diff hygiene, direct SHA manifest **4/4 OK**, and final exact-name `actravel-*` container absence exited `0`.
+- Task `4.3` remains checked, tasks `5.1`–`6.2` remain pending, and no task or ACTIVE routing state changed.
+
+### Correction Line Delta and Scope
+
+- Private writer migration: **7 additions + 2 deletions = 9 authored changed lines**, net `+5`.
+- Focused runtime regression: **16 additions + 0 deletions**, net `+16`.
+- Implementation/test correction total: **23 additions + 2 deletions = 25 authored changed lines**, net `+21`.
+- This correction receipt adds **44 lines**; total correction delta is **67 additions + 2 deletions = 69 authored changed lines**, net `+65`, below 400 with no `size:exception`.
+- No task checkbox, ACTIVE/decision/progress document, migration identifier/signature, public RPC, type, operational execution, remote state, or Git-delivery ownership changed.
+
+## Planning Reconciliation — Final 18-Slice Ledger
+
+**State:** Documentation-only reconciliation; no implementation task or checkbox changed.
+
+### Reconciliation Note
+
+The final delivery plan contains **18 implementation slices plus Gate 0, for 19 task checkboxes total**. After completed S14/task `4.3`, the current cumulative state is therefore **14/18 implementation slices complete** and **15/19 checkboxes complete**.
+
+Earlier entries in this ledger preserve the counts and ownership labels recorded under the former 20-slice/21-checkbox decomposition. They remain valid historical observations and evidence and are intentionally not rewritten. For current routing only, their stale denominators and former future-slice labels are superseded by this reconciliation and the final plan in `design.md` and `tasks.md`; completed S1–S14 ownership and all recorded evidence remain unchanged.
+
+### Final Remaining Ownership
+
+| Slice / task | Final owner |
+|---|---|
+| S15 / `5.1` | `0087` receipt-first public apply coordinator, including receipt finalization, receipt-before-approval replay, total lock order, atomic writes, rollback, and concurrency. |
+| S16 / `5.2` | Strict apply adapter and exact manual receipt/RPC types. |
+| S17 / `6.1` | `0088` read-only readiness accounting and parity RPC. |
+| S18 / `6.2` | Readiness adapter, exact types, aggregate proof, final receipts, rollback evidence, and local documentation finalization. |
+
+Consequently, historical references that placed receipt commit/finalization/replay in former S16 or S17 now route that work to **S15**. S16 owns only the apply adapter/type boundary, S17 owns readiness, and S18 owns finalization. The next permitted implementation work unit remains **S15 only**.
+
+### Result Contract and Scope
+
+- Current ledger result: **14/18 implementation slices complete; 15/19 checkboxes complete; S15 next**.
+- Evidence/history: preserved verbatim; no prior RED/GREEN/runtime result, preservation receipt, rollback boundary, workload count, or line delta was altered.
+- Modified artifact: `openspec/changes/week-03-task-automation-historical-bootstrap/apply-progress.md` only.
+- Excluded: code, tests, migrations, task checkboxes, design, `docs/implementation/ACTIVE.md`, and all other documentation.
+
+## S15 — Receipt-First Apply Coordinator and Atomic Concurrency
+
+**Task:** 5.1 | **State:** Complete | **Mode:** Strict TDD
+**Boundary:** Local unapplied `0087` public coordinator and its declared writer/concurrency proof only; no adapter/S16 types, readiness, migration application, operational bootstrap execution, remote, or Git delivery.
+
+### TDD Cycle Evidence
+
+| Task | RED | GREEN | REFACTOR |
+|---|---|---|---|
+| 5.1 | After correcting one test-only parenthesis before production work, the valid declared RED command exited `1`: **8 passed, 2 failed, 0 skipped** because `0087` and its public coordinator did not exist. | The same focused database command exited `0`: **10 passed, 0 failed, 0 skipped** after adding `0087`. | Added fail-closed deterministic approval-identity checks and normalized only suppress-writer non-write metadata; the final historical aggregate passed **60/60** with zero skips. |
+
+### Work Unit Evidence
+
+| Evidence | Result |
+|---|---|
+| Focused test command and exact result | `RUN_TASK_AUTOMATION_HISTORICAL_DB_TESTS=1 node --conditions react-server --import tsx --test --test-concurrency=1 tests/task-automation-historical-apply-writers-runtime.test.ts tests/task-automation-historical-apply-concurrency.test.ts tests/task-automation-historical-preservation.test.ts` → disposable PostgreSQL 16 **10 passed, 0 failed, 0 skipped**. |
+| Runtime harness command/scenario and exact result | The focused command proves auth/input precedence, receipt-first purge replay, malformed approval/receipt codes, plan/live/order/occupancy failures, ranked locks, approved generate+suppress plus a retained row, second-write and receipt rollback, competing-request blocking, identical convergence, grants/result type, and final container cleanup. |
+| Rollback boundary | Revoke `authenticated` execution on `apply_task_automation_historical_plan(text,uuid)` and retain every approval, receipt, Task, origin, outcome, tombstone, and source-history row. Remove unused `0087` only before any bootstrap state exists. |
+
+### Verification, Preservation, and Workload
+
+- Historical aggregate with database opt-in: **60 passed, 0 failed, 0 skipped**.
+- Protected calendar parity: **2 passed, 0 failed, 0 skipped**.
+- `npx tsc --noEmit`, `npm run lint`, scoped diff hygiene, direct SHA manifest, and final historical-container absence exited `0`.
+- Pre/post `sha256sum --check .../0077-0080.sha256` → **4/4 OK**; S1–S14 and local unapplied `0081`–`0086` remain preserved.
+- Authored S15 change: **192 additions + 2 deletions = 194 changed lines**, **206-line headroom** to 400. P6 cumulative is **194 lines** across S15 only; no `size:exception`.
+- Only task `5.1` is newly checked. Implementation slices are **15/18 complete**, whole plan **16/19 complete**, and **S16/5.2 only** is next.
+
+### Preservation and Next Boundary
+
+`0087` is the only public apply writer and grants only its exact signature to `authenticated`. It returns code-only failures, replays a self-validating receipt before approval lookup, commits ordered S14 writes plus one receipt atomically, and leaves retained rows untouched. No adapter, manual S16 RPC type, readiness, `docs/PROGRESS.md`, remote work, rollout, production-readiness, Mi día, or Week 03 closure claim was added.
+
+## S15 Correction — Retained-Row Disposition Drift
+
+**Task:** 5.1 correction only; task and ACTIVE routing state remain unchanged.
+**State:** Complete after GREEN and final aggregate verification.
+**Mode:** Strict TDD.
+**Boundary:** Local unapplied `0085`/`0087` retained-row live revalidation and the focused S15 concurrency regression only.
+
+### TDD Cycle Evidence
+
+| Task | RED | GREEN | REFACTOR |
+|---|---|---|---|
+| 5.1 correction | After adding excluded, owner-invalid, already-projected, and occupied retained-root drift probes first, the declared focused command exited `1`: **9 passed, 1 failed, 0 skipped**. The first drift returned apply success instead of `STALE_PLAN_INTEGRITY`. | The same focused command exited `0`: **10 passed, 0 failed, 0 skipped**. Every drift and the combined stale-plan/live-context case returns `STALE_PLAN_INTEGRITY` with no receipt or projection write. | Revalidation now derives retained disposition/reason after the existing source → origin → deterministic-Task lock ranks; retained stale-plan checks precede action-row live-context checks, preserving the declared failure precedence. |
+
+### Correction Result
+
+- `0085` validates immutable action and already-state evidence, acquires ranked locks from all approved plan rows, locks relevant retained Task/origin/outcome/tombstone state, and re-evaluates every non-action root's current disposition/reason.
+- Excluded or manual roots that become actionable, exact already-projected state that ceases to match, and occupied roots whose blocker disappears all fail with `STALE_PLAN_INTEGRITY`.
+- `0087` extends owner/profile/role and occupied-Task row locking from projections to the complete approved plan without changing receipt-first replay, public signature, write loop, receipt finalization, or coordinator order.
+- The combined retained drift plus generate-owner drift proves `STALE_PLAN_INTEGRITY` still precedes `STALE_LIVE_CONTEXT`.
+
+### Work Unit Evidence
+
+| Evidence | Result |
+|---|---|
+| Focused test command and exact result | `RUN_TASK_AUTOMATION_HISTORICAL_DB_TESTS=1 node --conditions react-server --import tsx --test --test-concurrency=1 tests/task-automation-historical-apply-writers-runtime.test.ts tests/task-automation-historical-apply-concurrency.test.ts tests/task-automation-historical-preservation.test.ts` → **10 passed, 0 failed, 0 skipped**. |
+| Runtime harness command/scenario and exact result | The focused disposable PostgreSQL 16 harness covers the four retained drift classes, combined failure precedence, exact no-write state, original action stale/conflict/rollback paths, convergence, replay, and final cleanup. |
+| Rollback boundary | Revert only this correction's `0085` retained-row revalidation/locks, `0087` all-plan context lock expansion, focused regression delta, and this receipt. Preserve S15 coordinator/task state and every approval, receipt, Task, origin, outcome, tombstone, and source-history row. |
+
+### Verification and Preservation
+
+- Final historical aggregate with database opt-in: **60 passed, 0 failed, 0 skipped**.
+- Protected calendar parity: **2 passed, 0 failed, 0 skipped**.
+- `npx tsc --noEmit`, `npm run lint`, tracked/staged plus scoped untracked diff hygiene, and the direct SHA manifest exited `0`.
+- `0077`–`0080` remain **4/4 OK**. The writer runtime test, task ledger, and ACTIVE routing retain their pre-correction SHA-256 values.
+- The first aggregate attempt reached 40 passing tests before the command timeout; the complete retry passed 60/60, and the orphaned disposable container from the interrupted attempt was removed. Final historical container count is **0**.
+
+### Correction Line Delta and Scope
+
+- `0085`: **95 additions + 19 deletions = 114 authored changed lines**, net `+76`.
+- `0087`: **5 additions + 4 deletions = 9 authored changed lines**, net `+1`.
+- Focused regression: **30 additions + 14 deletions = 44 authored changed lines**, net `+16`.
+- Implementation/test correction total: **130 additions + 37 deletions = 167 authored changed lines**, net `+93`; no `size:exception` is required.
+- Apply-progress evidence adds **45 lines**; total correction delta is **175 additions + 37 deletions = 212 authored changed lines**, net `+138`.
+- No task checkbox, ACTIVE/decision/progress document, public signature, adapter/type, migration application, operational bootstrap execution, remote state, or Git-delivery ownership changed. S16 remains next.
+
+## S16 — Strict Apply Adapter and Exact Manual Receipt/RPC Types
+
+**Task:** 5.2 | **State:** Complete | **Mode:** Strict TDD
+**Boundary:** Server-only `0087` apply adapter, exact existing `0084` receipt/manual `0087` RPC types, focused proof, and coherent local docs only; no `0088`, readiness, migration application, operational bootstrap execution, remote, or Git delivery.
+
+### TDD Cycle Evidence
+
+| Task | RED | GREEN | REFACTOR |
+|---|---|---|---|
+| 5.2 | After extending both declared test files first, the exact focused command exited `1`: **1 passed, 1 failed, 0 skipped** because `task-automation-historical-apply` did not exist. | The final opt-in focused command exited `0`: **5 passed, 0 failed, 0 skipped** after adding the adapter and exact manual RPC type. | Centralized closed success/failure decoding, canonical nested-result equality, array/cardinality equations, and provider-envelope suppression; TypeScript and lint remained green. |
+
+### Work Unit Evidence
+
+| Evidence | Result |
+|---|---|
+| Focused test command and exact result | `RUN_TASK_AUTOMATION_HISTORICAL_DB_TESTS=1 node --conditions react-server --import tsx --test --test-concurrency=1 tests/task-automation-historical-apply-receipt.test.ts tests/task-automation-historical-adapters-types.test.ts` → **5 passed, 0 failed, 0 skipped**. It proves auth-first sequencing, exact input/args/types, applied/replayed mapping, every domain code, private fingerprint shape, ordered arrays, distinctness/cardinality/hash/byte/result equations, and code-redacted provider failures. |
+| Runtime harness command/scenario and exact result | `RUN_TASK_AUTOMATION_HISTORICAL_DB_TESTS=1 node --conditions react-server --import tsx --test --test-concurrency=1 tests/task-automation-historical-apply-concurrency.test.ts` → disposable PostgreSQL 16 `0087` proof **3 passed, 0 failed, 0 skipped** with final cleanup. |
+| Rollback boundary | Remove `lib/admin/task-automation-historical-apply.ts`, only the manual `0087` function type and S16 test/docs deltas, and revert task `5.2`; keep apply execution revoked and retain every approval, receipt, Task, origin, outcome, tombstone, and source-history row. |
+
+### Verification, Preservation, and Workload
+
+- Historical aggregate with database opt-in: **62 passed, 0 failed, 0 skipped**.
+- Protected calendar parity: **2 passed, 0 failed, 0 skipped**.
+- `npx tsc --noEmit`, `npm run lint`, scoped diff hygiene, direct SHA manifest, and final historical-container absence exited `0`.
+- Pre/post `sha256sum --check .../0077-0080.sha256` → **4/4 OK**; S1–S15 and local unapplied `0081`–`0087` remain preserved.
+- Authored S16 change: **238 additions + 4 deletions = 242 changed lines**, **158-line headroom** to 400. P6 cumulative is **436 lines** across S15–S16, below 1,200; no `size:exception`.
+- Only task `5.2` is newly checked. Implementation slices are **16/18 complete**, whole plan **17/19 complete**, and **S17/6.1 only** is next.
+
+### Preservation and Next Boundary
+
+The adapter constructs no persistence client and invokes no RPC before successful auth and exact input validation. It accepts only the closed `0087` failure union plus adapter-only `PERSISTENCE_FAILURE`; no provider text or snake-case key reaches public success. Existing `0084` receipt Row/Insert/Update/Relationships types remain exact, and the exact `0087` Args/JSON Returns type is now present without linked generation. No readiness behavior, `0088`, `docs/PROGRESS.md`, migration application, remote work, rollout, production-readiness, Mi día, or Week 03 closure claim was added.
+
+## S17 — Read-Only Readiness Accounting and Parity RPC
+
+**Task:** 6.1 | **State:** Complete | **Mode:** Strict TDD
+**Boundary:** Local unapplied `0088`, exact manual readiness RPC type, focused runtime proof, and coherent local docs only; no readiness adapter, migration application, operational bootstrap execution, remote, or Git delivery.
+
+### TDD Cycle Evidence
+
+| Task | RED | GREEN | REFACTOR |
+|---|---|---|---|
+| 6.1 | The declared opt-in command exited `1`: **3 passed, 1 failed, 0 skipped** because the migration inventory ended at `0087` and the required `0088` target was absent. | The same command exited `0`: **4 passed, 0 failed, 0 skipped** after adding the exact stable readiness RPC and manual type. | Closed generated-outcome null handling explicitly and kept root/accounting, receipt/state parity, and limit failures separate; the final historical aggregate passed **63/63** with zero skips. |
+
+### Work Unit Evidence
+
+| Evidence | Result |
+|---|---|
+| Focused test command and exact result | `RUN_TASK_AUTOMATION_HISTORICAL_DB_TESTS=1 node --conditions react-server --import tsx --test --test-concurrency=1 tests/task-automation-historical-readiness-runtime.test.ts tests/task-automation-historical-preservation.test.ts` → disposable PostgreSQL 16 **4 passed, 0 failed, 0 skipped**. |
+| Runtime harness command/scenario and exact result | The focused command proves auth/input/missing/integrity precedence, one row per ordinal/root, all eight outcomes, exact 17-key equations, ordered generated/suppressed receipt parity, retained already-state without receipt claim, missing/mismatched-state failure, false/true readiness, deterministic reread, limits, stable/read-only metadata, zero DML/repair, grants, exact type, and final cleanup. |
+| Rollback boundary | Revoke `authenticated` execution on `read_task_automation_historical_readiness(text,uuid)`; retain every approval, receipt, Task, origin, outcome, tombstone, and source-history row. Remove unused `0088` only before any bootstrap state exists. |
+
+### Verification, Preservation, and Workload
+
+- Historical aggregate with database opt-in: **63 passed, 0 failed, 0 skipped**.
+- Protected calendar parity: **2 passed, 0 failed, 0 skipped**.
+- `npx tsc --noEmit`, `npm run lint`, scoped diff hygiene, direct SHA manifest, and final historical-container absence exited `0`.
+- Pre/post `sha256sum --check .../0077-0080.sha256` → **4/4 OK**; S1–S16 and local unapplied `0081`–`0087` remain preserved.
+- Authored S17 change: **250 additions plus deletions**, **150-line headroom** to 400. P7 cumulative is **250 lines** across S17 only; no `size:exception`.
+- Only task `6.1` is newly checked. Implementation slices are **17/18 complete**, whole plan **18/19 complete**, and **S18/6.2 only** is next.
+
+### Preservation and Next Boundary
+
+`0088` is stable, security-definer, exact-signature, and authenticated-only. It returns no partial rows on failure, performs no DML or repair, requires a real receipt even for zero planned writes, and certifies readiness only after complete receipt/retained-state parity and zero unresolved manual review. No readiness adapter, `docs/PROGRESS.md`, migration application, operational bootstrap execution, remote work, rollout, production-readiness, Mi día, or Week 03 closure claim was added.
+
+## S17 Correction — Approval Integrity Before Limits
+
+**Task:** 6.1 correction only; no checkbox or living-document ownership.
+**State:** Complete after GREEN and final aggregate verification.
+**Mode:** Strict TDD.
+**Boundary:** The combined stale-approval-fingerprint/over-limit regression, bounded `0088` approval-integrity ordering, and this correction receipt only.
+
+### TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|---|---|---|---|---|---|---|---|
+| 6.1 correction | `tests/task-automation-historical-readiness-runtime.test.ts` | Disposable PostgreSQL integration | **4 passed, 0 failed, 0 skipped** before edits | Combined stale approval fingerprint plus `total_count=4001` exited `1`: **3 passed, 1 failed, 0 skipped**; actual `LIMIT_EXCEEDED`, expected `APPROVAL_INTEGRITY_FAILURE`. | After the SQL correction and one migration-syntax correction, the exact focused command exited `0`: **4 passed, 0 failed, 0 skipped**. | The existing stale-approval-only probe plus the new combined stale/over-limit probe prove the higher-precedence result both with and without the limit condition. | Added an explicit 4,000-item approval-array guard before the full validator so oversized adversarial arrays fail as approval integrity without unsafe row iteration. |
+
+### Correction Result
+
+- `0088` now establishes approval integrity before computing or returning the lower-precedence limit result.
+- Approval arrays beyond the canonical bound return `APPROVAL_INTEGRITY_FAILURE` before the full row validator; bounded approvals use the existing complete validator.
+- Auth, missing approval/receipt, receipt integrity, root accounting, write parity, limit, readiness, and zero-DML behavior remain otherwise unchanged.
+
+### Work Unit Evidence
+
+| Evidence | Result |
+|---|---|
+| Focused test command and exact result | `RUN_TASK_AUTOMATION_HISTORICAL_DB_TESTS=1 node --conditions react-server --import tsx --test --test-concurrency=1 tests/task-automation-historical-readiness-runtime.test.ts tests/task-automation-historical-preservation.test.ts` → disposable PostgreSQL 16 **4 passed, 0 failed, 0 skipped**. |
+| Runtime harness command/scenario and exact result | The focused runtime used one bounded eight-row approval, tampered only its stored fingerprint and scalar total to `4001`, observed exact `APPROVAL_INTEGRITY_FAILURE`, and completed container cleanup. No 4,001-row fixture or unsafe huge loop was introduced. |
+| Rollback boundary | Revert only the four-line approval-integrity gate in `0088`, the single combined-condition expectation/setup line, and this correction receipt. Task `6.1` remains complete, task `6.2` remains pending, and unrelated readiness behavior is outside the rollback. |
+
+### Verification and Preservation
+
+- Historical aggregate with database opt-in: **63 passed, 0 failed, 0 skipped**.
+- Protected calendar parity: **2 passed, 0 failed, 0 skipped**.
+- `npx tsc --noEmit` and `npm run lint` exited `0` with no diagnostics or findings.
+- Direct `sha256sum --check .../0077-0080.sha256` returned **4/4 OK**; final exact-name historical-container query was empty.
+- Final tracked, staged, and scoped untracked diff checks were rerun after this evidence and emitted no whitespace errors.
+- `tasks.md`, `docs/implementation/ACTIVE.md`, `docs/DECISIONS.md`, and `docs/PROGRESS.md` remain unchanged by this correction; S18 remains next.
+
+### Correction Line Delta and Scope
+
+- `0088` production SQL: **4 additions + 2 deletions = 6 authored changed lines**, net `+2`.
+- Focused runtime regression: **1 addition + 1 deletion = 2 authored changed lines**, net `0`.
+- Correction implementation/test total: **5 additions + 3 deletions = 8 authored changed lines**, net `+2`.
+- This separately reviewable corrective follow-up remains below 400 lines and requires no `size:exception`; no task state, readiness adapter, type, schema application, operational data, remote state, or Git-delivery ownership changed.
+
+## S18 — Readiness Adapter, Aggregate Proof, and Final Local Receipt
+
+**Task:** 6.2 | **State:** Complete | **Mode:** Strict TDD
+**Boundary:** Server-only readiness caller, exact public/manual type proof, aggregate/preservation receipts, and S18-owned local docs only; no migration application, operational bootstrap execution, remote, Mi día, closure, or Git delivery.
+
+### TDD Cycle Evidence
+
+| Task | RED | GREEN | REFACTOR |
+|---|---|---|---|
+| 6.2 | After extending the three declared test files first, the RED command exited `1`: **2 passed, 3 failed, 1 skipped** because the readiness module was absent and final evidence was not present; the opt-in runtime had not spawned. | Adapter/readiness focus passed **4/4**, full focused passed **47/47**, runtime packet passed **22/22**, and historical aggregate passed **66/66**, all with zero skips. | Centralized exact row/count/equation decoding, returned fresh public objects, retained the existing exact `0088` manual RPC type, and kept provider details behind `PERSISTENCE_FAILURE`; TypeScript and lint remained green. |
+
+### Work Unit Evidence
+
+| Evidence | Result |
+|---|---|
+| Focused test command and exact result | `RUN_TASK_AUTOMATION_HISTORICAL_DB_TESTS=1 node --conditions react-server --import tsx --test --test-concurrency=1 tests/task-automation-historical-contract.test.ts tests/task-automation-historical-classification.test.ts tests/task-automation-historical-preview.test.ts tests/task-automation-historical-approval.test.ts tests/task-automation-historical-adapters-types.test.ts tests/task-automation-historical-apply-receipt.test.ts tests/task-automation-historical-preservation.test.ts` → **47 passed, 0 failed, 0 skipped**. |
+| Runtime harness command/scenario and exact result | Declared five-file disposable PostgreSQL 16 runtime packet → **22 passed, 0 failed, 0 skipped**; auth-first adapter focus separately passed **4/4**; all containers were absent afterward. |
+| Rollback boundary | Remove only `lib/admin/task-automation-historical-readiness.ts` and S18 test/type/docs deltas while readiness execution remains revoked. Retain every approval, receipt, Task, origin, outcome, tombstone, source-history row, local `0081`–`0088`, and protected `0077`–`0080`; persisted state permits forward disable only. |
+
+### Final Aggregate, Preservation, and Static Receipt
+
+- Full historical aggregate: **66 passed, 0 failed, 0 skipped**.
+- Automation/action/source regression: **97 passed, 0 failed, 0 skipped**.
+- Follow-up/cutover preservation regression: **80 passed, 0 failed, 0 skipped**.
+- Protected calendar parity: **2 passed, 0 failed, 0 skipped**.
+- `npx tsc --noEmit`, `npm run lint`, guarded **96/96-page** build, and final diff hygiene passed; build-owned `next-env.d.ts` was restored to SHA-256 `7ad303e40d4fddf44f156129e397511953a71481c5cfd86b1862649aaaf240cc`.
+- Pre-slice and final post-cleanup `sha256sum --check .../0077-0080.sha256` returned **4/4 OK**; final exact-name `actravel-*` container query was empty.
+
+### Workload / PR Boundary and Result Contract
+
+- Local autonomous stacked-to-main S18/P7 slice; no commit, push, PR, remote, migration application, or linked type generation occurred.
+- Authored S18 change: **254 additions plus deletions**, **146-line headroom** to 400. P7 cumulative with S17 is **504 lines**, below 1,200; no `size:exception`.
+- Exact public readiness success is `{ok,requestId,approvalId,applyReceiptId,ready,counts,rows}`. Auth precedes input/client/RPC; rows are contiguous and unique; disposition/outcome/write identities and all 17 counts/equations are closed; malformed provider data is suppressed.
+- Whole plan: **19/19 checkboxes** and **18/18 implementation slices** complete. The change is ready for local SDD archive.
+- Remote migration/schema/data/execution state remains unknown. No rollout, production readiness, Mi día delivery, or Week 03 closure is claimed.
