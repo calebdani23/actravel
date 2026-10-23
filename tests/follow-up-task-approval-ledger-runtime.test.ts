@@ -111,7 +111,8 @@ function prepareDatabase() {
     "0059_quote_registration_intents.sql", "0060_quote_pdf_creation_cutover.sql",
     "0061_manager_capability_foundation.sql", "0062_tasks_foundation.sql",
     "0063_staff_notifications_foundation.sql", "0064_follow_up_task_representation.sql",
-    "0065_follow_up_task_approval_ledger.sql",
+    "0065_follow_up_task_approval_ledger.sql", "0066_follow_up_task_apply_receipt_foundation.sql",
+    "0067_follow_up_task_apply_rpc.sql",
   ]) applyMigration("approval_ledger", name);
   psql("approval_ledger", `grant usage on schema public, auth, storage, extensions to anon, authenticated, service_role;
     insert into auth.users (id, email) values ('${adminId}', 'admin@example.test'), ('${advisorId}', 'advisor@example.test');
@@ -122,7 +123,7 @@ function prepareDatabase() {
   psql("approval_ledger", "grant select on public.profile_roles, public.roles to authenticated;");
 }
 
-test("0065 approval ledger is authorized, immutable, replay-safe, and concurrent-safe", {
+test("approval ledger remains compatible after 0067 adds its private fingerprint", {
   skip: !enabled,
   timeout: 240_000,
 }, async () => {
@@ -135,12 +136,14 @@ test("0065 approval ledger is authorized, immutable, replay-safe, and concurrent
     const approved = parseResult(psql("approval_ledger", approvalSql(adminId)));
     assert.equal(approved.ok, true, `First approval RPC response: ${JSON.stringify(approved)}`);
     assert.equal(approved.status, "approved", `First approval RPC response: ${JSON.stringify(approved)}`);
+    assert.match(approved.approval_fingerprint as string, /^[0-9a-f]{64}$/);
     assert.equal(psql("approval_ledger", "select count(*) from public.follow_up_task_approvals;"), "1");
     assert.equal(psql("approval_ledger", "select count(*) from public.tasks;"), "0");
 
     const replay = parseResult(psql("approval_ledger", approvalSql(adminId)));
     assert.equal(replay.ok, true);
     assert.equal(replay.status, "replayed");
+    assert.equal(replay.approval_fingerprint, approved.approval_fingerprint);
     const conflict = parseResult(psql("approval_ledger", approvalSql(adminId, requestId, "b".repeat(64))));
     assert.deepEqual(conflict, { ok: false, error: { code: "APPROVAL_IDEMPOTENCY_CONFLICT", message: "APPROVAL_IDEMPOTENCY_CONFLICT" } });
 

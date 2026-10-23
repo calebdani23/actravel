@@ -3,7 +3,7 @@ import { createHash } from "node:crypto"
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { existsSync, readFileSync } from "node:fs"
 import test from "node:test"
-import { approveFollowUpTask, type ApproveRpcArgs } from "../lib/admin/follow-up-task-approval"
+import { approveFollowUpTask, type ApprovalSuccess, type ApproveRpcArgs } from "../lib/admin/follow-up-task-approval"
 import { canonicalJson } from "../lib/admin/follow-up-backfill-preview"
 import type { Database, Json } from "../lib/supabase/database.types"
 
@@ -16,7 +16,7 @@ type ApprovalFunction = Database["public"]["Functions"]["approve_follow_up_task_
 type ApprovalFields = {
   id: string; request_id: string; actor_id: string; actor_role: string; schema_version: string; rule_version: string
   event_cutoff_created_at: string; event_cutoff_id: string; task_cutoff_created_at: string | null; task_cutoff_id: string | null
-  reader_snapshot_hash: string; canonical_plan_hash: string; request_fingerprint: string; projection_hash: string
+  reader_snapshot_hash: string; canonical_plan_hash: string; request_fingerprint: string; approval_fingerprint: string; projection_hash: string
   canonical_plan: string; eligible_projections: Json; eligible_count: number; invalid_date_no_task_count: number
   manual_review_unassigned_owner_count: number; excluded_lead_not_operational_count: number; excluded_non_selected_history_count: number
   already_converted_count: number; collision_manual_review_count: number; total_count: number; row_count: number; projection_count: number
@@ -33,7 +33,7 @@ type _ApprovalRowExact = Assert<Equal<ApprovalRow, ApprovalFields>>
 type ExpectedApprovalInsert = {
   id?: string; request_id: string; actor_id: string; actor_role: string; schema_version: string; rule_version: string
   event_cutoff_created_at: string; event_cutoff_id: string; task_cutoff_created_at: string | null; task_cutoff_id: string | null
-  reader_snapshot_hash: string; canonical_plan_hash: string; request_fingerprint: string; projection_hash: string
+  reader_snapshot_hash: string; canonical_plan_hash: string; request_fingerprint: string; approval_fingerprint: string; projection_hash: string
   canonical_plan: string; eligible_projections: Json; eligible_count: number; invalid_date_no_task_count: number
   manual_review_unassigned_owner_count: number; excluded_lead_not_operational_count: number; excluded_non_selected_history_count: number
   already_converted_count: number; collision_manual_review_count: number; total_count: number; row_count: number; projection_count: number
@@ -51,11 +51,12 @@ type ExpectedAdapterArgs = {
   p_canonical_plan: string; p_eligible_projections: unknown[]
 }
 type _AdapterArgsMatch = Assert<Equal<ApproveRpcArgs, ExpectedAdapterArgs>>
-type ApprovalTypeContracts = [_ApprovalRowExact, _ApprovalInsertExact, _ApprovalUpdateExact, _ApprovalRelationshipsExact, _ApprovalArgsExact, _ApprovalReturnsJson, _AdapterArgsMatch]
-const approvalTypeContracts: ApprovalTypeContracts = [true, true, true, true, true, true, true]
+type _ApprovalSuccessKeepsFingerprintPrivate = Assert<Equal<"approvalFingerprint" extends keyof ApprovalSuccess ? true : false, false>>
+type ApprovalTypeContracts = [_ApprovalRowExact, _ApprovalInsertExact, _ApprovalUpdateExact, _ApprovalRelationshipsExact, _ApprovalArgsExact, _ApprovalReturnsJson, _AdapterArgsMatch, _ApprovalSuccessKeepsFingerprintPrivate]
+const approvalTypeContracts: ApprovalTypeContracts = [true, true, true, true, true, true, true, true]
 
 test("manual approval ledger types preserve the exact public database contract", () => {
-  assert.deepEqual(approvalTypeContracts, [true, true, true, true, true, true, true])
+  assert.deepEqual(approvalTypeContracts, [true, true, true, true, true, true, true, true])
 })
 
 const path = "db/migrations/0065_follow_up_task_approval_ledger.sql"
@@ -176,7 +177,7 @@ const preview = {
 const row = (status: "approved" | "replayed" = "approved") => Object.fromEntries([
   ["ok", true], ["status", status], ...["id", "request_id", "actor_id", "event_cutoff_id"].map((key) => [key, actor]),
   ["actor_role", "admin"], ["schema_version", "follow-up-approval.v1"], ["rule_version", "follow-up-backfill.v1"], ["event_cutoff_created_at", preview.eventCutoff.createdAt],
-  ["task_cutoff_created_at", null], ["task_cutoff_id", null], ...["reader_snapshot_hash", "canonical_plan_hash", "request_fingerprint", "projection_hash"].map((key) => [key, "a".repeat(64)]),
+  ["task_cutoff_created_at", null], ["task_cutoff_id", null], ...["reader_snapshot_hash", "canonical_plan_hash", "request_fingerprint", "approval_fingerprint", "projection_hash"].map((key) => [key, "a".repeat(64)]),
   ["canonical_plan", "[]"], ["eligible_projections", []], ...["eligible_count", "invalid_date_no_task_count", "manual_review_unassigned_owner_count", "excluded_lead_not_operational_count", "excluded_non_selected_history_count", "already_converted_count", "collision_manual_review_count", "total_count", "row_count", "projection_count", "canonical_plan_byte_count", "projection_byte_count", "request_byte_count"].map((key) => [key, 0]), ["created_at", preview.eventCutoff.createdAt],
 ])
 
@@ -188,6 +189,7 @@ test("adapter authenticates first, constructs exact injected RPC args, and maps 
     invokeRpc: async (_client, args) => { calls.push("rpc"); captured = args; return { data: row(), error: null } },
   })
   assert.deepEqual(calls, ["auth", "client", "rpc"]); assert.equal(result.ok, true); if (result.ok) assert.equal(result.replayed, false)
+  assert.equal(Object.hasOwn(result, "approvalFingerprint"), false)
   assert.deepEqual(Object.keys(captured ?? {}).sort(), ["p_canonical_plan", "p_canonical_plan_hash", "p_event_cutoff_created_at", "p_event_cutoff_id", "p_expected_actor_id", "p_eligible_projections", "p_projection_hash", "p_reader_snapshot_hash", "p_request_fingerprint", "p_request_id_text", "p_rule_version", "p_schema_version", "p_task_cutoff_created_at", "p_task_cutoff_id"].sort())
   assert.deepEqual(captured?.p_eligible_projections, [{ owner_id: actor, lead_id: lead, quote_id: null, description: "Follow up with lead", due_at: "2026-09-02T12:00:00.000Z", status: "pending", idempotency_key: taskKey, task_kind: "follow_up", source_event_id: event, source_event_type: "follow_up_registered", source_event_created_at: "2026-08-31T12:00:00.000Z", source_due_at: "2026-09-02T12:00:00.000Z", source_payload: { followUpAt: "2026-09-02T12:00:00.000Z", hasNote: true }, metadata: { schema: "follow_up_task.v1", source_event_id: event, source_event_type: "follow_up_registered", owner_id: actor, lead_id: lead }}])
   assert.equal(captured?.p_canonical_plan, JSON.stringify(preview.plan))
@@ -213,7 +215,7 @@ test("adapter preserves auth throws, maps transport/domain failures, and rejects
   assert.equal(rpcFailure.error.code, "APPROVAL_IDEMPOTENCY_CONFLICT")
   const malformed = await approveFollowUpTask({ requestId, preview }, { requireAdminRole: async () => ({ user: { id: actor } }), createClient: async () => ({} as any), invokeRpc: async () => ({ data: { ok: true }, error: null }) } as any)
   assert.equal(malformed.ok ? "unexpected" : malformed.error.code, "PERSISTENCE_FAILURE")
-  for (const data of [{ ...row(), extra: true }, null, [], { ...row(), id: 3 }, { ...row(), task_cutoff_created_at: "2026-09-01T00:00:00.000Z" }]) {
+  for (const data of [{ ...row(), extra: true }, null, [], { ...row(), id: 3 }, { ...row(), approval_fingerprint: "invalid" }, { ...row(), task_cutoff_created_at: "2026-09-01T00:00:00.000Z" }]) {
     const result = await approveFollowUpTask({ requestId, preview }, { requireAdminRole: async () => ({ user: { id: actor } }), createClient: async () => ({} as any), invokeRpc: async () => ({ data, error: null }) } as any)
     assert.equal(result.ok ? "unexpected" : result.error.code, "PERSISTENCE_FAILURE")
   }
