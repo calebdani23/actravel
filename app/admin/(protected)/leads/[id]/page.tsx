@@ -96,6 +96,7 @@ function quoteRequestStatusTone(status: string) {
 
 export default async function LeadDetailPage({ params, searchParams }: PageProps) {
   const [{ id }, currentSearchParams, session] = await Promise.all([params, searchParams, requireAdminRole(["admin", "asesor"])]);
+  const followUpRequestId = crypto.randomUUID().toLowerCase();
   const canDeleteLead = hasAnyRole(session.roles, ["admin"]);
   const [{ lead, notes, timeline, payments, bookings, documents, quoteRequests, relatedOpportunities, contact360, error }, statuses, advisors, messageTemplates, deletionSummary, quoteNavigationResult] = await Promise.all([
     getLeadDetail(id),
@@ -418,6 +419,7 @@ export default async function LeadDetailPage({ params, searchParams }: PageProps
                 </form>
 
                 <form action={registerFollowUpAction} className="space-y-2 rounded-[var(--admin-radius-control)] border border-[color:var(--admin-border-subtle)] bg-[color:var(--admin-surface-muted)] p-4">
+                  <input name="requestId" type="hidden" value={followUpRequestId} />
                   <input name="leadId" type="hidden" value={lead.id} />
                   <input name="contactId" type="hidden" value={lead.contact_id} />
                   <label className="text-sm font-medium text-[color:var(--admin-foreground)]" htmlFor="followUpBody">Registrar seguimiento</label>

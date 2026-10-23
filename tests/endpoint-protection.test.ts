@@ -180,13 +180,18 @@ test("standalone quote actions reject operations and finance mutation at both ro
 
 test("admin lead follow-up actions stay role gated and auditable", () => {
   const actions = readFileSync("app/admin/(protected)/leads/[id]/actions.ts", "utf8");
+  const adapter = readFileSync("lib/admin/follow-up-task-future-write.ts", "utf8");
   const page = readFileSync("app/admin/(protected)/leads/[id]/page.tsx", "utf8");
+  const followUpAction = actions.slice(actions.indexOf("export async function registerFollowUpAction"), actions.indexOf("export async function deleteLeadAction"));
 
   assert.match(actions, /export async function registerFollowUpAction/);
-  assert.match(actions, /requireAdminRole\(\["admin", "asesor"\]\)/);
-  assert.match(actions, /from\("lead_notes"\)\.insert/);
-  assert.match(actions, /"follow_up_registered"/);
-  assert.match(actions, /Number\.isNaN\(parsed\.getTime\(\)\)/);
+  assert.match(adapter, /\(deps\.requireAdminRole \?\? requireAdminRole\)\(\["admin", "asesor"\]\)/);
+  assert.match(followUpAction, /registerFollowUpTaskWrite\(\{ requestId, leadId, noteBody, dueAt \}\)/);
+  assert.match(followUpAction, /if \(!result\.ok\) throw new Error\(result\.error\.message\)/);
+  assert.doesNotMatch(followUpAction, /from\("lead_notes"\)|"follow_up_registered"|Number\.isNaN|new Date/);
+  assert.equal(followUpAction.indexOf("registerFollowUpTaskWrite") < followUpAction.indexOf("revalidateLeadWorkspace"), true);
+  assert.match(page, /const followUpRequestId = crypto\.randomUUID\(\)\.toLowerCase\(\)/);
+  assert.match(page, /name="requestId" type="hidden" value=\{followUpRequestId\}/);
   assert.match(page, /name="followUpBody"/);
   assert.match(page, /name="followUpAt"/);
   assert.equal(existsSync("app/admin/(protected)/leads/[id]/quote-version-actions.ts"), false);

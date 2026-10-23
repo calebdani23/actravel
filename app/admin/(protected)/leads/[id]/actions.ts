@@ -7,6 +7,7 @@ import { requireAdminRole } from "@/lib/admin/auth";
 import { contactDeletionBlockedMessage, formatContactDeletionBlockerList, formatLeadDeletionBlockerList, leadDeleteBlockerCountsFromJson, leadDeletionBlockedMessage, leadDeletionNotFoundMessage, safeLeadListQueryString, sanitizeLeadDeleteActionError } from "@/lib/admin/lead-delete";
 import { createClient } from "@/lib/supabase/server";
 import { TEST_DATA_PURGE_CONFIRMATION } from "@/lib/admin/leads";
+import { registerFollowUpTaskWrite } from "@/lib/admin/follow-up-task-future-write";
 import type { Json } from "@/lib/supabase/database.types";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f-]{27}$/i;
@@ -73,23 +74,14 @@ export async function addLeadNoteAction(formData: FormData) {
 }
 
 export async function registerFollowUpAction(formData: FormData) {
-  const session = await requireAdminRole(["admin", "asesor"]);
-  const leadId = requiredString(formData, "leadId");
-  const body = requiredString(formData, "followUpBody");
-  const followUpAtValue = formData.get("followUpAt");
-  let followUpAt: string | null = null;
-
-  if (typeof followUpAtValue === "string" && followUpAtValue.trim()) {
-    const parsed = new Date(followUpAtValue);
-    if (Number.isNaN(parsed.getTime())) throw new Error("followUpAt must be a valid date/time");
-    followUpAt = parsed.toISOString();
-  }
-
-  const supabase = await createClient();
-  const { error: noteError } = await supabase.from("lead_notes").insert({ lead_id: leadId, author_id: session.user.id, body, is_internal: true });
-  if (noteError) throw new Error(noteError.message);
-  await insertLeadEvent(leadId, session.user.id, "follow_up_registered", { followUpAt, hasNote: true });
-  revalidateLeadWorkspace(leadId, optionalContactId(formData));
+  const requestId = formData.get("requestId");
+  const leadId = formData.get("leadId");
+  const noteBody = formData.get("followUpBody");
+  const followUpAt = formData.get("followUpAt");
+  const dueAt = followUpAt === "" ? null : followUpAt;
+  const result = await registerFollowUpTaskWrite({ requestId, leadId, noteBody, dueAt });
+  if (!result.ok) throw new Error(result.error.message);
+  revalidateLeadWorkspace(leadId as string, optionalContactId(formData));
 }
 
 export async function deleteLeadAction(
