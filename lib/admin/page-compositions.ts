@@ -2,6 +2,8 @@ import { hasRole } from "@/lib/supabase/roles";
 import { requireAdminRoute, type AdminAuthActions, type AdminSessionLoader } from "@/lib/admin/auth";
 import type { getDuplicateAuditSnapshot } from "@/lib/admin/data-quality";
 import type { getDashboardMetrics } from "@/lib/admin/dashboard";
+import type { MiDiaResult } from "@/lib/admin/mi-dia";
+import { resolveMiDiaScope } from "@/lib/admin/mi-dia-scope";
 import type { getAdvisorCapableStaff, getStaffAccounts, getStaffAuditEvents } from "@/lib/admin/staff";
 import type { getQuotePortfolio, QuotePortfolioFilters, QuotePortfolioItemDto } from "@/lib/admin/quotes";
 
@@ -14,14 +16,25 @@ export type DashboardCompositionDeps = {
   authActions?: AdminAuthActions;
   getMetrics: typeof getDashboardMetrics;
   getDataQuality: typeof getDuplicateAuditSnapshot;
+  readMiDia?: (input: unknown) => Promise<MiDiaResult>;
+  miDiaRequest?: unknown;
 };
 
 export async function composeDashboardPage(deps: DashboardCompositionDeps) {
   const session = await requireAdminRoute("/admin/dashboard", undefined, deps.sessionLoader, deps.authActions);
+  const scope = resolveMiDiaScope(session.roles);
   try {
-    const [metrics, dataQuality] = await Promise.all([deps.getMetrics(), deps.getDataQuality()]);
+    const metricsPromise = scope ? deps.getMetrics({ includeLegacyFollowUps: false }) : deps.getMetrics();
+    const dataQualityPromise = deps.getDataQuality();
+    const miDia = scope
+      ? Promise.resolve()
+          .then(() => deps.readMiDia?.(deps.miDiaRequest ?? { cursor: null }) ?? ({ ok: false, error: { code: "PERSISTENCE_FAILURE", message: "PERSISTENCE_FAILURE" } } as const))
+          .catch(() => ({ ok: false, error: { code: "PERSISTENCE_FAILURE", message: "PERSISTENCE_FAILURE" } } as const))
+      : null;
+    const [metrics, dataQuality] = await Promise.all([metricsPromise, dataQualityPromise]);
     if (isManagerOnlySession(session.roles) && metrics.errors.length > 0) return { status: "redirect" as const };
-    return { status: "render" as const, session, metrics, dataQuality };
+    if (!scope) return { status: "render" as const, mode: "legacy" as const, session, metrics, dataQuality };
+    return { status: "render" as const, mode: "mi-dia" as const, scope, session, metrics, dataQuality, miDia: miDia! };
   } catch (error) {
     if (isManagerOnlySession(session.roles)) return { status: "redirect" as const, error };
     throw error;

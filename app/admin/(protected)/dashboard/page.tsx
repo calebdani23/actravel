@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { AlertBanner, EmptyState, MetricCard, PageContainer, PageHeader, QuietActionButton, SectionCard, StatusBadge } from "@/components/admin/admin-primitives";
+import { MiDiaLoading, MiDiaTaskList } from "@/components/admin/tasks/mi-dia-task-list";
 import { Button } from "@/components/ui/button";
 import { formatAdminDate, formatAdminDateTime, formatAdminDateWindowLabel, formatAdminInteger } from "@/lib/admin/format";
 import { composeDashboardPage } from "@/lib/admin/page-compositions";
 import { getDuplicateAuditSnapshot } from "@/lib/admin/data-quality";
 import { getDashboardMetrics } from "@/lib/admin/dashboard";
+import { readMiDiaPage, type MiDiaResult } from "@/lib/admin/mi-dia";
 import { redirect } from "next/navigation";
 
 function alertTone(level: "healthy" | "warning" | "critical") {
@@ -28,8 +31,14 @@ function followUpTone(overdue: boolean) {
   return overdue ? "warning" : "info";
 }
 
-export default async function AdminDashboardPage() {
-  const dashboard = await composeDashboardPage({ getMetrics: getDashboardMetrics, getDataQuality: getDuplicateAuditSnapshot });
+async function MiDiaSection({ result }: { result: Promise<MiDiaResult> }) {
+  return <MiDiaTaskList result={await result} />;
+}
+
+export default async function AdminDashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const params = await searchParams;
+  const miDiaRequest = Object.keys(params).length === 0 ? { cursor: null } : { cursor: params };
+  const dashboard = await composeDashboardPage({ getMetrics: getDashboardMetrics, getDataQuality: getDuplicateAuditSnapshot, readMiDia: readMiDiaPage, miDiaRequest });
   if (dashboard.status === "redirect") redirect("/admin/account");
   const { metrics, dataQuality } = dashboard;
   const today = new Date();
@@ -64,15 +73,17 @@ export default async function AdminDashboardPage() {
         <AlertBanner description="Algunas métricas no pudieron cargarse por completo en esta sesión. Los datos visibles siguen respetando tus permisos y puedes revisar los logs autorizados si necesitas más detalle técnico." title="Carga parcial" tone="warning" />
       ) : null}
 
+      {dashboard.mode === "mi-dia" ? <Suspense fallback={<MiDiaLoading />}><MiDiaSection result={dashboard.miDia} /></Suspense> : null}
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard detail={metrics.windows.overdueFollowUps} label="Seguimientos vencidos" tone={metrics.counts.overdueFollowUps ? "warning" : "info"} value={formatAdminInteger(metrics.counts.overdueFollowUps)} />
+        {dashboard.mode === "legacy" ? <MetricCard detail={metrics.windows.overdueFollowUps} label="Seguimientos vencidos" tone={metrics.counts.overdueFollowUps ? "warning" : "info"} value={formatAdminInteger(metrics.counts.overdueFollowUps)} /> : null}
         <MetricCard detail={metrics.windows.pendingPayments} label="Pagos pendientes" tone={metrics.counts.pendingPayments ? "warning" : "neutral"} value={formatAdminInteger(metrics.counts.pendingPayments)} />
         <MetricCard detail={metrics.windows.upcomingBookings} label="Reservas próximas" tone={metrics.counts.upcomingBookings ? "brand" : "neutral"} value={formatAdminInteger(metrics.counts.upcomingBookings)} />
         <MetricCard detail={metrics.windows.leadsToday} label="Prospectos de hoy" tone="brand" value={formatAdminInteger(metrics.counts.leadsToday)} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-        <SectionCard
+        {dashboard.mode === "legacy" ? <SectionCard
           title="Seguimientos por atender"
           description="Primero aparecen los leads vencidos o con contacto programado más cercano."
           actions={<QuietActionButton asChild><Link href="/admin/leads">Ver CRM</Link></QuietActionButton>}
@@ -98,7 +109,7 @@ export default async function AdminDashboardPage() {
           ) : (
             <EmptyState description="Todavía no hay seguimientos programados visibles para esta sesión." title="Sin seguimientos pendientes" />
           )}
-        </SectionCard>
+        </SectionCard> : null}
 
         <SectionCard
           title="Pagos pendientes"
