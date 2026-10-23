@@ -6,6 +6,71 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+type Expand<T> = { [Key in keyof T]: T[Key] }
+type TaskAutomationHistoricalApprovalRow = {
+  id: string
+  request_id: string
+  actor_id: string
+  actor_role: string
+  schema_version: string
+  preview_schema: string
+  rule_version: string
+  source_cutoffs: Json
+  snapshot_cutoffs: Json
+  snapshot_hash: string
+  plan: Json
+  plan_hash: string
+  projections: Json
+  projection_hash: string
+  request_fingerprint: string
+  approval_fingerprint: string
+  apply_generate_count: number
+  apply_suppress_count: number
+  already_projected_count: number
+  already_suppressed_count: number
+  excluded_not_actionable_count: number
+  manual_review_owner_invalid_count: number
+  manual_review_context_invalid_count: number
+  collision_manual_review_count: number
+  total_count: number
+  row_count: number
+  generate_count: number
+  suppress_count: number
+  projection_count: number
+  plan_byte_count: number
+  projection_byte_count: number
+  request_byte_count: number
+  created_at: string
+}
+type TaskAutomationHistoricalApprovalInsert = Expand<
+  Omit<TaskAutomationHistoricalApprovalRow, "id" | "actor_role" | "created_at">
+  & Partial<Pick<TaskAutomationHistoricalApprovalRow, "id" | "actor_role" | "created_at">>
+>
+type TaskAutomationHistoricalApplyReceiptRow = {
+  id: string
+  request_id: string
+  approval_id: string
+  actor_id: string
+  approval_fingerprint: string
+  plan_hash: string
+  projection_hash: string
+  task_ids: string[]
+  origin_keys: string[]
+  outcome_keys: string[]
+  tombstone_keys: string[]
+  generated_count: number
+  suppressed_count: number
+  projection_count: number
+  result: Json
+  result_hash: string
+  result_byte_count: number
+  created_at: string
+}
+type TaskAutomationHistoricalApplyReceiptInsert = Expand<
+  Omit<TaskAutomationHistoricalApplyReceiptRow, "id" | "created_at">
+  & Partial<Pick<TaskAutomationHistoricalApplyReceiptRow, "id" | "created_at">>
+>
+
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -608,6 +673,7 @@ export type Database = {
           reader_snapshot_hash: string
           canonical_plan_hash: string
           request_fingerprint: string
+          approval_fingerprint: string
           projection_hash: string
           canonical_plan: string
           eligible_projections: Json
@@ -640,6 +706,7 @@ export type Database = {
           reader_snapshot_hash: string
           canonical_plan_hash: string
           request_fingerprint: string
+          approval_fingerprint: string
           projection_hash: string
           canonical_plan: string
           eligible_projections: Json
@@ -672,6 +739,7 @@ export type Database = {
           reader_snapshot_hash?: string
           canonical_plan_hash?: string
           request_fingerprint?: string
+          approval_fingerprint?: string
           projection_hash?: string
           canonical_plan?: string
           eligible_projections?: Json
@@ -688,6 +756,60 @@ export type Database = {
           canonical_plan_byte_count?: number
           projection_byte_count?: number
           request_byte_count?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      follow_up_task_apply_receipts: {
+        Row: {
+          id: string
+          request_id: string
+          approval_id: string
+          actor_id: string
+          approval_fingerprint: string
+          request_fingerprint: string
+          canonical_plan_hash: string
+          projection_hash: string
+          status: string
+          task_ids: string[]
+          task_count: number
+          result: Json
+          result_hash: string
+          result_byte_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          request_id: string
+          approval_id: string
+          actor_id: string
+          approval_fingerprint: string
+          request_fingerprint: string
+          canonical_plan_hash: string
+          projection_hash: string
+          status: string
+          task_ids: string[]
+          task_count: number
+          result: Json
+          result_hash: string
+          result_byte_count: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          request_id?: string
+          approval_id?: string
+          actor_id?: string
+          approval_fingerprint?: string
+          request_fingerprint?: string
+          canonical_plan_hash?: string
+          projection_hash?: string
+          status?: string
+          task_ids?: string[]
+          task_count?: number
+          result?: Json
+          result_hash?: string
+          result_byte_count?: number
           created_at?: string
         }
         Relationships: []
@@ -2531,8 +2653,260 @@ export type Database = {
           },
         ]
       }
+      task_action_receipts: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_kind: string
+          cancel_reason: string | null
+          completion_outcome: string | null
+          created_at: string
+          from_status: string
+          id: string
+          note: string | null
+          outcome: string
+          owner_id: string
+          request_fingerprint: string
+          request_id: string | null
+          request_key: string
+          result: Json
+          result_byte_count: number
+          result_hash: string
+          source_id: string | null
+          source_key: string | null
+          source_kind: string | null
+          source_order: number | null
+          target_status: string
+          task_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_kind: string
+          cancel_reason?: string | null
+          completion_outcome?: string | null
+          created_at?: string
+          from_status: string
+          id?: string
+          note?: string | null
+          outcome: string
+          owner_id: string
+          request_fingerprint: string
+          request_id?: string | null
+          request_key: string
+          result: Json
+          result_byte_count: number
+          result_hash: string
+          source_id?: string | null
+          source_key?: string | null
+          source_kind?: string | null
+          source_order?: number | null
+          target_status: string
+          task_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_kind?: string
+          cancel_reason?: string | null
+          completion_outcome?: string | null
+          created_at?: string
+          from_status?: string
+          id?: string
+          note?: string | null
+          outcome?: string
+          owner_id?: string
+          request_fingerprint?: string
+          request_id?: string | null
+          request_key?: string
+          result?: Json
+          result_byte_count?: number
+          result_hash?: string
+          source_id?: string | null
+          source_key?: string | null
+          source_kind?: string | null
+          source_order?: number | null
+          target_status?: string
+          task_id?: string
+        }
+        Relationships: []
+      }
+      task_automation_historical_approvals: {
+        Row: TaskAutomationHistoricalApprovalRow
+        Insert: TaskAutomationHistoricalApprovalInsert
+        Update: Partial<TaskAutomationHistoricalApprovalRow>
+        Relationships: []
+      }
+      task_automation_historical_apply_receipts: {
+        Row: TaskAutomationHistoricalApplyReceiptRow
+        Insert: TaskAutomationHistoricalApplyReceiptInsert
+        Update: Partial<TaskAutomationHistoricalApplyReceiptRow>
+        Relationships: []
+      }
+      task_automation_outcomes: {
+        Row: {
+          created_at: string
+          operation: string
+          origin_key: string
+          outcome: string
+          outcome_key: string
+          reason: string | null
+          source_id: string
+          source_key: string
+          source_kind: string
+          source_order: number
+          task_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          operation: string
+          origin_key: string
+          outcome: string
+          outcome_key: string
+          reason?: string | null
+          source_id: string
+          source_key: string
+          source_kind: string
+          source_order: number
+          task_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          operation?: string
+          origin_key?: string
+          outcome?: string
+          outcome_key?: string
+          reason?: string | null
+          source_id?: string
+          source_key?: string
+          source_kind?: string
+          source_order?: number
+          task_id?: string | null
+        }
+        Relationships: []
+      }
+      task_automation_origins: {
+        Row: {
+          anchor_at: string
+          created_at: string
+          due_rule_version: string
+          operation: string
+          opportunity_id: string | null
+          origin_key: string
+          quote_version_id: string | null
+          sent_event_id: string | null
+          source_kind: string
+          task_id: string | null
+          task_kind: string
+        }
+        Insert: {
+          anchor_at: string
+          created_at?: string
+          due_rule_version: string
+          operation: string
+          opportunity_id?: string | null
+          origin_key: string
+          quote_version_id?: string | null
+          sent_event_id?: string | null
+          source_kind: string
+          task_id?: string | null
+          task_kind: string
+        }
+        Update: {
+          anchor_at?: string
+          created_at?: string
+          due_rule_version?: string
+          operation?: string
+          opportunity_id?: string | null
+          origin_key?: string
+          quote_version_id?: string | null
+          sent_event_id?: string | null
+          source_kind?: string
+          task_id?: string | null
+          task_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_automation_origins_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: true
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_automation_source_cutoffs: {
+        Row: {
+          cutoff_at: string
+          source_kind: string
+        }
+        Insert: {
+          cutoff_at: string
+          source_kind: string
+        }
+        Update: {
+          cutoff_at?: string
+          source_kind?: string
+        }
+        Relationships: []
+      }
+      task_automation_tombstones: {
+        Row: {
+          created_at: string
+          origin_key: string
+          reason: string
+          source_id: string
+          source_key: string
+          source_kind: string
+          source_order: number
+          tombstone_key: string
+        }
+        Insert: {
+          created_at?: string
+          origin_key: string
+          reason: string
+          source_id: string
+          source_key: string
+          source_kind: string
+          source_order: number
+          tombstone_key: string
+        }
+        Update: {
+          created_at?: string
+          origin_key?: string
+          reason?: string
+          source_id?: string
+          source_key?: string
+          source_kind?: string
+          source_order?: number
+          tombstone_key?: string
+        }
+        Relationships: []
+      }
+      task_due_calendar_rules: {
+        Row: {
+          created_at: string
+          payload: Json
+          rule_hash: string
+          rule_version: string
+        }
+        Insert: {
+          created_at?: string
+          payload: Json
+          rule_hash: string
+          rule_version: string
+        }
+        Update: {
+          created_at?: string
+          payload?: Json
+          rule_hash?: string
+          rule_version?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
+          automation_origin_key: string | null
           created_at: string
           description: string
           due_at: string
@@ -2552,6 +2926,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          automation_origin_key?: string | null
           created_at?: string
           description: string
           due_at: string
@@ -2571,6 +2946,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          automation_origin_key?: string | null
           created_at?: string
           description?: string
           due_at?: string
@@ -2590,6 +2966,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_automation_origin_key_fkey"
+            columns: ["automation_origin_key"]
+            isOneToOne: true
+            referencedRelation: "task_automation_origins"
+            referencedColumns: ["origin_key"]
+          },
           {
             foreignKeyName: "tasks_lead_id_fkey"
             columns: ["lead_id"]
@@ -2756,6 +3139,49 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_task_automation_historical_plan: {
+        Args: {
+          p_request_id_text: string
+          p_expected_actor_id: string
+          p_preview_schema: string
+          p_rule_version: string
+          p_source_cutoffs: Json
+          p_snapshot_cutoffs: Json
+          p_snapshot_hash: string
+          p_plan_hash: string
+          p_projection_hash: string
+          p_request_fingerprint: string
+          p_plan: Json
+          p_projections: Json
+        }
+        Returns: Json
+      }
+      apply_task_automation_historical_plan: {
+        Args: { p_request_id_text: string; p_expected_actor_id: string }
+        Returns: Json
+      }
+      read_task_automation_historical_readiness: {
+        Args: { p_request_id_text: string; p_expected_actor_id: string }
+        Returns: Json
+      }
+      read_task_automation_historical_boundaries: {
+        Args: { p_expected_actor_id: string }
+        Returns: Json
+      }
+      read_task_automation_historical_sources: {
+        Args: { p_expected_actor_id: string; p_boundaries: Json }
+        Returns: Json
+      }
+      read_mi_dia_page: {
+        Args: {
+          p_reference_time_text: string
+          p_expected_actor_id: string
+          p_limit: number
+          p_after_due_at_text: string | null
+          p_after_id_text: string | null
+        }
+        Returns: Json
+      }
       approve_follow_up_task_plan: {
         Args: {
           p_request_id_text: string
@@ -2772,6 +3198,40 @@ export type Database = {
           p_request_fingerprint: string
           p_canonical_plan: string
           p_eligible_projections: Json
+        }
+        Returns: Json
+      }
+      apply_approved_follow_up_task_plan: {
+        Args: {
+          p_request_id_text: string
+          p_expected_actor_id: string
+        }
+        Returns: Json
+      }
+      read_follow_up_task_disposition_readiness: {
+        Args: {
+          p_request_id_text: string
+          p_expected_actor_id: string
+        }
+        Returns: Json
+      }
+      register_follow_up_action: {
+        Args: {
+          p_request_id_text: string
+          p_expected_actor_id: string
+          p_lead_id_text: string
+          p_note_body: string
+          p_due_at: string | null
+        }
+        Returns: Json
+      }
+      crm_record_quote_version_response: {
+        Args: {
+          p_request_id_text: string
+          p_expected_actor_id: string
+          p_quote_id: string
+          p_quote_version_id: string
+          p_channel: "phone" | "email" | "whatsapp" | "portal" | "other"
         }
         Returns: Json
       }
@@ -3901,28 +4361,19 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      task_actor_can_manage: { Args: { p_owner_id: string }; Returns: boolean }
-      task_transition: {
-        Args: { p_target_status: string; p_task_id: string }
-        Returns: {
-          created_at: string
-          description: string
-          due_at: string
-          id: string
-          idempotency_key: string
-          lead_id: string | null
-          owner_id: string
-          quote_id: string | null
-          status: string
-          updated_at: string
+      task_action: {
+        Args: {
+          p_request_id_text: string
+          p_expected_actor_id: string
+          p_task_id_text: string
+          p_target_status: "in_progress" | "completed" | "canceled"
+          p_cancel_reason: "no_longer_needed" | "duplicate" | "source_invalidated" | "other" | null
+          p_completion_outcome: "first_contact_completed" | "work_completed" | null
+          p_note: string | null
         }
-        SetofOptions: {
-          from: "*"
-          to: "tasks"
-          isOneToOne: true
-          isSetofReturn: false
-        }
+        Returns: Json
       }
+      task_actor_can_manage: { Args: { p_owner_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
