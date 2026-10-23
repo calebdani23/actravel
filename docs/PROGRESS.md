@@ -1,5 +1,185 @@
 # Progreso AC Travel Mx MVP
 
+## 2026-10-06 — Week 03 closed locally after final reconciliation
+
+The final passive reconciliation passed against unchanged product and test bytes: **10/10 archives**, **132/132 packet task rows**, **19/19 canonical specifications**, unchanged serial aggregates **97/97** and **81/81** with zero skips, TypeScript, lint, the **96/96-page** build, protected migrations **28/28**, exact `0089`, generated-file restoration, mixed-worktree/diff preservation, and zero remaining `actravel-*` containers. Packet counts remain overlapping compositions rather than deduplicated Week 03 coverage.
+
+The record preserves the classifier zero-scenario/corrected-failure history; preview-reader operational, readability, and baseline-only advisories; PostgreSQL-helper advisories; approval-ledger unmanaged-compatibility interpretation; approved-plan duration/coverage warnings and corrected findings; and the historical Docker-readiness incident resolved by an unchanged complete rerun.
+
+Week 03 is **closed locally** only. Current remote migration, schema, data, RLS, historical-bootstrap execution, and deployed application state remain unknown; no remote inspection or mutation, migration application, operational bootstrap execution, Git delivery, deployment, rollout, or production-readiness determination occurred. The next route is only a separate bounded Week 04 `customer-identity-foundation` planning change; Weeks 04–12 remain future work.
+
+## 2026-10-06 — Role-aware Mi día verified and archived locally
+
+The `week-03-role-aware-mi-dia` packet is archived at `openspec/changes/archive/2026-10-06-week-03-role-aware-mi-dia/`. Canonical source of truth now includes `role-aware-mi-dia` and the composed three-requirement amendment to `follow-up-task-application-cutover`. Final independent evidence passed **21/21 requirements**, **81/81 scenarios**, and **11/11 tasks**.
+
+Focused Mi día/routing passed **33/33**, UI **5/5**, Playwright Chromium **5/5**, Mi día PostgreSQL **1/1**, combined action/automation/source/historical regression **97/97**, and follow-up/Task/CRM preservation **81/81**, all with zero skips. TypeScript, lint, diff checks, protected hashes **28/28**, cleanup, and the **96/96-page** build passed. The verify-report SHA-256 is `f3a178dd5d71b6c1479992efa3f2c66ff56a6ec2052e97f47bc8cdee0f91206d`.
+
+All implementation and database evidence is local/disposable. Remote migration/schema/data parity, migration application, rollout, production readiness, and Week 03 closure remain unknown and unclaimed. The only next route is a separate final Week 03 closure reconciliation.
+
+## 2026-09-28 — Historical bootstrap verified and archived locally
+
+The `week-03-task-automation-historical-bootstrap` packet is archived at `openspec/changes/archive/2026-09-28-week-03-task-automation-historical-bootstrap/`. Canonical source of truth now includes `task-automation-historical-classification`, `task-automation-historical-preview`, `task-automation-historical-approval`, and `task-automation-historical-apply`. Final independent evidence passed **34/34 requirements**, **62/62 scenarios**, **19/19 tasks**, and **18/18 native slices**.
+
+Focused proof passed **47/47**, the runtime packet **22/22**, the historical aggregate **66/66**, automation/action/source regression **97/97**, follow-up/cutover preservation **80/80**, and calendar parity **2/2**, all with zero skips. TypeScript, lint, the guarded **96/96-page** build, diff checks, protected hashes, and cleanup passed. The verify-report SHA-256 is `9174ffa9ed013c15accb7a2e850d79ee20f91a551e8c9e2661582acfeb35bbbd`. The transient Docker-readiness incident retained in the verification record was resolved by a clean unchanged rerun and is not an unresolved archive warning.
+
+This archive is local-only. Remote migration, schema, data, and execution parity remain unknown; migrations `0081`–`0088` remain unapplied outside disposable proof. No migration application, operational bootstrap execution, remote action, Git delivery, rollout, production readiness, Mi día delivery, or Week 03 closure is claimed. The next route is role-aware Mi día, followed by a separate final Week 03 closure reconciliation.
+
+## 2026-09-27 — Historical bootstrap implementation complete locally
+
+The `week-03-task-automation-historical-bootstrap` implementation now has **19/19 task checkboxes** and **18/18 native slices** complete locally. Local unapplied migrations `0081`–`0088` provide bounded preview, immutable approval, atomic receipt-first apply, and read-only readiness. The final server-only readiness caller is auth-first and accepts only exact rows, ordering, identities, failures, the 17-key count object, and every readiness equation.
+
+Focused proof passed **47/47**, the adapter/readiness focus passed **4/4**, the runtime packet passed **22/22**, and the full historical aggregate passed **66/66**. Automation/action/source regression passed **97/97**, follow-up/cutover preservation passed **80/80**, and calendar parity passed **2/2**, all with zero skips. TypeScript, lint, the guarded **96/96-page** build, diff hygiene, protected `0077`–`0080` SHA-256 **4/4**, disposable PostgreSQL cleanup, and restoration of `next-env.d.ts` passed.
+
+This is verified local/disposable implementation state and is ready for local SDD archive. Remote migration, schema, data, and execution state remains unknown. No migration application, operational bootstrap execution, remote action, rollout, production readiness, Mi día delivery, or Week 03 closure is claimed; role-aware Mi día and final Week 03 closure remain separate future work.
+
+## 2026-09-24 — Week 03 automation/action audit verified and archived locally
+
+The `week-03-task-automation-and-action-audit` packet is archived at
+`openspec/changes/archive/2026-09-24-week-03-task-automation-and-action-audit/`. Canonical source of
+truth now includes `task-action-audit`, `task-automation-foundation`, `task-source-automation`, and the
+composed `tasks-foundation` amendment. Final independent evidence passed **22/22 requirements**,
+**31/31 scenarios**, **14/14 tasks**, and **13/13 native slices**.
+
+The complete automation/action/source suite passed **31/31** and the Task/follow-up/cutover
+preservation suite passed **80/80**, both with zero skips. TypeScript, lint, the guarded **96/96-page**
+build, diff checks, protected-content receipts, and cleanup passed. The verify-report SHA-256 is
+`415251bf5f8b1914b1a7cf9a7a89cccc2c475a945a32e05fcef5698811708610`. The pre-existing mixed local
+Week 03 worktree state was preserved and is not an implementation failure.
+
+This archive is local-only. Remote migration, schema, and data parity remain unknown; no migration
+application, rollout, production readiness, or Week 03 closure is claimed. The next route is a separate
+historical automation preview/apply bootstrap, followed by role-aware Mi día and a separate final Week
+03 closure reconciliation.
+
+## 2026-09-24 — Week 03 automation/action implementation complete locally
+
+The active `week-03-task-automation-and-action-audit` implementation now has 14/14 tasks and 13/13
+native slices complete locally. Migration `0080` adds exact unambiguous WhatsApp and verified
+`accepted_quote_version_id` payment cancellation through immutable source order, tombstones/outcomes,
+and the private audited Task writer. Ambiguous WhatsApp, received or nonmatching payment, replay, and
+terminal races remain closed without broad cancellation.
+
+Focused cancellation/preservation proof passed **4/4** and the full automation/action/cutover
+aggregate passed **31/31**, both with zero skips. TypeScript, lint, the 96-page guarded build, diff
+hygiene, protected `0064`/`0068`–`0079` preservation, and disposable PostgreSQL cleanup passed.
+Build-owned `next-env.d.ts` was restored to SHA-256 `7ad303e40d4fddf44f156129e397511953a71481c5cfd86b1862649aaaf240cc`.
+
+This records verified local/disposable implementation state only. No remote access, migration apply,
+rollout, production-readiness, independent verification, archive, or Week 03 closure is claimed. The
+next gate is independent verification/archive, followed separately by role-aware Mi día planning.
+
+## 2026-09-14 — Week 03 follow-ups-to-Tasks cutover archived locally
+
+The cutover is complete and archived locally at
+`openspec/changes/archive/2026-09-14-week-03-followups-to-tasks-cutover/`. Its four canonical
+capabilities are `follow-up-task-disposition-readiness`, `follow-up-task-future-write`,
+`follow-up-task-read-contracts`, and `follow-up-task-application-cutover`. The final ledger is
+14/14 tasks, 24/24 requirements, and 24/24 scenarios, with no blockers, critical findings, or warnings.
+
+Independent verification passed database runtime **18/18** and application/unit **89/89**, for
+**107/107** total with zero skips. TypeScript, lint, the 96-page build, and diff hygiene passed. The
+verify report SHA-256 is `6ddafff521a460aecf82abc10ee489f650b575b55b961e80e39b1d655a76ad73`,
+and deterministic local admission remained
+`sha256:931fe544fb857fc7b6ec262127cc56335ace1a846492a56aabf594f1a4116ce1`.
+
+Migrations `0068`–`0076` and admitted Dashboard/lead/Contact Task-backed reads are local artifacts.
+Protected migrations `0049`, `0052`, and `0061`–`0067`, staged content, Week 01 planning, approved-plan
+archive state, and unrelated work were preserved. Remote migration, schema, and data state remains
+unknown; no rollout, production-readiness, or Week 03 closure is claimed. Next is planning for
+SLA/task automation plus Task action audit/idempotency, then role-aware Mi día and final closure.
+
+## 2026-09-13 — Week 03 approved-plan required-row null remediation
+
+Completed the single bounded local correction for current verification finding F-01. Migration
+`0067` now explicitly rejects JSON null in every required canonical row field—`eventId`, `leadId`,
+`eventCreatedAt`, `disposition`, and `reason`—before regex, disposition/reason, count, bounds, live,
+occupancy, or write decisions. Existing equations, limits, precedence, atomicity, projections,
+authorization, policy, types, and adapters remain unchanged.
+
+The RED ten-case eligible/retained-noneligible matrix reproduced five accepted applies with changed
+DML counts. GREEN passed **1/1**; the complete focused runtime passed **12/12** and the four-file
+database suite passed **22/22**, both with zero skips. Approval unit **8/8**, lint, TypeScript, and the
+96-page build passed; `next-env.d.ts` was restored. Evidence remains local/disposable and awaits fresh
+independent verification. No stage, commit, push, PR, package, remote database, parity, rollout,
+archive, or production-readiness operation or claim was made.
+
+## 2026-09-13 — Week 03 approved-plan apply integrity remediation
+
+Completed the bounded local remediation for both failed verification findings. Migration `0067` now
+rejects self-consistent canonical-plan tampering across noneligible rows, plan/header/row cardinality,
+the closed disposition/reason matrix, all seven count equations, projections, hashes, fingerprints,
+and byte equations before mutation. All six canonical UTF-8 boundaries are explicit while receipt
+replay and stale → occupancy → bounds precedence remain unchanged.
+
+RED reproduced accepted tampering and incorrect bound precedence; GREEN runtime passed **11/11** with
+zero skips, and the complete DB-enabled approved-plan suite passed **21/21** with zero skips. Approval
+unit **8/8**, lint, TypeScript, and the 96-page build also passed. Evidence is local/disposable only;
+no stage, commit, push, PR, remote database, parity, rollout, archive, or production-readiness claim
+was made.
+
+## 2026-09-13 — Week 03 approval compatibility correction
+
+Completed the bounded corrective compatibility work unit for the final local `0067` schema. Valid
+fresh and replayed approval RPC responses now include a strictly validated private
+`approval_fingerprint`; the public `ApprovalSuccess` shape is unchanged. Manual Supabase approval
+Row/Insert/Update types include the final non-null field, and the approval runtime harness now proves
+fresh/replay compatibility after applying `0066` and `0067`.
+
+Focused approval tests passed **8/8**, approval-ledger runtime passed **1/1** with zero skips, and the
+DB-enabled approved-plan suite passed **20/20** with zero skips. Lint, TypeScript, and the 96-page safe
+build passed. Migration `0065` and protected unrelated work remain unchanged. Evidence is local and
+disposable only; no commit, stage, push, PR, remote database operation, parity, rollout, archive, or
+production-readiness claim was made.
+
+## 2026-09-10 — Week 03 approved-plan apply corrective proof rerun
+
+The one permitted corrective rerun resolved both validation blockers. `0067` now persists and
+self-validates the apply-request fingerprint derived from the exact canonical preimage
+`["follow-up-task-apply-request.v1", requestText, actorText]`; receipt-only replay rejects any
+syntactically valid but incorrect stored fingerprint before live approval/source lookup. Runtime
+occupancy fixtures now have numeric preconditions proving exactly one match in the intended source,
+owner-key, or owner-lead namespace and zero matches in the other two, with unchanged Task/receipt
+and non-target DML counts after each conflict.
+
+Focused runtime passed **10/10**, receipt **4/4**, and the complete four-file DB-enabled suite
+passed **20/20**, all with zero skips. Standalone type **1/1**, adapter **5/5**, lint, TypeScript,
+safe build, exact rollback, and diff hygiene passed. This is local/disposable evidence only; remote
+state remains unknown and no parity, rollout, archive, or production readiness is claimed. The
+approved stacked-to-main Slice 2 `size:exception` remains within its 800-line cap; no commit,
+stage, push, PR, remote database, Week 1, or `0061`–`0065` change occurred.
+
+## 2026-09-09 — Week 03 approved-plan apply corrective proof
+
+The prior permitted corrective re-run completed partial contract corrections locally. `0067` now
+uses the stored approval fingerprint, stable live-context lock order, UUID-ordered Task locks, and
+closed stale/occupancy/bounds precedence. The disposable PostgreSQL proof includes executable
+auth, invalid/absent approval, stale owner, source occupancy, replay/purge, exact projection,
+receipt, append-only/RLS, and no-unrelated-DML assertions. Its focused output was 11/11 PASS, but
+later validation found request-fingerprint and occupancy-fixture gaps;
+the disposable `0057`–`0066` and `0057`–`0067` scenarios passed with no skips.
+
+Correction manifest: `db/migrations/0067_follow_up_task_apply_rpc.sql`,
+`tests/follow-up-task-approved-plan-apply-runtime.test.ts`,
+`tests/follow-up-task-approved-plan-apply-receipt.test.ts`, and these living records. Excluded
+unchanged user work: `openspec/changes/week-01-recovery-adapters/**`; no Week 1 path was edited,
+staged, or deleted. No commit, stage, push, PR, remote database, or migration execution occurred.
+
+## 2026-09-09 — Week 03 approved-plan apply complete locally
+
+The final Slice 4 (tasks 4.1–4.3) adds the server-only authenticated adapter at
+`lib/admin/follow-up-task-approved-plan-apply.ts` and its strict focused proof. It accepts only
+`{requestId}`, authenticates before client creation, preserves auth throws, validates exact private
+RPC/nested-result contracts and canonical UUID/identity/order/duplicate/count/cardinality invariants,
+and maps successful receipts to the public camel-case union. Provider errors and malformed responses
+map only to adapter-level `PERSISTENCE_FAILURE`; RPC domain errors remain closed.
+
+The complete approved-plan apply change (12/12 task groups) is locally implemented and pending bounded
+review then SDD verification. Proof is local/disposable only; remote migration and schema state remain
+unknown, and no remote operation, archive, production readiness, rollout, parity/read cutover,
+future-write conversion, dashboard/UI, automation, notifications, or Week 1 change is claimed.
+Slices 1–3, migrations `0061`–`0067`, and unrelated paths remain byte-preserved. Rollback is limited
+to the Slice 4 adapter/test and living documentation/apply-progress records.
+
 ## 2026-09-08 — Week 03 approval ledger archived
 
 The approval-ledger support change is complete and archived at commit `5f65d42`. Its canonical
