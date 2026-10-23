@@ -3,9 +3,12 @@ import { connection } from "next/server";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { StaffCreateForm } from "@/components/admin/staff/staff-create-form";
 import { StaffEditForm } from "@/components/admin/staff/staff-action-forms";
+import { MiDiaTaskActions } from "@/components/admin/tasks/mi-dia-task-actions";
 import { composeAccountPage, composeDashboardPage, composeStaffPage } from "@/lib/admin/page-compositions";
 import type { AdminSession } from "@/lib/admin/auth";
 import type { StaffAccount } from "@/lib/admin/staff";
+import { fixtureMiDiaAction } from "./actions";
+import { DashboardRouteErrorFixture } from "./route-error-fixture";
 
 const fixtureSession = (roles: readonly AdminSession["roles"][number][]): AdminSession => ({
   user: { id: "e2e-fixture-user", email: "fixture@example.com" },
@@ -43,16 +46,41 @@ function FixtureShell({ session, children }: { session: AdminSession; children: 
   return <AdminShell email={session.user.email ?? ""} profile={session.profile} roles={session.roles}>{children}</AdminShell>;
 }
 
+const taskId = "11111111-1111-4111-8111-111111111111";
+const requestIds = {
+  start: "21111111-1111-4111-8111-111111111111", complete: "31111111-1111-4111-8111-111111111111",
+  cancel: { no_longer_needed: "41111111-1111-4111-8111-111111111111", duplicate: "51111111-1111-4111-8111-111111111111", source_invalidated: "61111111-1111-4111-8111-111111111111", other: "71111111-1111-4111-8111-111111111111" },
+};
+
+function MiDiaAccessibilityFixture({ pageTwo }: { pageTwo: boolean }) {
+  if (pageTwo) return <section aria-labelledby="fixture-mi-dia"><h1 id="fixture-mi-dia">Mi día</h1><p>Página siguiente activada</p></section>;
+  const next = "/e2e-manager-capability?scenario=mi-dia-accessibility&referenceTime=2026-09-28T12%3A00%3A00.000000Z&afterDueAt=2026-09-28T12%3A00%3A00.000000Z&afterId=11111111-1111-4111-8111-111111111111";
+  return <section aria-labelledby="fixture-mi-dia"><h1 id="fixture-mi-dia">Mi día</h1><p>Mis tareas</p>
+    <section aria-labelledby="fixture-hoy"><h2 id="fixture-hoy">Hoy (1)</h2><ul><li><strong>Seguimiento</strong> <span>Pendiente</span><time dateTime="2026-09-28T12:00:00.000000Z">28 sept 2026, 06:00 hora de Ciudad de México</time>
+      <MiDiaTaskActions action={fixtureMiDiaAction} item={{ taskId, kind: "follow_up", status: "pending" }} requestIds={requestIds} />
+    </li></ul></section><nav aria-label="Paginación de Mi día"><a href={next}>Siguiente</a></nav></section>;
+}
+
 export default async function ManagerCapabilityFixture({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   await connection();
   if (process.env.E2E_DISABLE_EXTERNAL_BOUNDARIES !== "1") notFound();
   const params = await searchParams;
   const scenario = typeof params.scenario === "string" ? params.scenario : "manager-navigation";
-  const roles = scenario.startsWith("admin-") ? (["admin"] as const) : scenario === "combined-denial" ? (["manager", "asesor"] as const) : (["manager"] as const);
+  const unsupportedRole = scenario.startsWith("unsupported-") ? scenario.slice("unsupported-".length) as "operaciones" | "finanzas" | "marketing" : null;
+  const roles = unsupportedRole ? ([unsupportedRole] as const) : scenario.startsWith("admin-") ? (["admin"] as const) : scenario === "combined-denial" ? (["manager", "asesor"] as const) : (["manager"] as const);
   const sessionLoader = async () => fixtureSession(roles);
 
   if (scenario === "manager-navigation") {
     return <FixtureShell session={fixtureSession(["manager"])}><h1>Manager navigation</h1><p>Manager navigation fixture</p></FixtureShell>;
+  }
+  if (scenario === "mi-dia-accessibility") {
+    return <MiDiaAccessibilityFixture pageTwo={typeof params.afterId === "string"} />;
+  }
+  if (scenario === "dashboard-route-error") {
+    return <DashboardRouteErrorFixture />;
+  }
+  if (unsupportedRole) {
+    return <FixtureShell session={fixtureSession([unsupportedRole])}><h1>Legacy Dashboard preserved</h1><p>Existing Dashboard content</p></FixtureShell>;
   }
   if (scenario === "dashboard-healthy" || scenario === "dashboard-unhealthy") {
     const dashboard = await composeDashboardPage({

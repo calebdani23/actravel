@@ -1,5 +1,6 @@
 import { type RoleName } from "@/lib/supabase/roles";
 import { isAdminRouteAllowed, isManagerOnlySession } from "@/lib/admin/manager-boundary";
+import { resolveMiDiaScope } from "@/lib/admin/mi-dia-scope";
 
 export type AdminNavIcon =
   | "layout-dashboard"
@@ -127,7 +128,9 @@ export const ADMIN_NAV_ITEMS = [
 
 export function getVisibleAdminNavItems(roles: readonly string[]) {
   const managerOnly = isManagerOnlySession(roles);
-  const visible = ADMIN_NAV_ITEMS.filter((item) => item.roles.some((role) => roles.includes(role)));
+  const visible = ADMIN_NAV_ITEMS
+    .filter((item) => item.roles.some((role) => roles.includes(role)))
+    .map((item) => item.href === "/admin/dashboard" && resolveMiDiaScope(roles) ? { ...item, label: "Mi día" } : item);
   return managerOnly ? visible.filter((item) => item.href === "/admin/dashboard" || item.href === "/admin/account") : visible;
 }
 

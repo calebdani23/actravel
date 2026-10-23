@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { composeAccountPage } from "@/lib/admin/page-compositions";
@@ -8,6 +9,7 @@ import { composeStaffPage } from "@/lib/admin/page-compositions";
 import { requireAdminRole, requireAdminRoute } from "@/lib/admin/auth";
 import type { getDashboardMetrics } from "@/lib/admin/dashboard";
 import type { getDuplicateAuditSnapshot } from "@/lib/admin/data-quality";
+import { readMiDiaActionContext, type MiDiaActorResult } from "@/lib/admin/mi-dia";
 
 const session = (roles: string[]) => ({
   user: { id: "user-1", email: "test@example.com" },
@@ -102,14 +104,17 @@ test("Dashboard composition invokes both read families once, reuses results, and
 test("Dashboard authorization denial happens before either dashboard read family", async () => {
   let metricReads = 0;
   let dataQualityReads = 0;
+  let miDiaReads = 0;
   await assert.rejects(() => composeDashboardPage({
     sessionLoader: async () => null,
     authActions: actions,
     getMetrics: async () => { metricReads += 1; return { errors: [] } as never; },
     getDataQuality: async () => { dataQualityReads += 1; return {} as never; },
+    readMiDia: async () => { miDiaReads += 1; return { ok: false } as never; },
   }));
   assert.equal(metricReads, 0);
   assert.equal(dataQualityReads, 0);
+  assert.equal(miDiaReads, 0);
 });
 
 test("production authorization seams use the injected session loader", async () => {
@@ -122,4 +127,28 @@ test("production authorization seams use the injected session loader", async () 
   await assert.rejects(() => requireAdminRole(["admin"], loadSession, actions));
   await assert.rejects(() => requireAdminRoute("/admin/quotes", undefined, loadSession, actions));
   assert.equal(loaded, 2);
+});
+
+test("Dashboard route error boundary is focused, safe, and resettable", () => {
+  const source = readFileSync("app/admin/(protected)/dashboard/error.tsx", "utf8");
+  assert.match(source, /^"use client";/);
+  assert.match(source, /role="alert"[^>]*tabIndex=\{-1\}/);
+  assert.match(source, /\.current\?\.focus\(\)/);
+  assert.match(source, /onClick=\{reset\}/);
+  assert.match(source, /No pudimos mostrar el Dashboard\./);
+  assert.doesNotMatch(source, /error\.(?:message|stack|digest)/);
+});
+
+test("Mi día context links require exact current route authority", async () => {
+  const actor = (roles: ("manager" | "asesor")[], actorId: string): Extract<MiDiaActorResult, { ok: true }> => ({ ok: true, actorId, profile: { id: actorId, isActive: true }, rawRoleNames: roles, roles, scope: roles.includes("manager") ? "team" : "self" });
+  const owner = "11111111-1111-4111-8111-111111111111", other = "22222222-2222-4222-8222-222222222222", taskId = "33333333-3333-4333-8333-333333333333", contextId = "44444444-4444-4444-8444-444444444444";
+  const readTask = async () => ({ data: { id: taskId, owner_id: owner, task_kind: "follow_up", status: "pending", lead_id: contextId, quote_id: null }, error: null });
+  let helperCalls = 0;
+  const manager = await readMiDiaActionContext(actor(["manager"], other), taskId, { createClient: async () => ({}), readTask, canReadLead: async () => { helperCalls += 1; return { data: true, error: null }; } });
+  assert.equal(manager.ok && manager.navigationHref, null);
+  assert.equal(helperCalls, 0);
+  const allowed = await readMiDiaActionContext(actor(["asesor"], owner), taskId, { createClient: async () => ({}), readTask, canReadLead: async (_client, leadId) => ({ data: leadId === contextId, error: null }) });
+  assert.equal(allowed.ok && allowed.navigationHref, `/admin/leads/${contextId}`);
+  const stale = await readMiDiaActionContext(actor(["asesor"], owner), taskId, { createClient: async () => ({}), readTask, canReadLead: async () => ({ data: false, error: null }) });
+  assert.equal(stale.ok && stale.navigationHref, null);
 });

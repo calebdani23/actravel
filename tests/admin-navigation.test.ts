@@ -42,6 +42,24 @@ test("Manager navigation is limited to the safe landing and account", () => {
   assert.equal(isAdminRouteAllowed(["admin"], "/admin/staff"), true);
 });
 
+test("Dashboard navigation uses Mi día only for supported role unions", () => {
+  for (const roles of [["admin"], ["manager"], ["asesor"], ["manager", "operaciones"], ["asesor", "marketing"]]) {
+    const home = getVisibleAdminNavItems(roles).find((item) => item.href === "/admin/dashboard");
+    assert.deepEqual({ href: home?.href, label: home?.label, group: home?.group }, { href: "/admin/dashboard", label: "Mi día", group: "Resumen" });
+  }
+  for (const roles of [["operaciones"], ["finanzas"], ["marketing"]]) {
+    const home = getVisibleAdminNavItems(roles).find((item) => item.href === "/admin/dashboard");
+    assert.deepEqual({ href: home?.href, label: home?.label, group: home?.group }, { href: "/admin/dashboard", label: "Resumen", group: "Resumen" });
+  }
+});
+
+test("unsupported navigation keeps every existing role-visible route", () => {
+  const hrefs = (role: string) => getVisibleAdminNavItems([role]).map((item) => item.href);
+  assert.deepEqual(hrefs("operaciones"), ["/admin/dashboard", "/admin/operations/bookings", "/admin/quotes", "/admin/operations/documents", "/admin/account"]);
+  assert.deepEqual(hrefs("finanzas"), ["/admin/dashboard", "/admin/payments", "/admin/quotes", "/admin/account"]);
+  assert.deepEqual(hrefs("marketing"), ["/admin/dashboard", "/admin/logs", "/admin/catalog/destinations", "/admin/catalog/packages", "/admin/templates", "/admin/account"]);
+});
+
 test("combined Manager and advisor retains advisor route access without Manager fallback", () => {
   assert.deepEqual(getVisibleAdminNavItems(["manager", "asesor"] as const).map((item) => item.href), [
     "/admin/dashboard",

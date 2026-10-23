@@ -71,7 +71,7 @@ function getRouteContext(pathname: string, visibleLinks: AdminNavItem[]) {
     ...(extra ? [{ label: extra }] : []),
   ];
 
-  if (pathname === "/admin/dashboard") return { eyebrow: "Panel administrativo", title: "Resumen general", breadcrumbs: trail() };
+  if (pathname === "/admin/dashboard") return { eyebrow: "Panel administrativo", title: activeLink?.label ?? "Resumen", breadcrumbs: trail() };
   if (pathname === "/admin/logs") return { eyebrow: "Seguimiento operativo", title: "Registro operativo", breadcrumbs: trail() };
   if (pathname === "/admin/leads") return { eyebrow: "Gestión comercial", title: "Prospectos", breadcrumbs: trail() };
   if (pathname === "/admin/leads/new") return { eyebrow: "Gestión comercial", title: "Nuevo prospecto", breadcrumbs: trail("Nuevo prospecto") };
