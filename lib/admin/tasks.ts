@@ -28,6 +28,14 @@ export type TaskInput = {
   dueAt: string | Date
 }
 export type NormalizedTaskInput = Omit<TaskInput, "dueAt"> & { dueAt: string }
+export type FollowUpTaskProjection = {
+  taskId: string
+  nextFollowUpAt: string
+  followUpOverdue: boolean
+}
+type FollowUpTaskReadRow = Pick<TaskRow, "id" | "lead_id" | "due_at" | "status" | "task_kind"> & {
+  leads: { archived_at: string | null; deleted_at: string | null } | Array<{ archived_at: string | null; deleted_at: string | null }> | null
+}
 export type TaskErrorCode =
   | "TASK_UNAUTHENTICATED" | "TASK_INVALID_ARGUMENT" | "TASK_FORBIDDEN"
   | "TASK_CONTEXT_INVALID" | "TASK_IDEMPOTENCY_CONFLICT" | "TASK_INVALID_TRANSITION"
@@ -43,7 +51,66 @@ export class TaskBoundaryError extends Error {
 }
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-const statusSet = new Set<TaskStatus>(["pending", "in_progress", "completed", "canceled"])
+const activeFollowUpStatuses = new Set(["pending", "in_progress"])
+
+function liveLead(row: FollowUpTaskReadRow) {
+  const lead = Array.isArray(row.leads) ? row.leads[0] : row.leads
+  return lead?.deleted_at === null && lead.archived_at === null
+}
+
+function buildActiveFollowUpTaskIndex(rows: FollowUpTaskReadRow[], reference = new Date()) {
+  const projections = new Map<string, FollowUpTaskProjection>()
+  const ordered = rows
+    .filter((row) => row.lead_id && row.task_kind === "follow_up" && activeFollowUpStatuses.has(row.status) && liveLead(row))
+    .sort((left, right) => new Date(left.due_at).getTime() - new Date(right.due_at).getTime() || left.id.localeCompare(right.id))
+
+  for (const row of ordered) {
+    const leadId = row.lead_id!
+    const overdue = new Date(row.due_at).getTime() < reference.getTime()
+    const current = projections.get(leadId)
+    if (!current) projections.set(leadId, { taskId: row.id, nextFollowUpAt: row.due_at, followUpOverdue: overdue })
+    else if (overdue && !current.followUpOverdue) projections.set(leadId, { ...current, followUpOverdue: true })
+  }
+
+  return projections
+}
+
+export async function readActiveFollowUpTaskIndex(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  leadIds: string[],
+  errorLabel: string,
+  errors: string[],
+  reference = new Date(),
+) {
+  const rows: FollowUpTaskReadRow[] = []
+  const pageSize = 1000
+  if (leadIds.length === 0) return buildActiveFollowUpTaskIndex(rows, reference)
+
+  for (let start = 0; ; start += pageSize) {
+    const { data, error } = await supabase.from("tasks")
+      .select("id, lead_id, due_at, status, task_kind, leads!inner(deleted_at, archived_at)")
+      .in("lead_id", leadIds)
+      .eq("task_kind", "follow_up")
+      .in("status", ["pending", "in_progress"])
+      .not("lead_id", "is", null)
+      .is("leads.deleted_at", null)
+      .is("leads.archived_at", null)
+      .order("due_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(start, start + pageSize - 1)
+    if (error) {
+      errors.push(`${errorLabel}: ${error.message}`)
+      return buildActiveFollowUpTaskIndex([], reference)
+    }
+    const page = (data ?? []) as unknown as FollowUpTaskReadRow[]
+    rows.push(...page)
+    if (page.length < pageSize) break
+  }
+
+  return buildActiveFollowUpTaskIndex(rows, reference)
+}
+
+export const followUpTaskReadInternals = { buildActiveFollowUpTaskIndex }
 
 function normalizeUuid(value: string, field: string) {
   if (typeof value !== "string" || !uuidPattern.test(value)) throw new TaskBoundaryError("TASK_INVALID_ARGUMENT", field)
@@ -96,15 +163,6 @@ export async function createTask(input: TaskInput): Promise<TaskRow> {
     p_description: normalized.description,
     p_due_at: normalized.dueAt,
   })
-  if (error) throw mapTaskError(error)
-  return data as TaskRow
-}
-
-export async function transitionTask(taskId: string, targetStatus: TaskStatus): Promise<TaskRow> {
-  const id = normalizeUuid(taskId, "taskId")
-  if (!statusSet.has(targetStatus)) throw new TaskBoundaryError("TASK_INVALID_ARGUMENT", "status")
-  const supabase = await createClient()
-  const { data, error } = await supabase.rpc("task_transition", { p_task_id: id, p_target_status: targetStatus })
   if (error) throw mapTaskError(error)
   return data as TaskRow
 }

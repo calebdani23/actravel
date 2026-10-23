@@ -52,7 +52,7 @@ test("task adapter types expose additive representation without changing writes"
   const row = {
     id: lead, owner_id: owner, lead_id: lead, quote_id: null,
     description: "Call traveler", due_at: "2026-09-01T00:00:00.000000Z",
-    status: "pending", idempotency_key: "a".repeat(64),
+    status: "pending", idempotency_key: "a".repeat(64), automation_origin_key: null,
     created_at: "2026-09-01T00:00:00.000000Z", updated_at: "2026-09-01T00:00:00.000000Z",
     task_kind: "follow_up" as const, source_event_id: lead,
     source_event_type: "follow_up_registered" as const,
