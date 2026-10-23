@@ -6,6 +6,7 @@ import { quoteVersionStatusLabel, type QuoteVersionStatus } from "@/lib/admin/qu
 import { createClient } from "@/lib/supabase/server";
 import { hasRole, isRoleName, type RoleName } from "@/lib/supabase/roles";
 import { getAdvisorCapableStaff } from "@/lib/admin/staff";
+import { readActiveFollowUpTaskIndex, type FollowUpTaskProjection } from "@/lib/admin/tasks";
 
 export type LeadFilters = {
   q?: string;
@@ -181,16 +182,6 @@ function payloadString(payload: unknown, key: string) {
 function payloadObject(payload: unknown, key: string) {
   const value = jsonObject(payload)[key];
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : null;
-}
-
-function safeDateTime(value?: string | null) {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
-}
-
-function followUpAtFromPayload(payload: unknown) {
-  return safeDateTime(payloadString(payload, "followUpAt"));
 }
 
 function quoteRequestChannelLabel(payload: unknown) {
@@ -531,25 +522,6 @@ async function findSearchMatches(supabase: Awaited<ReturnType<typeof createClien
   };
 }
 
-function buildLatestFollowUpIndex(rows: Array<{ lead_id: string; created_at: string; payload: unknown }>, reference = new Date()) {
-  const latestByLead = new Map<string, { createdAt: string; nextFollowUpAt: string | null; followUpOverdue: boolean }>();
-
-  for (const row of rows) {
-    const nextFollowUpAt = followUpAtFromPayload(row.payload);
-    if (!nextFollowUpAt) continue;
-    const previous = latestByLead.get(row.lead_id);
-    if (!previous || new Date(row.created_at).getTime() > new Date(previous.createdAt).getTime()) {
-      latestByLead.set(row.lead_id, {
-        createdAt: row.created_at,
-        nextFollowUpAt,
-        followUpOverdue: new Date(nextFollowUpAt).getTime() < reference.getTime(),
-      });
-    }
-  }
-
-  return new Map(Array.from(latestByLead.entries()).map(([leadId, value]) => [leadId, { nextFollowUpAt: value.nextFollowUpAt, followUpOverdue: value.followUpOverdue }]));
-}
-
 function countByLeadId(rows: Array<{ lead_id: string | null }>) {
   return rows.reduce((map, row) => {
     if (!row.lead_id) return map;
@@ -566,6 +538,7 @@ function countByContactId(rows: Array<{ contact_id: string }>) {
 }
 
 function duplicateRiskIndex(rows: Array<{ id: string; normalized_email: string | null; normalized_phone: string | null }>) {
+  rows = Array.from(new Map(rows.map((row) => [row.id, row])).values());
   const emailCounts = new Map<string, number>();
   const phoneCounts = new Map<string, number>();
 
@@ -622,17 +595,16 @@ export async function getLeads(filters: LeadFilters) {
 
   const leadIds = baseLeads.map((lead) => lead.id);
   const contactIds = unique(baseLeads.map((lead) => lead.contact_id));
-  const [{ data: relatedLeads, error: relatedLeadsError }, { data: quoteRequests, error: quoteRequestsError }, { data: followUps, error: followUpsError }, { data: ambiguousEvents, error: ambiguousEventsError }, { data: visibleContacts, error: visibleContactsError }] = await Promise.all([
+  const [{ data: relatedLeads, error: relatedLeadsError }, { data: quoteRequests, error: quoteRequestsError }, latestFollowUps, { data: ambiguousEvents, error: ambiguousEventsError }, { data: visibleContacts, error: visibleContactsError }] = await Promise.all([
     supabase.from("leads").select("id, contact_id").in("contact_id", contactIds),
     supabase.from("quote_requests").select("id, lead_id").in("lead_id", leadIds),
-    supabase.from("lead_events").select("lead_id, created_at, payload").in("lead_id", leadIds).eq("event_type", "follow_up_registered"),
+    readActiveFollowUpTaskIndex(supabase, leadIds, "seguimientos de prospectos", errors),
     supabase.from("lead_events").select("lead_id").in("lead_id", leadIds).eq("event_type", "contact_identity_ambiguous"),
     supabase.from("contacts").select("id, normalized_email, normalized_phone").in("id", contactIds),
   ]);
 
   if (relatedLeadsError) errors.push(relatedLeadsError.message);
   if (quoteRequestsError) errors.push(quoteRequestsError.message);
-  if (followUpsError) errors.push(followUpsError.message);
   if (ambiguousEventsError) errors.push(ambiguousEventsError.message);
   if (visibleContactsError) errors.push(visibleContactsError.message);
 
@@ -648,8 +620,7 @@ export async function getLeads(filters: LeadFilters) {
   const contactOpportunityCounts = countByContactId((relatedLeads ?? []) as Array<{ contact_id: string }>);
   const quoteRequestCounts = countByLeadId((quoteRequests ?? []) as Array<{ lead_id: string | null }>);
   const ambiguousLeadIds = new Set(((ambiguousEvents ?? []) as Array<{ lead_id: string }>).map((row) => row.lead_id));
-  const latestFollowUps = buildLatestFollowUpIndex((followUps ?? []) as Array<{ lead_id: string; created_at: string; payload: unknown }>);
-  const duplicateRisk = duplicateRiskIndex(unique([...(duplicateEmailContacts ?? []), ...(duplicatePhoneContacts ?? [])] as Array<{ id: string; normalized_email: string | null; normalized_phone: string | null }>));
+  const duplicateRisk = duplicateRiskIndex([...(duplicateEmailContacts ?? []), ...(duplicatePhoneContacts ?? [])] as Array<{ id: string; normalized_email: string | null; normalized_phone: string | null }>);
 
   const leads = applyQuickViewFilter(baseLeads.map((lead) => {
     const followUp = latestFollowUps.get(lead.id);
@@ -931,7 +902,7 @@ function buildContact360Summary(input: {
   ambiguousIdentityEvents: number;
   duplicateEmailMatches: number;
   duplicatePhoneMatches: number;
-  followUps: Map<string, { nextFollowUpAt: string | null; followUpOverdue: boolean }>;
+  followUps: Map<string, FollowUpTaskProjection>;
   opportunities: Array<{ id: string }>;
   quoteRequests: Array<{ lead_id: string | null }>;
 }) {
@@ -963,7 +934,7 @@ function buildQuoteRequestHistory(items: Array<{ id: string; lead_id: string | n
     }));
 }
 
-function buildRelatedOpportunities(items: Array<{ id: string; updated_at: string; summary: string | null; destinations: { name_es: string | null } | null; profiles: { full_name: string | null } | null; lead_statuses: { label_es: string | null } | null }>, followUps: Map<string, { nextFollowUpAt: string | null; followUpOverdue: boolean }>, requestCounts: Map<string, number>): RelatedOpportunityItem[] {
+function buildRelatedOpportunities(items: Array<{ id: string; updated_at: string; summary: string | null; destinations: { name_es: string | null } | null; profiles: { full_name: string | null } | null; lead_statuses: { label_es: string | null } | null }>, followUps: Map<string, FollowUpTaskProjection>, requestCounts: Map<string, number>): RelatedOpportunityItem[] {
   return items
     .map((item) => ({
       id: item.id,
@@ -1034,6 +1005,7 @@ function buildQuoteVersionHistory(
 
 export async function getLeadDetail(id: string) {
   const supabase = await createClient();
+  const taskErrors: string[] = [];
   const actorRoles = await getLeadActorRoles(supabase);
   const { data: lead, error } = await supabase
     .from("leads")
@@ -1053,7 +1025,7 @@ export async function getLeadDetail(id: string) {
   });
   const whatsappClicksQuery = supabase.from("whatsapp_clicks").select("id, created_at, phone, page_path, message");
   const notificationsQuery = supabase.from("notification_logs").select("id, created_at, channel, provider, recipient, template_name, status, error_message");
-  const [{ data: notes }, { data: events }, { data: whatsappClicks }, { data: notifications }, { data: sheetLogs }, { data: payments }, { data: bookings }, { data: documents }, { data: quoteRequests }, { data: quoteVersions }, { data: relatedOpportunities }, { data: contactRows }, { data: crossOpportunityFollowUps }, { data: ambiguousEvents }] = await Promise.all([
+  const [{ data: notes }, { data: events }, { data: whatsappClicks }, { data: notifications }, { data: sheetLogs }, { data: payments }, { data: bookings }, { data: documents }, { data: quoteRequests }, { data: quoteVersions }, { data: relatedOpportunities }, { data: contactRows }, latestFollowUps, { data: ambiguousEvents }] = await Promise.all([
     supabase.from("lead_notes").select("id, created_at, body, is_internal, profiles!lead_notes_author_id_fkey(full_name)").eq("lead_id", id).order("created_at", { ascending: false }).limit(20),
     supabase.from("lead_events").select("id, created_at, event_type, payload, profiles!lead_events_actor_id_fkey(full_name)").eq("lead_id", id).order("created_at", { ascending: false }).limit(20),
     auxiliaryActivityScope.mode === "lead_only"
@@ -1070,7 +1042,7 @@ export async function getLeadDetail(id: string) {
     supabase.from("quote_versions").select("id, quote_request_id, version_number, title, summary, currency, total_amount, deposit_amount, notes, status, valid_until, created_by, created_at, updated_at, sent_at, accepted_at, rejected_at, expired_at").eq("lead_id", id).order("created_at", { ascending: false }).limit(20),
     contactId ? supabase.from("leads").select("id, contact_id, updated_at, summary, destinations(name_es), profiles!leads_assigned_to_fkey(full_name), lead_statuses(label_es)").eq("contact_id", contactId).order("updated_at", { ascending: false }).limit(20) : Promise.resolve({ data: [], error: null }),
     contactId ? supabase.from("contacts").select("id, normalized_email, normalized_phone").eq("id", contactId).limit(1) : Promise.resolve({ data: [], error: null }),
-    supabase.from("lead_events").select("lead_id, created_at, payload").eq("event_type", "follow_up_registered").in("lead_id", relatedLeadIds),
+    readActiveFollowUpTaskIndex(supabase, relatedLeadIds, "seguimientos del contacto", taskErrors),
     supabase.from("lead_events").select("lead_id").eq("event_type", "contact_identity_ambiguous").in("lead_id", relatedLeadIds),
   ]);
 
@@ -1088,7 +1060,6 @@ export async function getLeadDetail(id: string) {
   const quoteRequestRows = (quoteRequests ?? []) as Array<{ id: string; lead_id: string | null; created_at: string; locale: string; status: string; payload: unknown }>;
   const quoteVersionRows = (quoteVersions ?? []) as Array<{ accepted_at: string | null; created_at: string; created_by: string | null; currency: string; deposit_amount: number | null; expired_at: string | null; id: string; notes: string | null; quote_request_id: string | null; rejected_at: string | null; sent_at: string | null; status: string; summary: string | null; title: string; total_amount: number | null; updated_at: string; valid_until: string | null; version_number: number }>;
   const allQuoteRequests = contactId && allLeadIds.length ? ((await supabase.from("quote_requests").select("id, lead_id, created_at, locale, status, payload").in("lead_id", allLeadIds)).data ?? []) as Array<{ id: string; lead_id: string | null; created_at: string; locale: string; status: string; payload: unknown }> : quoteRequestRows;
-  const latestFollowUps = buildLatestFollowUpIndex((crossOpportunityFollowUps ?? []) as Array<{ lead_id: string; created_at: string; payload: unknown }>);
   const quoteRequestCountByLead = countByLeadId(allQuoteRequests);
   const duplicateContact = ((contactRows ?? []) as Array<{ id: string; normalized_email: string | null; normalized_phone: string | null }>)[0] ?? null;
   const creatorIds = unique(quoteVersionRows.map((item) => item.created_by).filter(Boolean) as string[]);
@@ -1120,8 +1091,8 @@ export async function getLeadDetail(id: string) {
     quoteRequests: buildQuoteRequestHistory(quoteRequestRows),
     relatedOpportunities: buildRelatedOpportunities(relatedLeadRows.filter((item) => item.id !== id), latestFollowUps, quoteRequestCountByLead),
     contact360,
-    error: [error?.message ?? null, duplicateEmailMatches.error?.message ?? null, duplicatePhoneMatches.error?.message ?? null].filter(Boolean).join(" | ") || null,
+    error: [error?.message ?? null, ...taskErrors, duplicateEmailMatches.error?.message ?? null, duplicatePhoneMatches.error?.message ?? null].filter(Boolean).join(" | ") || null,
   };
 }
 
-export const leadSearchInternals = { splitSearchTerms, buildLeadSearchPlan, buildLeadSearchClauses, buildQuoteRequestSearchClauses, buildLeadEventSearchClauses, validDate, resolveCreatedAtRange, formatLeadSourceLabel, formatLeadPriorityLabel, formatCurrencyAmount, buildTimeline, templateDisplayLabel, paymentTypeLabel, paymentStatusLabel, bookingStatusLabel, documentTypeLabel, documentStatusLabel, buildAuxiliaryActivityQueryScope, buildQuoteVersionHistory };
+export const leadSearchInternals = { splitSearchTerms, buildLeadSearchPlan, buildLeadSearchClauses, buildQuoteRequestSearchClauses, buildLeadEventSearchClauses, validDate, resolveCreatedAtRange, formatLeadSourceLabel, formatLeadPriorityLabel, formatCurrencyAmount, buildTimeline, templateDisplayLabel, paymentTypeLabel, paymentStatusLabel, bookingStatusLabel, documentTypeLabel, documentStatusLabel, buildAuxiliaryActivityQueryScope, buildQuoteVersionHistory, buildContact360Summary, buildRelatedOpportunities, duplicateRiskIndex };

@@ -40,14 +40,15 @@ type LeadStatusRow = {
   contacts: { first_name: string | null; last_name: string | null } | null;
 };
 
-type FollowUpEventRow = {
+type FollowUpTaskRow = {
   id: string;
   lead_id: string;
-  created_at: string;
-  payload: { followUpAt?: string | null } | null;
+  due_at: string;
   leads: {
     id: string;
     summary: string | null;
+    deleted_at: string | null;
+    archived_at: string | null;
     lead_statuses: { label_es: string } | null;
     profiles: { full_name: string | null } | null;
     contacts: { first_name: string | null; last_name: string | null } | null;
@@ -199,18 +200,9 @@ function buildRecentLeadActivity(rows: LeadStatusRow[]) {
   }));
 }
 
-function buildFollowUpQueue(rows: FollowUpEventRow[], reference = new Date()) {
-  const latestByLead = new Map<string, FollowUpEventRow>();
-
-  for (const row of rows) {
-    if (!row.payload?.followUpAt) continue;
-    const previous = latestByLead.get(row.lead_id);
-    if (!previous || new Date(row.created_at).getTime() > new Date(previous.created_at).getTime()) latestByLead.set(row.lead_id, row);
-  }
-
-  return Array.from(latestByLead.values())
+function buildFollowUpQueue(rows: FollowUpTaskRow[], reference = new Date()) {
+  return rows
     .map((row) => {
-      const followUpAt = row.payload?.followUpAt ?? row.created_at;
       return {
         id: row.id,
         leadId: row.lead_id,
@@ -218,11 +210,11 @@ function buildFollowUpQueue(rows: FollowUpEventRow[], reference = new Date()) {
         summary: row.leads?.summary ?? "Sin resumen comercial",
         statusLabel: row.leads?.lead_statuses?.label_es ?? "Sin estado",
         advisorName: row.leads?.profiles?.full_name ?? "Sin asignar",
-        followUpAt,
-        overdue: new Date(followUpAt).getTime() < reference.getTime(),
+        followUpAt: row.due_at,
+        overdue: new Date(row.due_at).getTime() < reference.getTime(),
       };
     })
-    .sort((a, b) => new Date(a.followUpAt).getTime() - new Date(b.followUpAt).getTime());
+    .sort((a, b) => new Date(a.followUpAt).getTime() - new Date(b.followUpAt).getTime() || a.id.localeCompare(b.id));
 }
 
 function latestTimestamp(values: Array<string | null | undefined>) {
@@ -252,6 +244,27 @@ async function fetchAllPages<T>(
   }
 
   return rows;
+}
+
+async function fetchFollowUpTaskQueue(supabase: Awaited<ReturnType<typeof createClient>>, errors: string[], reference = new Date()) {
+  const taskErrors: string[] = [];
+  const rows = await fetchAllPages<FollowUpTaskRow>(
+    "seguimientos dashboard",
+    (start, end) => supabase
+      .from("tasks")
+      .select("id, lead_id, due_at, leads!inner(id, summary, deleted_at, archived_at, lead_statuses(label_es), profiles!leads_assigned_to_fkey(full_name), contacts(first_name, last_name))")
+      .eq("task_kind", "follow_up")
+      .in("status", ["pending", "in_progress"])
+      .not("lead_id", "is", null)
+      .is("leads.deleted_at", null)
+      .is("leads.archived_at", null)
+      .order("due_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(start, end),
+    taskErrors,
+  );
+  errors.push(...taskErrors);
+  return taskErrors.length > 0 ? [] : buildFollowUpQueue(rows, reference);
 }
 
 function buildDashboardAlerts(values: { counts: DashboardCounts }): DashboardAlert[] {
@@ -293,7 +306,7 @@ function buildDashboardAlerts(values: { counts: DashboardCounts }): DashboardAle
   return alerts;
 }
 
-export async function getDashboardMetrics() {
+export async function getDashboardMetrics(options: { includeLegacyFollowUps?: boolean } = {}) {
   const supabase = await createClient();
   const errors: string[] = [];
   const now = new Date();
@@ -302,7 +315,7 @@ export async function getDashboardMetrics() {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const sevenDaysAhead = addDaysIso(now, 7);
 
-  const [leadsToday, failedEmails, openAmbiguousEmailIncidents, whatsappClicks, pendingPaymentsCount, upcomingBookingsCount, notificationIncidents, leadSnapshot, followUpEvents, pendingPayments, upcomingBookings] = await Promise.all([
+  const [leadsToday, failedEmails, openAmbiguousEmailIncidents, whatsappClicks, pendingPaymentsCount, upcomingBookingsCount, notificationIncidents, leadSnapshot, followUps, pendingPayments, upcomingBookings] = await Promise.all([
     safeCount("prospectos de hoy", supabase.from("leads").select("id", { count: "exact", head: true }).gte("created_at", utcDayStart), errors),
     safeCount("emails fallidos", supabase.from("notification_logs").select("id", { count: "exact", head: true }).eq("incident_status", "open").in("status", ["failed", "ambiguous"]).gte("created_at", sevenDaysAgo), errors),
     safeCount("emails ambiguos abiertos", supabase.from("notification_logs").select("id", { count: "exact", head: true }).eq("incident_status", "open").eq("status", "ambiguous"), errors),
@@ -320,17 +333,7 @@ export async function getDashboardMetrics() {
         .range(start, end),
       errors,
     ),
-    fetchAllPages<FollowUpEventRow>(
-      "seguimientos dashboard",
-      (start, end) => supabase
-        .from("lead_events")
-        .select("id, lead_id, created_at, payload, leads(id, summary, lead_statuses(label_es), profiles!leads_assigned_to_fkey(full_name), contacts(first_name, last_name))")
-        .eq("event_type", "follow_up_registered")
-        .order("created_at", { ascending: false })
-        .order("id", { ascending: false })
-        .range(start, end),
-      errors,
-    ),
+    options.includeLegacyFollowUps !== false ? fetchFollowUpTaskQueue(supabase, errors, now) : Promise.resolve([]),
     supabase.from("payments").select("id, created_at, amount, currency, status, payment_type, lead_id, contacts(first_name, last_name)").eq("status", "pending").order("created_at", { ascending: true }).limit(8),
     supabase.from("bookings").select("id, created_at, booking_code, status, starts_on, ends_on, lead_id, destinations(name_es), contacts(first_name, last_name)").gte("starts_on", dayStart.slice(0, 10)).lte("starts_on", sevenDaysAhead.slice(0, 10)).order("starts_on", { ascending: true }).limit(8),
   ]);
@@ -345,7 +348,6 @@ export async function getDashboardMetrics() {
     .slice(0, 8);
 
   const leadsByChannel = sortLeadChannelCounts(countLeadSources(leadSnapshot.filter((row) => new Date(row.created_at).getTime() >= new Date(sevenDaysAgo).getTime())));
-  const followUps = buildFollowUpQueue(followUpEvents, now);
   const overdueFollowUps = followUps.filter((item) => item.overdue).length;
 
   const counts = {
@@ -411,6 +413,7 @@ export const dashboardInternals = {
   countLeadSources,
   sortLeadChannelCounts,
   buildFollowUpQueue,
+  fetchFollowUpTaskQueue,
   buildStatusBreakdown,
   buildAdvisorPerformance,
 };

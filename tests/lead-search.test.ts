@@ -5,6 +5,19 @@ import test from "node:test";
 import { leadSearchInternals } from "@/lib/admin/leads";
 import { formatAdminDateTime } from "@/lib/admin/format";
 
+test("duplicate review counts distinct Contacts rather than email/phone query copies", () => {
+  const contact = { id: "contact-1", normalized_email: "one@example.com", normalized_phone: "15555550100" };
+  assert.deepEqual([...leadSearchInternals.duplicateRiskIndex([contact, { ...contact }])], [["contact-1", false]]);
+  const duplicate = { ...contact, id: "contact-2", normalized_phone: null };
+  const unrelated = { id: "contact-3", normalized_email: "other@example.com", normalized_phone: null };
+  assert.deepEqual([...leadSearchInternals.duplicateRiskIndex([contact, { ...contact }, duplicate, unrelated])], [
+    ["contact-1", true], ["contact-2", true], ["contact-3", false],
+  ]);
+  assert.deepEqual([...leadSearchInternals.duplicateRiskIndex([contact, { ...contact, id: "contact-2", normalized_email: null }])], [
+    ["contact-1", true], ["contact-2", true],
+  ]);
+});
+
 test("lead search splits sanitized terms and keeps useful tokens", () => {
   assert.deepEqual(leadSearchInternals.splitSearchTerms("  Cancun, maria@example.com   "), ["Cancun", "maria@example.com"]);
   assert.deepEqual(leadSearchInternals.splitSearchTerms("a b 1234"), ["1234"]);
