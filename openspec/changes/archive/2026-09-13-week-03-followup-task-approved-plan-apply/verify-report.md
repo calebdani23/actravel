@@ -1,0 +1,181 @@
+```yaml
+schema: gentle-ai.verify-result/v1
+evidence_revision: sha256:8a3504dd880b45f04f28dca0d1d0c6a7af96b26befe47c301ae4a28ba007e688
+verdict: pass
+blockers: 0
+critical_findings: 0
+requirements: 12/12
+scenarios: 12/12
+test_command: RUN_FOLLOW_UP_APPROVAL_DB_TESTS=1 node --conditions react-server --import tsx --test tests/follow-up-task-approved-plan-apply-receipt.test.ts tests/follow-up-task-approved-plan-apply-runtime.test.ts tests/follow-up-task-approved-plan-apply-types.test.ts tests/follow-up-task-approved-plan-apply-adapter.test.ts
+test_exit_code: 0
+test_output_hash: sha256:3b99660dca84697ae70b309a1b01562b5e8a8babedf357600dc2047e4bf8fa89
+build_command: npm run build
+build_exit_code: 0
+build_output_hash: sha256:493e0986cedd758133dce160678b5e58751189913d8330dc43ce0edae8da6de5
+```
+
+## Verification Report
+
+**Change**: `week-03-followup-task-approved-plan-apply`  
+**Version**: N/A  
+**Mode**: Standard final independent verification; the Phase 7 and Phase 8 remediation work units used Strict TDD  
+**Artifact store**: OpenSpec  
+**Attempt context**: `final-verification-after-null-guards`  
+**Archive readiness**: **PASS — archive-ready for the local OpenSpec change; not approved for remote migration, rollout, parity, or production use**
+
+### Executive Summary
+
+All 23 tasks are checked and independently satisfied. All eight required commands completed successfully on their final full executions; the database-enabled commands passed with zero skipped checks. The prior canonical-integrity and UTF-8 findings are closed: required row members are explicitly non-null, complete shape/disposition/count/projection/hash/byte equations execute before mutation, every declared UTF-8 bound is explicit, and disposable regression tests prove closed outcomes with unchanged full-state hashes and DML counts.
+
+Retained approval/apply/receipt behavior also passed: auth-first boundaries, exact closed unions, receipt-first replay, deterministic lock ordering, concurrency, occupancy rejection, atomic rollback, exact 14-field Task projection, append-only Admin-only receipts, narrow RPC grants, manual types, strict adapters, migration preservation, and local-only execution.
+
+### Completeness
+
+| Metric | Value |
+|---|---:|
+| Tasks total | 23 |
+| Tasks checkbox-complete | 23 |
+| Tasks incomplete | 0 |
+| Task objectives independently satisfied | 23 |
+| Normative requirements | 12 |
+| Requirements compliant | 12 |
+| Normative scenarios | 12 |
+| Scenarios compliant | 12 |
+
+Native heading counts were taken from the retrieved specification: 12 `### Requirement:` headings and 12 `#### Scenario:` headings. Task counts were taken from the retrieved task checklist: 23 checked task headings and no unchecked task headings.
+
+### Required Command Evidence
+
+| # | Exact command | Exit | Exact observed result | Output SHA-256 |
+|---:|---|---:|---|---|
+| 1 | `RUN_FOLLOW_UP_APPROVAL_DB_TESTS=1 node --conditions react-server --import tsx --test tests/follow-up-task-approved-plan-apply-runtime.test.ts` | 0 | PASS: 12/12 passed, 0 failed, 0 cancelled, 0 skipped; duration 1,007,707.504553 ms. | `735fb3a82b8494af9d32aac6ee77e709d33c2d3298410ceb0410348b82a30196` |
+| 2 | `RUN_FOLLOW_UP_APPROVAL_DB_TESTS=1 node --conditions react-server --import tsx --test tests/follow-up-task-approved-plan-apply-receipt.test.ts tests/follow-up-task-approved-plan-apply-runtime.test.ts tests/follow-up-task-approved-plan-apply-types.test.ts tests/follow-up-task-approved-plan-apply-adapter.test.ts` | 0 | PASS: 22/22 passed, 0 failed, 0 cancelled, 0 skipped; duration 1,085,684.059374 ms. | `3b99660dca84697ae70b309a1b01562b5e8a8babedf357600dc2047e4bf8fa89` |
+| 3 | `node --conditions react-server --import tsx --test tests/follow-up-task-approval.test.ts` | 0 | PASS: 8/8 passed, 0 failed, 0 cancelled, 0 skipped; duration 819.788525 ms. | `dfa5d7d17b966e240d02510daa7e2412e5324892be5686049a32329a46b1c837` |
+| 4 | `RUN_FOLLOW_UP_APPROVAL_DB_TESTS=1 node --conditions react-server --import tsx --test tests/follow-up-task-approval-ledger-runtime.test.ts` | 0 | PASS: 1/1 passed, 0 failed, 0 cancelled, 0 skipped; duration 78,510.166074 ms. | `b229262040ded79866f37c56e621fab575c53327e2c514563e564e312fc4563e` |
+| 5 | `npm run lint` | 0 | PASS: ESLint completed with no diagnostics. | `27d2a3a01cf47711571e5517e9f3873f661da7f93befc61bb867f649be9b1aaf` |
+| 6 | `npx tsc --noEmit` | 0 | PASS: no diagnostics. | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| 7 | `npm run build` | 0 | PASS: Next.js 16.2.6 compiled, type-checked, and generated 96/96 pages. | `493e0986cedd758133dce160678b5e58751189913d8330dc43ce0edae8da6de5` |
+| 8 | `git diff --check` | 0 | PASS: no output. | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+
+**Database skip gate**: PASS. Commands 1, 2, and 4 completed with zero skipped database checks.  
+**Coverage**: Not available; the change defines no coverage command or threshold.  
+**Generated byproduct**: `npm run build` changed only its generated `next-env.d.ts` route reference. It was restored to its exact pre-build SHA-256 `7ad303e40d4fddf44f156129e397511953a71481c5cfd86b1862649aaaf240cc` before `git diff --check`.
+
+### Prior Finding Closure
+
+| Prior finding / required proof | Current implementation evidence | Runtime evidence | Result |
+|---|---|---|---|
+| Complete canonical plan, row, count, and disposition consistency | `0067:107-176` validates exact top-level, header, row, and count-vector shape; canonical UUID/timestamp values; the closed disposition/reason and optionality matrix; all seven actual/stored disposition counts; total/row/projection cardinalities; exact ordered eligible projection; canonical hashes, byte equations, request fingerprint, and approval fingerprint before live checks or inserts. | Runtime subtest `self-consistent approval tampering and oversized UTF-8 content fail integrity without DML` passed its 16-case matrix with exact `APPROVAL_INTEGRITY_FAILURE` and unchanged full-state hashes. | ✅ CLOSED |
+| Explicit non-null required row members | `0067:119-136`, specifically `:120-121`, rejects SQL null from `eventId`, `leadId`, `eventCreatedAt`, `disposition`, and `reason` immediately after exact row-shape validation and before regex, casts, tuple predicates, counts, bounds, live checks, or writes. | Runtime subtest `JSON null in every required canonical field fails integrity for eligible and retained noneligible rows without DML` passed all ten field/row-kind cases, each with exact integrity failure, unchanged full-state hash, and unchanged DML counts. | ✅ CLOSED |
+| All declared canonical UTF-8 limits | `0067:169-171` computes row 512-byte, projection-item 2,048-byte, and static-header 4,096-byte flags; `0067:213-217` enforces 2,000 rows plus 1 MiB plan, 4 MiB projection, and 5 MiB request limits before insertion. | The tamper/UTF-8 matrix passed and the valid 2,001-row case proved occupancy-before-bounds precedence followed by exact `LIMIT_EXCEEDED` and unchanged state when occupancy was removed. | ✅ CLOSED |
+| Closed outcomes before writes | Integrity returns at `0067:176`; stale returns at `:194-198`; occupancy returns at `:209-212`; bounds return at `:213-217`; Task insertion begins only at `:219` and receipt insertion at `:228`. | Auth, invalid request, absent/tampered approval, JSON-null, stale, all three occupancies, and bounds checks passed with no forbidden writes. | ✅ CLOSED |
+| Zero-write regression coverage | `stateHashSql` and `dmlCountsSql` cover Tasks, receipts, approvals, profiles, leads, contacts, quotes, roles, profile roles, and lead events in `tests/follow-up-task-approved-plan-apply-runtime.test.ts:185-227`. | Both remediation matrices passed with exact closed codes and byte-identical state/count snapshots. The second-row failure also rolled back every Task and the receipt. | ✅ CLOSED |
+
+### Spec Compliance Matrix
+
+| Requirement | Scenario | Passing test and source evidence | Result |
+|---|---|---|---|
+| Auth-first request boundary | Auth rejection | Adapter `auth runs before client creation and auth throws are unchanged`; runtime `auth failures, approval tampering, and receipt identity mismatches are exact and DML-free`; `0067:71-83`. | ✅ COMPLIANT |
+| Immutable approval integrity | Tampered approval | Runtime auth/tamper subtest, ten-case required-null subtest, and 16-case self-consistent tamper/UTF-8 subtest; `0067:104-176`. | ✅ COMPLIANT |
+| Eligible ordered projection | Mixed dispositions | Runtime `mixed dispositions create only eligible ordinal projections with exact receipt cardinality`; `0067:141-143,219-223`. | ✅ COMPLIANT |
+| Live context revalidation | Stale owner or lead | Runtime stale checks in `0057-0067 applies...` and `source, owner-key, and owner-lead occupancy...`; source verifies active owner, nonempty roles, allowed-only roles, and present/nondeleted/nonarchived assigned lead under stable locks at `0067:178-199`. | ✅ COMPLIANT |
+| Closed precedence | Stale beats conflict | Runtime isolated occupancy/stale subtest and upper-limit precedence subtest; closed union in `0067:71-217` and adapter `DOMAIN_CODES`. | ✅ COMPLIANT |
+| Atomic Task and receipt transaction | Partial insert failure | Runtime `a deterministic second-row insert failure rolls back Tasks and receipt`; one PostgreSQL function transaction inserts at `0067:219-230`. | ✅ COMPLIANT |
+| Exact 14-field Task shape | Eligible creation | Runtime mixed-disposition deep equality covers all 14 fields; exact insert column list is `0067:219-221`. | ✅ COMPLIANT |
+| Immutable purge-independent receipt | Receipt survives purge | Receipt DB tests plus runtime valid apply/purge/replay; no-FK table and complete validator/trigger at `0066:3-71`; receipt-first replay at `0067:87-102`. | ✅ COMPLIANT |
+| Replay and occupancy conflicts | Replay versus receiptless occupancy | Runtime receipt mismatch, identical-call concurrency, and three isolated occupancy namespace subtests; rank order and `COLLATE "C"` loops at `0067:87-102,200-212`. | ✅ COMPLIANT |
+| RLS, grants, and append-only security | Non-Admin access | Receipt DB security subtests and service-role RPC denial; forced RLS/Admin SELECT policy and grants at `0066:73-82`, narrow apply grant and write revocations at `0067:234-238`. | ✅ COMPLIANT |
+| Bounds, zero unrelated DML, and type boundaries | Closed bounded failure | Runtime remediation/bounds snapshots, adapter malformed-response matrix, type-contract test, and explicit bounds at `0067:169-171,213-217`. | ✅ COMPLIANT |
+| Additive delivery and proof gate | Unknown state blocks delivery | Disposable migrations `0057`-`0067`, exact rollback subtest, HEAD-identical `0061`-`0065`, only `0066`/`0067` allocated after `0065`, and no remote operation. | ✅ COMPLIANT |
+
+**Compliance summary**: 12/12 requirements and 12/12 scenarios are compliant. Every normative scenario has passing runtime coverage; static inspection was used only to confirm exact implementation details and retained branches.
+
+### Task Objective Audit
+
+| Task | Result | Independent evidence |
+|---|---|---|
+| 1.1 | ✅ Satisfied | Receipt tests cover malformed identities/results, exact ordered distinct IDs, counts, zero IDs, RLS, immutability, and purge independence. |
+| 1.2 | ✅ Satisfied | `0066` implements the no-FK receipt, complete result validator, immutable trigger, forced RLS/grants, and rollback sequence. |
+| 1.3 | ✅ Satisfied | Receipt proof passed 4/4 in the aggregate suite with zero database skips. |
+| 2.1 | ✅ Satisfied | Runtime proof covers auth/invalid/absent/tamper/nulls, zero/mixed/14 fields, replay/concurrency/mismatch, lock order, stale/occupancy, rollback, limits, purge, and unrelated-DML snapshots. |
+| 2.2 | ✅ Satisfied | `0067` implements fingerprints, ordered locks/inserts, complete pre-write validation, live checks, atomic receipt creation, closed outcomes, and exact rollback. |
+| 2.3 | ✅ Satisfied | Focused runtime passed 12/12; receipt passed 4/4 inside the 22/22 aggregate; replay, isolated occupancy, concurrency, and rollback all passed. |
+| 3.1 | ✅ Satisfied | Compile-time exact receipt and RPC contracts are asserted in the type test. |
+| 3.2 | ✅ Satisfied | `database.types.ts` manually defines exact receipt Row/Insert/Update/Relationships and apply RPC Args/`Json` Returns. |
+| 3.3 | ✅ Satisfied | Manual type proof passed in the aggregate suite and `npx tsc --noEmit` passed. |
+| 4.1 | ✅ Satisfied | Adapter tests cover auth/provider boundaries, exact keys, every UUID-bearing success member, identity equality, ID order/distinctness, and count/cardinality. |
+| 4.2 | ✅ Satisfied | The server adapter accepts exactly `{requestId}`, authenticates first, uses the unique apply RPC, strictly decodes both result levels, and closes provider failures. |
+| 4.3 | ✅ Satisfied | Local proof and rollback are recorded in `docs/DECISIONS.md` and `docs/PROGRESS.md`; lint, types, build, and diff hygiene passed. |
+| 5.1 | ✅ Satisfied | Approval unit 8/8 and approval-ledger runtime 1/1 prove `0067` fresh/replay rows include the same valid private approval fingerprint. |
+| 5.2 | ✅ Satisfied | The private decoder requires lowercase 64-hex `approval_fingerprint`; manual approval Row/Insert/Update include it; public `ApprovalSuccess` omits it; `0065` is unchanged. |
+| 5.3 | ✅ Satisfied | Compatibility and rollback are recorded without rewriting archived approval-ledger semantics. |
+| 6.1 | ✅ Satisfied | Every required unit/runtime/database/static/build command completed successfully; database skips are zero. |
+| 6.2 | ✅ Satisfied | Migration preservation, local-only scope, delivery limits, evidence, and generated-file restoration were read back without touching excluded Week 01 or remote state. |
+| 7.1 | ✅ Satisfied | The self-consistent 16-case remediation matrix passed with exact integrity outcomes and unchanged full-state hashes. |
+| 7.2 | ✅ Satisfied | `0067` now performs complete immutable approval validation and explicitly enforces every canonical UTF-8 boundary without changing retained precedence. |
+| 7.3 | ✅ Satisfied | Focused/full database, approval, lint, TypeScript, build, and diff checks passed; no DB check skipped. |
+| 8.1 | ✅ Satisfied | The ten-case eligible/retained-noneligible JSON-null matrix passed with exact integrity failures and unchanged state/counts. |
+| 8.2 | ✅ Satisfied | Explicit guards reject all five required canonical row members before predicates, bounds, live checks, or writes. |
+| 8.3 | ✅ Satisfied | All required current checks passed with zero DB skips; protected migrations, generated-file bytes, local-only scope, and unrelated boundaries were preserved. |
+
+### Correctness
+
+| Area | Status | Notes |
+|---|---|---|
+| Approval compatibility | ✅ Implemented | Fresh/replay approval rows include a private validated fingerprint while the public approval success shape is unchanged. |
+| Complete canonical integrity | ✅ Implemented | Exact plan/header/row shape, required nullability, closed disposition/reason rules, counts, projection, hashes, bytes, and fingerprint close before mutation. |
+| UTF-8 and row bounds | ✅ Implemented | 512/2,048/4,096-byte and 1/4/5 MiB limits plus the 2,000-row bound are explicit and pre-write. |
+| Receipt replay and purge independence | ✅ Implemented | Receipt-first replay validates canonical identity, request fingerprint, exact ordered distinct IDs, counts, result shape/hash/bytes, and survives source/approval purge. |
+| Ordering and concurrency | ✅ Implemented | Rank 1 precedes receipt lookup; ranks 2-4 use the exact namespaces, deduplication, and bytewise `C` order; concurrent identical calls converge. |
+| Occupancy and rollback | ✅ Implemented | Source, owner/key, and owner/lead matches are rejected without adoption; deterministic second-row failure rolls back Tasks and receipt. |
+| Exact Task projection | ✅ Implemented | Only eligible rows emit the exact ordered 14-field stored projection; noneligible rows remain retained. |
+| Authorization and database policy | ✅ Implemented | Adapter auth is first; RPC requires an active matching Admin; receipt RLS is forced/Admin-only; direct writes and unauthorized execution are revoked. |
+| Type and adapter boundaries | ✅ Implemented | Manual Supabase contracts, exact private/public unions, strict nested decoding, and provider-error closure passed. |
+| Additive/local delivery | ✅ Implemented | Historical migrations are preserved, only `0066`/`0067` follow `0065`, rollback passes in disposable PostgreSQL, and remote state remains untouched. |
+
+### Design Coherence
+
+| Design decision | Followed? | Evidence |
+|---|---|---|
+| Unique two-argument apply RPC | ✅ Yes | Adapter invokes only `apply_approved_follow_up_task_plan(text,uuid)`; `approve_follow_up_task_plan` remains separate. |
+| Receipt-first replay | ✅ Yes | Request advisory lock and locked receipt validation occur before approval lookup. |
+| One PostgreSQL transaction | ✅ Yes | Ordered Task inserts and the receipt either commit together or roll back together. |
+| No-FK append-only receipt | ✅ Yes | Receipt table has no foreign keys, mutation trigger rejects update/delete, and purge replay passed. |
+| Fixed total lock order | ✅ Yes | Exact rank 1-4 namespace order and `COLLATE "C"` sorting are present; concurrency/occupancy tests passed. |
+| Complete validation before mutation | ✅ Yes | Integrity, stale, occupancy, and bounds outcomes all precede Task/receipt inserts. |
+| Manual types and strict adapter | ✅ Yes | Exact type assertions and strict decoder tests passed with no generated/downstream read boundary. |
+| Local-only additive delivery | ✅ Yes | Disposable Docker PostgreSQL was used; no remote migration/database operation or rollout claim occurred. |
+
+### Preservation, Scope, and Delivery Evidence
+
+- `git diff --exit-code HEAD -- db/migrations/0061...0065` exited 0. Current SHA-256 values are: `0061` `979f03da567e32c12e2a5eef1c6b1f093332776719830b09dcb8474c327c81dd`; `0062` `0e2504acf26bebc9f507336dfd54370f5ced8659b364f10afef8e5847bb10eb6`; `0063` `615f35d7c3063920c380b455d0460f1aa7664999573bddedaf0de5bab9c6b894`; `0064` `feb523e233ff458ae99dfdb15b02ff418e0d07fcaaf0e4a1443b73da029bebf4`; `0065` `b68cfb0979c0335e703715a03e84f60837ca2ee4de737848804c95c7f2fd9f39`.
+- The only migration names after `0065` are `0066_follow_up_task_apply_receipt_foundation.sql` and `0067_follow_up_task_apply_rpc.sql`; their current SHA-256 values are `b24e255e401f61d6cf5727e6c0e44c4f8de9b6917b8280e4d38e1113524127f6` and `439f75207122418effdda8cab246853e06a164aa680d77eaef91f261e767cb6a`.
+- Current source/test line totals remain within the recorded delivery boundaries: Slice 1 is 194 lines; Slice 2 is 642 lines under its approved 800-line exception; Slice 3 is 202 added lines; Slice 4 is 143 lines. The bounded remediation records remain below their independent 400-line caps.
+- Verification inspected only this change's artifacts, implementation, focused tests, and relevant living-evidence sections. Excluded OpenCode/Gentle-AI changes and Week 01 content were not inspected as implementation evidence and were not modified.
+- No package, stage, commit, push, PR, remote, remote-database, archive, parity, cutover, rollout, or production-readiness operation occurred.
+- The evidence revision is the SHA-256 of the ordered SHA-256 manifest for the retrieved proposal/spec/design/tasks/apply-progress, relevant implementation and focused tests, and the relevant living evidence, excluding the prior verify report.
+
+### Issues Found
+
+**CRITICAL**
+
+None.
+
+**WARNING**
+
+1. The first focused runtime invocation was externally terminated by the verifier's 900-second tool limit after ten passing subtests and no reported failure. Its disposable container was absent afterward. A clean execution of the exact command with a sufficient limit then passed 12/12 with zero skips, and the aggregate command independently passed the same runtime file as part of 22/22. This is an execution-duration warning, not an application or test failure.
+2. No coverage command or threshold is defined for this change, so no coverage percentage is available.
+
+**SUGGESTION**
+
+1. Document a timeout above 1,100 seconds for the focused disposable runtime suite, or reduce repeated database bootstrap cost without weakening isolation.
+
+### Archive Readiness
+
+**READY FOR LOCAL OPENSPEC ARCHIVE.** The change has 23/23 satisfied tasks, 12/12 compliant requirements, 12/12 compliant scenarios, zero critical findings, successful build/static checks, and zero skipped database checks. Archive readiness is strictly local: remote migration history and schema remain unknown, so remote apply, parity, rollout, and production-readiness claims remain blocked and outside this change.
+
+### Verdict
+
+**PASS WITH WARNINGS — archive-ready locally.**
+
+The prior correctness findings are closed and all required current verification commands pass. The remaining warnings concern suite duration and unavailable coverage metrics only; neither contradicts a requirement or scenario.
