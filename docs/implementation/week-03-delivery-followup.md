@@ -18,3 +18,16 @@ This is test-harness maintenance, not a migration or product-policy change.
 The sealed Week 03 archives remain unchanged. Remote state remains unknown.
 
 Risk: items 3 and 4 — shared test-helper compatibility and concurrent cleanup.
+
+The publication hook also identified a malformed owner-tag path in the shared
+historical classifier. Owner facts now validate their closed tag domain and
+canonical data shape before access; active roles must be an actual dense array.
+A new malformed-owner regression failed before the correction and passed after
+it. Existing first-contact and quote classification cases remain the safety net.
+Risk: items 2 and 3 — owner eligibility validation shared by both classifiers.
+
+Targeted publication review also reproduced two pre-existing quote-classifier
+precedence errors. Independently provable occupancy now outranks missing sent
+evidence; established source ambiguity prevents planning a new suppression even
+when an exact response also exists. Both regressions failed before the fix, with
+input hashes unchanged, and preserve manual review rather than inventing writes.
