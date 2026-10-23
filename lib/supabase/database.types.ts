@@ -7,6 +7,9 @@ export type Json =
   | Json[]
 
 type Expand<T> = { [Key in keyof T]: T[Key] }
+type CustomerAccountRow = { user_id: string; contact_id: string; email: string; is_active: boolean; created_at: string }
+type PortalInvitationRow = { id: string; contact_id: string; email: string; token_hash: string; created_by: string; created_at: string; expires_at: string; revoked_at: string | null; redeemed_at: string | null; redeemed_by: string | null }
+type PortalAccessEventRow = { id: string; contact_id: string; invitation_id: string | null; actor_id: string | null; event_type: string; created_at: string }
 type TaskAutomationHistoricalApprovalRow = {
   id: string
   request_id: string
@@ -79,6 +82,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      customer_accounts: {
+        Row: CustomerAccountRow
+        Insert: Pick<CustomerAccountRow, "user_id" | "contact_id" | "email"> & Partial<Pick<CustomerAccountRow, "is_active" | "created_at">>
+        Update: Partial<CustomerAccountRow>
+        Relationships: [{ foreignKeyName: "customer_accounts_contact_id_fkey"; columns: ["contact_id"]; isOneToOne: true; referencedRelation: "contacts"; referencedColumns: ["id"] }]
+      }
+      portal_invitations: {
+        Row: PortalInvitationRow
+        Insert: Pick<PortalInvitationRow, "contact_id" | "email" | "token_hash" | "created_by" | "expires_at"> & Partial<Omit<PortalInvitationRow, "contact_id" | "email" | "token_hash" | "created_by" | "expires_at">>
+        Update: Partial<PortalInvitationRow>
+        Relationships: [{ foreignKeyName: "portal_invitations_contact_id_fkey"; columns: ["contact_id"]; isOneToOne: false; referencedRelation: "contacts"; referencedColumns: ["id"] }]
+      }
+      portal_access_events: {
+        Row: PortalAccessEventRow
+        Insert: Pick<PortalAccessEventRow, "contact_id" | "event_type"> & Partial<Omit<PortalAccessEventRow, "contact_id" | "event_type">>
+        Update: Partial<PortalAccessEventRow>
+        Relationships: []
+      }
       admin_account_events: {
         Row: {
           action: string
@@ -3139,6 +3160,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_customer_identity: { Args: Record<PropertyKey, never>; Returns: Json }
+      customer_account_is_active: { Args: Record<PropertyKey, never>; Returns: boolean }
+      is_portal_staff: { Args: Record<PropertyKey, never>; Returns: boolean }
+      issue_portal_invitation: { Args: { p_contact_id: string }; Returns: Json }
+      redeem_portal_invitation: { Args: { p_token: string }; Returns: Json }
+      revoke_portal_invitation: { Args: { p_invitation_id: string }; Returns: Json }
+      disable_customer_account: { Args: { p_user_id: string }; Returns: Json }
+      portal_resolve_access: { Args: { p_email: string; p_token: string | null; p_request_otp: boolean }; Returns: string | null }
       approve_task_automation_historical_plan: {
         Args: {
           p_request_id_text: string

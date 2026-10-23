@@ -1,0 +1,32 @@
+# Week 04 — Customer identity
+Objective: complete the authorized Week 04 brief locally without granting customers staff access.
+Branch: `feat/week-04-customer-identity`; delivery: auto-chain, stacked-to-main; runner: Node/tsx, disposable PostgreSQL, TypeScript, ESLint, Next build.
+
+## Specs
+
+- S1: "commit and push what we have done already, then continue to start and completely finish week 04 implementation". Existing Week 03 delivery is pushed to `origin/main` at `0b09b60`.
+- S2: "`customer_accounts` linked to canonical Contact;". Explicit one-to-one account binding, no email-based Contact merging, no staff-profile creation. Active account, confirmed Auth email, current Contact status, and staff separation are enforced on every access.
+- S3: "`portal_invitations` / passwordless access path;". Admin-only issue/revoke, exact Contact/email match, 72-hour random single-use invitation, replacement revokes pending invitations, atomic redemption, and append-only lifecycle audit. Email OTP is delivered by Supabase Auth; invitation acceptance does not trust browser email claims.
+- S4: "`/mis-viajes` protected shell;". Separate customer login/verification/logout and a minimal protected shell. No Week 05 quote or acceptance feature is included.
+- S5: "initial customer RLS helpers/policies;" and "explicit separation from staff `profiles/profile_roles`;". Customer data access is self-only. Existing authenticated staff-data policies are restricted without weakening existing staff authorization. Only public published catalog data remains public; internal Contact fields are not returned.
+- S6: "adversarial cross-customer tests." and "Customer A cannot access Customer B data by changing URL/IDs/RPC params; customer authentication never grants staff access; invite/access lifecycle is auditable." Prove unauthorized, revoked, expired, inactive, staff collision, replay, and cross-customer rejection in disposable PostgreSQL and injected Auth boundary tests.
+- S7: Completion is local-only. No remote database changes, real invitation emails, linked type generation, deployment, or Week 05 implementation. Record verification limits rather than claiming production parity.
+
+## Tasks
+
+- T1 [S2,S3,S5,S6] inline — implemented/self-verified, independent runtime unavailable — `0090` and full disposable adversarial DB proof passed; Risk: items 1,2,3,4; commit pending.
+- T2 [S3,S4,S6] inline — implemented/self-verified — OTP boundary, Admin controls, shell, 37 focused/regression tests, Chromium 2/2, production build, types/lint passed; Risk: items 2,3; commit pending.
+- T3 [S1,S6,S7] inline — blocked on independent runtime proof — verifier ran 36 tests, TypeScript and four independent Auth-boundary probes with no reproduced defect, but cannot run DB/browser under its scratch-only boundary. Parent DB proof and separate browser worker passed. Week 04 closure remains pending; commit pending.
+
+## Log
+
+- L1: User request verbatim: "commit and push what we have done already, then continue to start and completely finish week 04 implementation".
+- L2: Week 03 published through `0b09b60`, including 25 pre-existing and 38 new commits. Runtime/tooling files and stale Week 01 planning were excluded. Native hooks ran; temporary OpenCode snapshot disabling prevents inherited-index contamination. No hooks/config were bypassed or persisted.
+- L3: Scope authority is `docs/implementation/weeks/week-04-portal-identity.md`. The user explicitly superseded the prior planning-only handoff and authorized full local Week 04 implementation.
+- L4: Under delegated decision authority, use conservative invitation-only onboarding, Admin-only issuance/revocation, no staff/customer identity overlap, one account per Contact, verified exact email, no auto-merge, and immediate denial for blocked/deleted Contacts or disabled accounts. A failed signup may leave an unlinked Auth identity but must never leave an authorized account or staff profile.
+- L5: Forecast approximately 1,000–1,800 authored lines, sliced at coherent behavior boundaries below 1,200. Implementation stays inline because identity, invitation, and shell contracts are dependent; independent verification follows for security/data risk. Existing unrelated dirty tooling remains preserved.
+- L6: Supabase official OTP documentation confirms `signInWithOtp`, `shouldCreateUser`, and `verifyOtp({email,token,type:'email'})`. Delivery templates require `{{ .Token }}`. Actual hosted Auth delivery is not exercised by local fixtures.
+- L7: Observed RED: missing customer table in disposable PostgreSQL; missing OTP adapter in Node tests. GREEN: complete invitation/account/RLS/role-collision/replay/revocation/expiry/audit/throttling test; 36 focused/legacy-route tests; TypeScript and lint. Test fixtures preserve existing purge guards rather than disabling them.
+- L8: Loopback-only Chromium run built successfully and passed anonymous portal/staff isolation. The remaining test hit an ambiguous locator matching Next's route announcer; narrowed to the actual failure message, rerun pending. No hosted Auth or email operation occurred.
+- L9: Final own checks: expanded PostgreSQL security test PASS, 37 Node tests PASS with zero skips, TypeScript/lint/diff PASS, loopback Chromium 2/2 plus production build PASS. Generated next-env restored. Private calendar/cutoff tables retain revoked grants and gain deny-by-default RLS. No hosted Auth delivery or remote database test was performed.
+- L10: Independent verifier status is explicitly incomplete, not PASS: static/Auth-boundary checks passed but DB/browser were unavailable in its sandbox. Do not call Week 04 closed or advance Week 05 without resolving this missing proof or an explicit human decision accepting its documented limits.
