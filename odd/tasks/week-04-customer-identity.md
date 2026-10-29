@@ -16,7 +16,7 @@ Branch: `feat/week-04-customer-identity`; delivery: auto-chain, stacked-to-main;
 
 - T1 [S2,S3,S5,S6] inline — completed locally — independent real PostgreSQL proof passed; SQL/backend unchanged by the UI correction. Risk: items 1,2,3,4; commit `11f2806`.
 - T2 [S3,S4,S6] inline — completed locally — invitation retention corrected and independently verified with Alice/Bob login/isolation/logout. Risk: item 2; original commit `aa55cdc`, correction `7512ebe`.
-- T3 [S1,S6,S7] inline — local verification completed — independent PostgreSQL scenario, 37 Node tests, types/lint, production build and Chromium 3/3 passed. See `docs/implementation/week-04-verification.md`; hosted Auth/SMTP and main delivery remain excluded.
+- T3 [S1,S6,S7] inline — local verification completed — independent PostgreSQL scenario, 37 Node tests, types/lint, production build and Chromium 3/3 passed. Evidence commit `a4bb708`; see `docs/implementation/week-04-verification.md`. Hosted Auth/SMTP and main delivery remain excluded.
 
 ## Log
 
