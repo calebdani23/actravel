@@ -1,5 +1,19 @@
 # Progreso AC Travel Mx MVP
 
+## 2026-10-29 — Week 04 independently verified locally
+
+- Resolved the verifier capability limitation without disabling hooks or weakening
+  existing agents; a dedicated local runner owns only its temporary resources.
+- Independent successful-login testing reproduced and cleared invitation-token
+  loss. Fix: `7512ebe`; committed browser regressions cover input and retry state.
+- Independent PostgreSQL security scenario, 37 focused tests, TypeScript, lint,
+  production build, and Chromium 3/3 passed. The browser proof includes two
+  customer identities, forged account-ID isolation, staff-route denial and logout.
+- Source/index preservation and owned-container cleanup passed. Full evidence:
+  `docs/implementation/week-04-verification.md`.
+- Main was not merged or pushed. Hosted Auth/SMTP, migrations and deployment
+  remain untested and separately authorized; no Week 05 work was started.
+
 ## 2026-10-23 — Week 03 pushed; Week 04 implemented locally, closure pending
 
 - Week 03 and its publication follow-ups were pushed to `origin/main` at `0b09b60`.

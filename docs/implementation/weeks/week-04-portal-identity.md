@@ -3,10 +3,12 @@
 ## Current status
 Implementation is present on `feat/week-04-customer-identity` through local
 migration `0090`, Admin invitations, email OTP and `/mis-viajes`.
-Local PostgreSQL, 37 focused/regression tests, Chromium 2/2, types, lint, and
-build passed. Independent runtime verification remains unavailable; this week
-is **not yet closed**. See `../week-04-customer-identity.md` and
-`../../../odd/tasks/week-04-customer-identity.md` for scope and proof limits.
+Independent local PostgreSQL, 37 focused/regression tests, Chromium 3/3, types,
+lint and build passed after the invitation-token correction in `7512ebe`.
+The local verification gate is complete; main integration and hosted rollout
+are not performed. See `../week-04-verification.md`,
+`../week-04-customer-identity.md` and `../../../odd/tasks/week-04-customer-identity.md`
+for exact evidence and limits, including simulated Auth protocol/no real SMTP.
 
 ## Outcome
 Create secure customer authentication/authorization without turning customers into staff users.

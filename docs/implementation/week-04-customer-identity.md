@@ -71,10 +71,13 @@ staff collision rejection, cross-customer isolation, disabled/blocked access,
 audit immutability, catalog privacy and request throttling; 37 focused/legacy
 Node tests; Chromium 2/2; TypeScript, lint and production build passed.
 
-Independent review found no reproduced application defect in its static and
-injected-boundary checks, but could not run PostgreSQL or Chromium under its
-scratch-only restriction. Its verdict is incomplete, not a full security PASS.
-Week 04 is implemented locally but closure is pending this verification limit.
+The initial independent runtime limitation is resolved by a dedicated, scoped
+verifier. It executed the real PostgreSQL security scenario and found an invited
+login defect in a positive browser journey. Commit `7512ebe` corrects token loss
+on React rerender. Independent Chromium 3/3, focused tests 37/37, TypeScript,
+lint and build now pass. See [the verification report](./week-04-verification.md)
+for exact candidate hashes, retained proof, and local Auth-fixture limitations.
+Week 04 is locally verified and awaits separately authorized main delivery.
 
 `RUN_CUSTOMER_IDENTITY_DB_TESTS=1 node --conditions react-server --import tsx --test tests/customer-identity-runtime.test.ts`
 

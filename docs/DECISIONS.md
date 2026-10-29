@@ -1,5 +1,20 @@
 # Decisiones técnicas y de producto
 
+## 2026-10-29 — Complete independent local Week 04 checks before main delivery
+
+The user authorized a dedicated scoped verifier rather than waiving independent
+runtime proof. It ran cached, network-isolated PostgreSQL and loopback Chromium
+against pinned commits, without source/index mutation or hosted credentials.
+The positive journey exposed invitation loss on an email-driven React render.
+User-authorized correction `7512ebe` uses a per-form external store and controlled
+hidden values, preserving fragment removal without persistent token storage.
+
+Independent SQL, 37 focused tests, TypeScript/lint, production build, and Chromium
+3/3 now support local readiness. Browser Auth protocol was simulated; application
+SQL/RLS was real. Keep live GoTrue/SMTP, hosted migrations and deployment separate.
+Main integration is still a separate authorized operation. Evidence and limits
+are recorded in `docs/implementation/week-04-verification.md`.
+
 ## 2026-10-23 — Invitation-only customer identity, separate from staff
 
 The user's Week 04 implementation authorization supersedes the prior planning-only

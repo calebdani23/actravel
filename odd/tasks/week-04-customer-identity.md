@@ -14,9 +14,9 @@ Branch: `feat/week-04-customer-identity`; delivery: auto-chain, stacked-to-main;
 
 ## Tasks
 
-- T1 [S2,S3,S5,S6] inline — implemented/self-verified, independent runtime unavailable — `0090` and full disposable adversarial DB proof passed; Risk: items 1,2,3,4; commit `11f2806`.
-- T2 [S3,S4,S6] inline — reopened for confirmed invitation-token reset — independent positive browser journey proved email entry clears the captured invitation; bounded fix and regression authorized. Risk: item 2; original commit `aa55cdc`, correction pending.
-- T3 [S1,S6,S7] inline — in progress — dedicated scoped verifier independently passed PostgreSQL, 37 Node tests, types/lint, production build and anonymous Chromium 2/2. Positive signed-in journey is blocked by the T2 token-reset defect. Week 04 remains open.
+- T1 [S2,S3,S5,S6] inline — completed locally — independent real PostgreSQL proof passed; SQL/backend unchanged by the UI correction. Risk: items 1,2,3,4; commit `11f2806`.
+- T2 [S3,S4,S6] inline — completed locally — invitation retention corrected and independently verified with Alice/Bob login/isolation/logout. Risk: item 2; original commit `aa55cdc`, correction `7512ebe`.
+- T3 [S1,S6,S7] inline — local verification completed — independent PostgreSQL scenario, 37 Node tests, types/lint, production build and Chromium 3/3 passed. See `docs/implementation/week-04-verification.md`; hosted Auth/SMTP and main delivery remain excluded.
 
 ## Log
 
@@ -34,3 +34,4 @@ Branch: `feat/week-04-customer-identity`; delivery: auto-chain, stacked-to-main;
 - L12: User decision verbatim: "Keep closure pending (Recommended)". Require independently executed database/browser checks in an appropriately configured verification environment. Do not waive the missing proof, close Week 04, or advance Week 05.
 - L13: User request verbatim: "okey perfect, then lets work on the checks or verificarions that are needed to be able to push it to main". User selected "Scoped verifier agent (Recommended)". Only scoped local runtime provisioning was authorized; source/index preservation and no hosted access remain mandatory.
 - L14: Independent RED at `f31b9de`: after email entry, invitationToken becomes empty before any OTP/RPC call. User selected "Fix and reverify (Recommended)" for the bounded component/test correction, not merge or main push.
+- L15: Correction `7512ebe` passed writer checks and the independent real-SQL/local-Auth browser journey (3/3). Fresh independent focused tests 37/37, TypeScript and lint passed for that candidate; unchanged SQL retains its independent 1/1 composite scenario. No proof was waived. Local readiness is recorded in `docs/implementation/week-04-verification.md`; no main merge/push or production-readiness claim.
