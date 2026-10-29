@@ -15,8 +15,8 @@ Branch: `feat/week-04-customer-identity`; delivery: auto-chain, stacked-to-main;
 ## Tasks
 
 - T1 [S2,S3,S5,S6] inline — implemented/self-verified, independent runtime unavailable — `0090` and full disposable adversarial DB proof passed; Risk: items 1,2,3,4; commit `11f2806`.
-- T2 [S3,S4,S6] inline — implemented/self-verified — OTP boundary, Admin controls, shell, 37 focused/regression tests, Chromium 2/2, production build, types/lint passed; Risk: items 2,3; commit `aa55cdc`.
-- T3 [S1,S6,S7] inline — blocked on independent runtime proof — verifier ran 36 tests, TypeScript and four independent Auth-boundary probes with no reproduced defect, but cannot run DB/browser under its scratch-only boundary. Parent DB proof and separate browser worker passed. Week 04 closure remains pending; commit pending.
+- T2 [S3,S4,S6] inline — reopened for confirmed invitation-token reset — independent positive browser journey proved email entry clears the captured invitation; bounded fix and regression authorized. Risk: item 2; original commit `aa55cdc`, correction pending.
+- T3 [S1,S6,S7] inline — in progress — dedicated scoped verifier independently passed PostgreSQL, 37 Node tests, types/lint, production build and anonymous Chromium 2/2. Positive signed-in journey is blocked by the T2 token-reset defect. Week 04 remains open.
 
 ## Log
 
@@ -32,3 +32,5 @@ Branch: `feat/week-04-customer-identity`; delivery: auto-chain, stacked-to-main;
 - L10: Independent verifier status is explicitly incomplete, not PASS: static/Auth-boundary checks passed but DB/browser were unavailable in its sandbox. Do not call Week 04 closed or advance Week 05 without resolving this missing proof or an explicit human decision accepting its documented limits.
 - L11: T1 committed as `11f2806` (467 lines); T2 as `aa55cdc` (444 changed lines), both with the existing Guardian Angel hook enabled. Week 04 commits remain local on the feature branch; only the already-completed Week 03 delivery was pushed. RDD remains user-disabled.
 - L12: User decision verbatim: "Keep closure pending (Recommended)". Require independently executed database/browser checks in an appropriately configured verification environment. Do not waive the missing proof, close Week 04, or advance Week 05.
+- L13: User request verbatim: "okey perfect, then lets work on the checks or verificarions that are needed to be able to push it to main". User selected "Scoped verifier agent (Recommended)". Only scoped local runtime provisioning was authorized; source/index preservation and no hosted access remain mandatory.
+- L14: Independent RED at `f31b9de`: after email entry, invitationToken becomes empty before any OTP/RPC call. User selected "Fix and reverify (Recommended)" for the bounded component/test correction, not merge or main push.
