@@ -1,12 +1,13 @@
 # Week 04 — Customer Portal Identity
 
 ## Current status
-Implementation is present on `feat/week-04-customer-identity` through local
-migration `0090`, Admin invitations, email OTP and `/mis-viajes`.
+Implementation from `feat/week-04-customer-identity` was fast-forwarded and pushed
+to `origin/main` at `148ccbe` on 2026-11-02, including migration `0090`, Admin
+invitations, email OTP and `/mis-viajes`.
 Independent local PostgreSQL, 37 focused/regression tests, Chromium 3/3, types,
 lint and build passed after the invitation-token correction in `7512ebe`.
-The local verification gate is complete; main integration and hosted rollout
-are not performed. See `../week-04-verification.md`,
+The local verification and Git integration gates are complete; hosted rollout
+was not performed. See `../week-04-verification.md`,
 `../week-04-customer-identity.md` and `../../../odd/tasks/week-04-customer-identity.md`
 for exact evidence and limits, including simulated Auth protocol/no real SMTP.
 

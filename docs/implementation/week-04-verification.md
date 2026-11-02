@@ -4,7 +4,14 @@
 
 **PASS for the specified local checks**, including the corrected signed-in
 customer journey. Ready for main-integration review against local baseline
-`0b09b60100ef7ef168917f9fe7a561db55c88559`; no merge or push was performed.
+`0b09b60100ef7ef168917f9fe7a561db55c88559`; no merge or push was performed during
+the verification session.
+
+**Delivery update (2026-11-02):** after explicit user authorization and an upstream
+freshness check, the seven feature commits were fast-forwarded and pushed to
+`origin/main` at `148ccbe4cc0b999808900aeddc794f6ad7269588`. The remote head matched.
+Executable code is unchanged from the verified candidate; this later Git delivery
+does not add hosted Auth/SMTP, migration, deployment, or production evidence.
 
 Verified executable candidate: `7512ebe4af12a4f4c09aff4a28826ffcf250ef7a`.
 The original database proof used `f31b9dea18a3980cb265cec352d9ab9ebf9104c6`.

@@ -77,7 +77,8 @@ login defect in a positive browser journey. Commit `7512ebe` corrects token loss
 on React rerender. Independent Chromium 3/3, focused tests 37/37, TypeScript,
 lint and build now pass. See [the verification report](./week-04-verification.md)
 for exact candidate hashes, retained proof, and local Auth-fixture limitations.
-Week 04 is locally verified and awaits separately authorized main delivery.
+Week 04 is locally verified and was delivered to `origin/main` at `148ccbe` on
+2026-11-02. Hosted rollout remains separately authorized and unverified.
 
 `RUN_CUSTOMER_IDENTITY_DB_TESTS=1 node --conditions react-server --import tsx --test tests/customer-identity-runtime.test.ts`
 

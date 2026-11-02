@@ -1,5 +1,17 @@
 # Progreso AC Travel Mx MVP
 
+## 2026-11-02 — Week 04 integrated and pushed to main
+
+The user authorized the next delivery steps. After fetching upstream, `main`
+was unchanged at `0b09b60`; Week 04 fast-forwarded through seven commits to
+`148ccbe`. Push to `origin/main` succeeded and the remote head was confirmed.
+The executable tree still matches independently verified `7512ebe`; later
+changes are documentation only. TypeScript and diff checks passed again.
+Unrelated dirty tooling and untracked files were preserved and excluded.
+
+This records Git delivery, not hosted deployment or Supabase parity. No hosted
+migration, real Auth/SMTP setup, or Week 05 work was performed.
+
 ## 2026-10-29 — Week 04 independently verified locally
 
 - Resolved the verifier capability limitation without disabling hooks or weakening
