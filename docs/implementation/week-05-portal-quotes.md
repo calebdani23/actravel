@@ -50,8 +50,33 @@ The staff response validator is retained; null-actor customer responses require
 a matching immutable request row instead of a fabricated staff profile.
 
 Own database and Node checks pass, including concurrent replay, zero-write
-denials, legacy staff acceptance/replacement and late-failure rollback. T3 UI
-interactions and independent feature-wide verification remain pending.
+denials, legacy staff acceptance/replacement and late-failure rollback.
+
+## Customer and staff interactions (T3)
+
+The quote detail page displays preserved acceptance receipts and accepted terms,
+distinguishes staff-recorded acceptance, and lists the ten most recent customer
+requests. Only eligible current versions expose explicit consent and change-request
+controls. Requests are trimmed and limited to 2,000 Unicode codepoints / 8,000
+UTF-8 bytes. Failed submissions preserve input and retry identity; a successful
+change request clears its text and receives a new server-generated request UUID.
+Both submissions are disabled while pending. Each result announces feedback and
+moves focus, including consecutive identical failures and transport errors. A
+changed viewed lock, terms revision/hash or PDF hash requires consent again;
+rerendering does not carry a checked consent box onto different proposal facts.
+
+`/admin/customer-quote-work` is available to Admin, Asesor and Operations. The
+database filters Operations to acceptance pre-alerts. Missing-owner work remains
+Admin intake with its original deadline. Claiming refreshes the assignment without
+promising ownership after a race; management uses the existing audited Task action
+RPC and closed cancellation reasons. No customer/staff profile impersonation,
+direct customer DML, Opportunity Won transition or Trip creation is introduced.
+
+Only confirmed successful mutations revalidate customer quotes, staff quotes,
+the work queue and dashboard. Failed/unknown RPC responses remain closed and
+never display provider details. Independent feature-wide runtime verification,
+including positive browser fixtures, remains T4; the bounded browser regression
+source covers anonymous routes and malformed PDF inputs without hosted actions.
 
 ## Compatibility and rollout
 

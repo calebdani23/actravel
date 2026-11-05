@@ -2,6 +2,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCustomerIdentity } from "@/lib/customer/portal";
 import { customerQuoteDetail } from "@/lib/customer/quotes";
+import { randomUUID } from "node:crypto";
+import { QuoteActions, QuoteEvidence } from "@/components/customer/quote-actions";
+import { customerQuoteAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 export default async function CustomerQuotePage({ params, searchParams }: {
@@ -12,6 +15,8 @@ export default async function CustomerQuotePage({ params, searchParams }: {
   const result = await customerQuoteDetail(id, { versionId: query.version, beforeVersion: query.beforeVersion === undefined ? undefined : Number(query.beforeVersion) });
   if (!result.ok) { if (result.code === "NOT_AVAILABLE" || result.code === "INVALID_INPUT") notFound(); throw new Error("Proposal is unavailable."); }
   const { quote, version, terms } = result;
+  const action = customerQuoteAction.bind(null, { quoteId: quote.quoteId, versionId: version.versionId, expectedLock: quote.lockVersion,
+    termsId: terms?.termsId ?? null, termsHash: terms?.sha256 ?? null, documentHash: version.pdf?.sha256 ?? null });
   return <main className="mx-auto max-w-4xl space-y-6 px-6 py-12">
     <Link className="underline" href="/mis-viajes/cotizaciones">All proposals</Link>
     <h1 className="text-3xl font-semibold">{quote.number} — {version.title}</h1>
@@ -20,9 +25,11 @@ export default async function CustomerQuotePage({ params, searchParams }: {
     <dl className="grid grid-cols-2 gap-2"><dt>Total</dt><dd>{version.currency} {version.totalAmount?.toFixed(2) ?? "—"}</dd>
       <dt>Deposit</dt><dd>{version.currency} {version.depositAmount?.toFixed(2) ?? "—"}</dd><dt>Valid through (UTC date)</dt><dd>{version.validUntil ?? "Not specified"}</dd></dl>
     {version.pdf ? <a className="inline-block rounded border px-4 py-2" href={`/mis-viajes/cotizaciones/pdf/${version.versionId}`}>Download proposal PDF</a> : <p>PDF is unavailable. Contact your advisor.</p>}
-    <section aria-label="Proposal terms" className="space-y-3 rounded border p-4"><h2 className="text-xl font-semibold">Approved terms</h2>
-      {terms ? <><p>Revision {terms.revision}</p><p className="whitespace-pre-wrap">{terms.body}</p></> : <p>Acceptance is unavailable until approved terms are published.</p>}
-    </section>
+    <QuoteEvidence detail={result} />
+    <QuoteActions key={version.versionId} action={action} requestIds={{ accept: randomUUID(), change: randomUUID() }}
+      viewKey={`${quote.lockVersion}:${terms?.termsId}:${terms?.sha256}:${version.pdf?.sha256}`}
+      canAccept={version.current && version.canAccept && !!terms && !!version.pdf && !result.acceptance}
+      canRequestChanges={version.current && version.canRequestChanges} />
     <section aria-label="Version comparison"><h2 className="text-xl font-semibold">Published version history</h2>
       <div className="overflow-x-auto"><table className="w-full text-left"><thead><tr><th>Version</th><th>Status</th><th>Total</th><th>Deposit</th><th>Validity</th></tr></thead>
         <tbody>{result.history.map(row => <tr key={row.versionId}><td><Link className="underline" href={`/mis-viajes/cotizaciones/${id}?version=${row.versionId}`}>{row.versionNumber}: {row.title}</Link></td>

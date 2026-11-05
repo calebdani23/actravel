@@ -4,7 +4,7 @@
 
 - **Week:** 05 implementation
 - **Theme:** Customer quote viewing, verified acceptance and change requests
-- **Status:** The user explicitly authorized Week 05. T1 quote reads, terms and private PDF delivery pass own local checks; T2/T3 mutations and feature-wide verification remain. Week 04 is delivered on main; hosted rollout remains separate.
+- **Status:** Week 05 T1–T3 are implemented with own database, adapter and UI checks. T4 independent feature-wide runtime verification remains. Week 04 is delivered on main; hosted rollout remains separate.
 - **Context preparation merged on main:** `224cc37608f8842725733a5522bbe4ab0dbfe8c1`
 - **Executable product baseline before documentation-only preparation:** `01d5a6b0bea066a0ea87943de922e39d18eb4dac`
 - **Primary brief:** [`weeks/week-05-portal-quotes.md`](./weeks/week-05-portal-quotes.md), [`week-05-portal-quotes.md`](./week-05-portal-quotes.md), and `odd/tasks/week-05-portal-quotes.md`. The approved policy bundle requires versioned Admin-approved terms, current valid sent-version acceptance, no silent replacement, and advisor/24-hour tasks with Admin intake fallback.
@@ -63,7 +63,7 @@ The packet completed local implementation through S18: local unapplied `0081`–
 
 Final local evidence is 21/21 requirements, 81/81 scenarios, and 11/11 tasks. Focused Mi día/routing **33/33**, UI **5/5**, Chromium E2E **5/5**, Mi día runtime **1/1**, combined action/automation/source/historical regression **97/97**, and follow-up/Task/CRM preservation **81/81** passed with zero skips. TypeScript, lint, the 96/96-page build, diff checks, the protected 28/28 manifest, and cleanup passed; verify-report SHA-256 is `f3a178dd5d71b6c1479992efa3f2c66ff56a6ec2052e97f47bc8cdee0f91206d`.
 
-**Next action:** complete Week 05 T2/T3 and independent local verification on `feat/week-05-portal-quotes`. Week 04 evidence remains [`week-04-verification.md`](./week-04-verification.md). Do not apply hosted migrations, claim live Auth/Storage/SMTP parity, or advance Week 06 from local results.
+**Next action:** complete Week 05 T4 independent local verification on `feat/week-05-portal-quotes`. Week 04 evidence remains [`week-04-verification.md`](./week-04-verification.md). Do not apply hosted migrations, claim live Auth/Storage/SMTP parity, or advance Week 06 from local results.
 
 Migrations `0061`–`0089` are local artifacts supported only by local/disposable evidence. No remote state was inspected or changed during archive.
 

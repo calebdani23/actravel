@@ -74,6 +74,13 @@ export const ADMIN_NAV_ITEMS = [
     matchPrefixes: ["/admin/quotes/"],
   },
   {
+    href: "/admin/customer-quote-work",
+    label: "Customer quote work",
+    group: "Comercial",
+    roles: ["admin", "asesor", "operaciones"],
+    icon: "notebook-tabs",
+  },
+  {
     href: "/admin/operations/documents",
     label: "Documentos",
     group: "Comercial",

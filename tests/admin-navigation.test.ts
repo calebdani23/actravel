@@ -34,7 +34,7 @@ test("admin navigation leaves CRM links clean when there are no active params", 
 
 test("Manager navigation is limited to the safe landing and account", () => {
   assert.deepEqual(getVisibleAdminNavItems(["manager"] as const).map((item) => item.href), ["/admin/dashboard", "/admin/account"]);
-  assert.deepEqual(getVisibleAdminNavItems(["manager", "asesor"] as const).map((item) => item.href), ["/admin/dashboard", "/admin/logs", "/admin/leads", "/admin/quotes", "/admin/account"]);
+  assert.deepEqual(getVisibleAdminNavItems(["manager", "asesor"] as const).map((item) => item.href), ["/admin/dashboard", "/admin/logs", "/admin/leads", "/admin/quotes", "/admin/customer-quote-work", "/admin/account"]);
   assert.equal(isAdminRouteAllowed(["manager"], "/admin/dashboard"), true);
   assert.equal(isAdminRouteAllowed(["manager"], "/admin/account"), true);
   assert.equal(isAdminRouteAllowed(["manager"], "/admin/staff"), false);
@@ -55,7 +55,7 @@ test("Dashboard navigation uses Mi día only for supported role unions", () => {
 
 test("unsupported navigation keeps every existing role-visible route", () => {
   const hrefs = (role: string) => getVisibleAdminNavItems([role]).map((item) => item.href);
-  assert.deepEqual(hrefs("operaciones"), ["/admin/dashboard", "/admin/operations/bookings", "/admin/quotes", "/admin/operations/documents", "/admin/account"]);
+  assert.deepEqual(hrefs("operaciones"), ["/admin/dashboard", "/admin/operations/bookings", "/admin/quotes", "/admin/customer-quote-work", "/admin/operations/documents", "/admin/account"]);
   assert.deepEqual(hrefs("finanzas"), ["/admin/dashboard", "/admin/payments", "/admin/quotes", "/admin/account"]);
   assert.deepEqual(hrefs("marketing"), ["/admin/dashboard", "/admin/logs", "/admin/catalog/destinations", "/admin/catalog/packages", "/admin/templates", "/admin/account"]);
 });
@@ -66,6 +66,7 @@ test("combined Manager and advisor retains advisor route access without Manager 
     "/admin/logs",
     "/admin/leads",
     "/admin/quotes",
+    "/admin/customer-quote-work",
     "/admin/account",
   ]);
   assert.equal(isAdminRouteAllowed(["manager", "asesor"], "/admin/leads/123"), true);
