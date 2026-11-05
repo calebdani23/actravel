@@ -7,6 +7,17 @@ export type Json =
   | Json[]
 
 type Expand<T> = { [Key in keyof T]: T[Key] }
+type CustomerQuoteAcceptanceRow = {
+  id: string; request_id: string; customer_id: string; contact_id: string; quote_id: string; quote_version_id: string; lead_id: string;
+  terms_id: string; terms_revision: string; terms_body: string; terms_sha256: string; document_id: string; document_sha256: string;
+  version_sha256: string; currency: string; total_amount: number; deposit_amount: number | null; valid_until: string | null;
+  expected_lock_version: number; accepted_at: string; source: string; request_fingerprint: string;
+}
+type CustomerQuoteRequestRow = {
+  id: string; request_id: string; customer_id: string; contact_id: string; quote_id: string; quote_version_id: string; lead_id: string;
+  body: string; expected_lock_version: number; request_fingerprint: string; response_event_id: string; created_at: string;
+}
+type PortalQuoteWorkRow = { event_id: string; quote_id: string; kind: string; event_at: string; due_at: string; task_id: string | null; claimed_by: string | null; claimed_at: string | null }
 type CustomerAccountRow = { user_id: string; contact_id: string; email: string; is_active: boolean; created_at: string }
 type PortalInvitationRow = { id: string; contact_id: string; email: string; token_hash: string; created_by: string; created_at: string; expires_at: string; revoked_at: string | null; redeemed_at: string | null; redeemed_by: string | null }
 type PortalAccessEventRow = { id: string; contact_id: string; invitation_id: string | null; actor_id: string | null; event_type: string; created_at: string }
@@ -82,6 +93,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      quote_acceptances: {
+        Row: CustomerQuoteAcceptanceRow
+        Insert: Omit<CustomerQuoteAcceptanceRow, "id"> & { id?: string }
+        Update: Partial<CustomerQuoteAcceptanceRow>
+        Relationships: []
+      }
+      customer_requests: {
+        Row: CustomerQuoteRequestRow
+        Insert: Omit<CustomerQuoteRequestRow, "id" | "created_at"> & { id?: string; created_at?: string }
+        Update: Partial<CustomerQuoteRequestRow>
+        Relationships: []
+      }
+      portal_quote_work: {
+        Row: PortalQuoteWorkRow
+        Insert: Omit<PortalQuoteWorkRow, "task_id" | "claimed_by" | "claimed_at"> & Partial<Pick<PortalQuoteWorkRow, "task_id" | "claimed_by" | "claimed_at">>
+        Update: Partial<PortalQuoteWorkRow>
+        Relationships: []
+      }
       portal_quote_terms: {
         Row: { id: string; revision: string; body: string; sha256: string; published_by: string; published_at: string; is_active: boolean }
         Insert: { id?: string; revision: string; body: string; sha256: string; published_by: string; published_at?: string; is_active?: boolean }
@@ -3166,6 +3195,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_customer_quote: { Args: { p_request_id: string; p_quote_id: string; p_version_id: string; p_expected_lock: number; p_terms_id: string; p_terms_hash: string; p_document_hash: string; p_consent: boolean }; Returns: Json }
+      request_customer_quote_change: { Args: { p_request_id: string; p_quote_id: string; p_version_id: string; p_expected_lock: number; p_body: string }; Returns: Json }
+      read_portal_quote_work: { Args: { p_before?: string | null; p_after?: string | null }; Returns: Json }
+      claim_portal_quote_work: { Args: { p_event_id: string }; Returns: Json }
+      manage_portal_quote_work: { Args: { p_event_id: string; p_request_id: string; p_target_status: string; p_cancel_reason: string | null }; Returns: Json }
       publish_portal_quote_terms: { Args: { p_revision: string; p_body: string }; Returns: Json }
       read_customer_quotes: { Args: { p_before?: string | null; p_after?: string | null; p_limit?: number }; Returns: Json }
       read_customer_quote: { Args: { p_quote_id: string; p_version_id?: string | null; p_before_version?: number | null }; Returns: Json }

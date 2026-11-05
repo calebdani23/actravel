@@ -49,4 +49,14 @@ test("customer quote read/PDF/terms boundaries preserve canonical staff contract
     assert.equal(portalRpc(actors.alice, `public.read_customer_quote_pdf('${own.versionId}')`).ok, false);
     psql("quote_base", `update public.contacts set blocked_at=null where id='${portalId(11)}';`);
   });
+  await t.test("keyset pages exhaust only the current customer's published proposals", () => {
+    const newer = registerPortalQuote(portalId(21), "page_two");
+    const first = portalRpc(actors.alice, "public.read_customer_quotes(null,null,1)");
+    assert.equal(first.items.length, 1); assert.equal(first.items[0].quoteId, newer.quoteId);
+    const next = portalRpc(actors.alice, `public.read_customer_quotes('${first.next.createdAt}','${first.next.quoteId}',1)`);
+    assert.deepEqual(next.items.map((row: { quoteId: string }) => row.quoteId), [own.quoteId]);
+    assert.equal(next.next, null);
+    assert.equal(portalRpc(actors.alice, "public.read_customer_quotes(null,null,0)").ok, false);
+    assert.equal(portalRpc(actors.alice, `public.read_customer_quotes(null,'${foreign.quoteId}',20)`).ok, false);
+  });
 }));

@@ -15,6 +15,13 @@ actions remain authoritative; portal-event tasks use compatible manual rows and
 a dedicated intake view, without widening Mi día. See the Week 05 task log for
 implementation status; hosted rollout is not authorized.
 
+Customer acceptance/request writes invoke existing Task automation, whose deferred
+parity triggers previously ran with caller-visible RLS. Additive migration `0092`
+keeps their exact integrity bodies but uses private SECURITY DEFINER execution and
+an empty search path so valid customer-triggered cancellation can commit. No
+customer execution or table-read grant is added. Runtime tests pin body and ACL
+preservation, commercial rollback, and unchanged staff response/acceptance paths.
+
 ## 2026-10-29 — Complete independent local Week 04 checks before main delivery
 
 The user authorized a dedicated scoped verifier rather than waiving independent

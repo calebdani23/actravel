@@ -14,9 +14,9 @@ Branch: `feat/week-05-portal-quotes`; baseline: `659b608`; delivery: auto-chain/
 
 ## Tasks
 
-- T1 [S2,S6,S7] inline — implemented/self-verified, independent T4 pending — `0091`, terms/read/PDF RPCs and UI; 4 PostgreSQL tests and 39 Node tests passed; types/lint/diff passed. Risk: items 1,2,3; commit pending.
-- T2 [S3,S4,S5,S7] inline — in progress — transactional acceptance/change-request evidence and staff work queue/task creation, with database proofs; Risk: items 1,2,3,4; commit pending.
-- T3 [S2,S3,S4,S5,S7] inline — pending — customer consent/request interactions and staff task controls with focused/browser regression tests; Risk: items 2,3; commit pending.
+- T1 [S2,S6,S7] inline — implemented/self-verified, independent T4 pending — `0091`, terms/read/PDF RPCs and UI; local DB and Node checks passed. Risk: items 1,2,3; commit `6a654b1`.
+- T2 [S3,S4,S5,S7] inline — implemented/self-verified, independent T4 pending — `0092` evidence, locks, staff work and audited actions; 9 mutation TAP tests and 40 Node tests passed; latest expiry guard recheck pending. Risk: items 1,2,3,4; commit pending.
+- T3 [S2,S3,S4,S5,S7] delegated — pending — customer consent/request interactions and staff task controls with focused/browser regression tests; Risk: items 2,3; commit pending. Writer reason: long-session context backstop; one bounded writer owns this dependent unit after T2, with exact surfaces and no parallel writer.
 - T4 [S1–S7] inline coordination — pending — independent local runtime verification, preservation, and completion documentation; Risk: items 1,2,3,4; evidence pending.
 
 ## Log
@@ -28,3 +28,5 @@ Branch: `feat/week-05-portal-quotes`; baseline: `659b608`; delivery: auto-chain/
 - L5: Direct customer table/storage access remains denied. Narrow RPCs derive Contact identity from the verified account. PDF bytes are delivered through an authenticated server route with authorized canonical metadata and size/hash checks, not a public bucket or arbitrary signing endpoint.
 - L6: Forecast 2,000–3,000 authored lines across coherent units, automatically subdivided below 1,200. Inline route: behavior units are sequentially dependent; source preparation stays with the writer. Independent verification follows the high-risk implementation. Unrelated runtime/config/Week 01 files are preserved.
 - L7: T1 RED observed missing read/terms/PDF RPCs against the real pre-change schema, and missing server adapter. GREEN: 3 DB subtests plus parent, 39 Node tests, TypeScript/lint/diff. Canonical fixtures use staff registration/upload/finalization RPCs; no quote-integrity triggers were disabled. Private PDF SDK behavior checked against current Supabase documentation.
+- L8: T2 RED observed missing evidence tables/RPCs. Initial runtime exposed deferred native Task parity checks running under customer RLS; `0092` changes only their execution authority/search path, retaining byte-identical bodies and private ACLs. Customer null-staff-actor responses require immutable request linkage; existing staff validator stays unchanged.
+- L9: T2 own proof covers cross-customer/stale/terms/PDF/no-consent zero-write hashes, current/sent/expiry rules, concurrent acceptance replay, immutable terms snapshots, no Opportunity Won transition, exact 24-hour Tasks, staff-response compatibility, Admin fallback/claim, audited completion, staff ready/replacement acceptance, and rollback after a late task failure.

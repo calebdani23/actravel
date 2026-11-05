@@ -25,7 +25,10 @@ const pageSchema = z.object({ ok: z.literal(true), items: z.array(z.object({ quo
 const detailSchema = z.object({ ok: z.literal(true), quote: z.object({ quoteId: portalUuid, number: z.string().max(80), lockVersion: z.number().int().nonnegative() }).strict(),
   version: versionSchema.extend({ current: z.boolean(), canAccept: z.boolean(), canRequestChanges: z.boolean(),
     pdf: z.object({ documentId: portalUuid, sha256: digest, byteSize: z.number().int().positive().max(QUOTE_PDF_MAX_SIZE_BYTES) }).strict().nullable() }),
-  history: z.array(versionSchema).max(20), nextBeforeVersion: z.number().int().positive().nullable(), terms: termsSchema.nullable(), acceptance: z.null() }).strict();
+  history: z.array(versionSchema).max(20), nextBeforeVersion: z.number().int().positive().nullable(), terms: termsSchema.nullable(),
+  acceptance: z.object({ acceptanceId: portalUuid, acceptedAt: timestamp, documentSha256: digest }).strict().nullable(),
+  requests: z.array(z.object({ requestId: portalUuid, versionId: portalUuid, body: z.string().refine(value => [...value].length <= 2000 && Buffer.byteLength(value, "utf8") <= 8000), createdAt: timestamp,
+    status: z.enum(["awaiting_assignment", "pending", "in_progress", "completed", "canceled"]) }).strict()).max(10) }).strict();
 const pdfSchema = z.object({ ok: z.literal(true), pdf: z.object({ versionId: portalUuid, documentId: portalUuid,
   bucket: z.enum(["quote-pdfs", "documents"]), path: z.string().min(1).max(1024), sha256: digest,
   byteSize: z.number().int().positive().max(QUOTE_PDF_MAX_SIZE_BYTES) }).strict() }).strict();

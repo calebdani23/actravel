@@ -6,10 +6,12 @@ export const portalActors = { admin: portalId(1), advisor: portalId(2), alice: p
 export const portalPdfBytes = Buffer.from("%PDF-1.7\nPORTAL VERIFICATION FIXTURE\n%%EOF\n");
 export const portalPdfHash = createHash("sha256").update(portalPdfBytes).digest("hex");
 export const sqlJson = (value: string) => JSON.parse(value.split(/\r?\n/).findLast(line => /^[\[{]/.test(line))!);
+export const parityBodySql = "select md5(string_agg(prosrc,'|' order by proname)) from pg_proc where oid in ('public.validate_task_automation_task_parity()'::regprocedure,'public.validate_task_automation_origin_parity()'::regprocedure);";
 
 export function preparePortalQuotesDatabase(lastMigration = 91) {
   prepareBaseDatabase();
   for (const name of migrationNames().filter(name => Number(name.slice(0, 4)) >= 57 && Number(name.slice(0, 4)) <= 89)) applyMigration("quote_base", name);
+  const parityBodies = psql("quote_base", parityBodySql);
   psql("quote_base", "alter table auth.users add column email_confirmed_at timestamptz;");
   for (const name of migrationNames().filter(name => Number(name.slice(0, 4)) >= 90 && Number(name.slice(0, 4)) <= lastMigration)) applyMigration("quote_base", name);
   psql("quote_base", `insert into auth.users(id,email,email_confirmed_at) values
@@ -26,6 +28,7 @@ export function preparePortalQuotesDatabase(lastMigration = 91) {
     insert into public.leads(id,contact_id,status_id,assigned_to) values('${portalId(21)}','${portalId(11)}','${portalId(13)}','${portalActors.advisor}'),('${portalId(22)}','${portalId(12)}','${portalId(13)}','${portalActors.advisor}');
     grant select on all tables in schema public to authenticated;
     grant select,insert on storage.objects to authenticated,service_role;`);
+  return parityBodies;
 }
 
 export function portalRpc(actor: string, expression: string) {

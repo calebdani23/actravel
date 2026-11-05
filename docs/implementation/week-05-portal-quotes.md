@@ -28,9 +28,30 @@ a server-only client, verifies exact size/hash/PDF signature, and returns an
 attachment with private/no-store headers. No public or browser-supplied storage
 path is signed. Admins manage approved revisions at `/admin/portal-terms`.
 
-T1 own checks passed: three PostgreSQL subtests (four TAP tests including their
-parent), 39 Node tests, TypeScript, lint and diff checks. Independent feature-wide
-verification is still pending. Acceptance, requests and staff work remain T2/T3.
+Migration `0092` adds immutable acceptance and change-request evidence, exact
+customer guards and compatible parent-to-child quote locks under the shared
+historical universe guard. Acceptance records approved terms, exact version,
+PDF and financial snapshot, customer/Contact identity and server time. It cannot
+replace an existing accepted proposal. Requests are capped at ten per customer
+per hour, with exact retries replayed before the cap is considered.
+
+Acceptance events (staff or customer) create a prepare-handoff pre-alert/work
+item. Customer requests cancel exact-version follow-up through the existing
+automation primitive and create review work. Active assigned advisors receive
+compatible manual Tasks due in 24 elapsed hours; unresolved ownership goes to
+Admin intake. Admin claiming preserves the original deadline; staff completion
+uses the existing audited `task_action` boundary. No Opportunity/Trip/economic
+state is advanced by this work.
+
+Deferred Task parity triggers now execute privately with sufficient authority to
+read protected origin rows at customer transaction commit. Their bodies remain
+byte-identical and public execution remains revoked; integrity is not disabled.
+The staff response validator is retained; null-actor customer responses require
+a matching immutable request row instead of a fabricated staff profile.
+
+Own database and Node checks pass, including concurrent replay, zero-write
+denials, legacy staff acceptance/replacement and late-failure rollback. T3 UI
+interactions and independent feature-wide verification remain pending.
 
 ## Compatibility and rollout
 

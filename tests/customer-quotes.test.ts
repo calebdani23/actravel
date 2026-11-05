@@ -52,3 +52,17 @@ test("PDF bytes require authorized metadata, a canonical path, exact size, and c
     assert.equal((await customerQuotePdf(id, changed.dependencies)).ok, false);
   }
 });
+
+test("detail decoding supports bounded Unicode requests and rejects nested private fields", async () => {
+  const version = { versionId: id, versionNumber: 1, title: "Proposal", summary: null, currency: "MXN", totalAmount: 1250, depositAmount: 250, validUntil: "2099-12-31", status: "sent" };
+  const body = "🌎".repeat(2000);
+  const data = { ok: true, quote: { quoteId: id, number: "TEST-1", lockVersion: 3 },
+    version: { ...version, current: true, canAccept: false, canRequestChanges: true, pdf: { documentId: document, sha256: sha, byteSize: bytes.length } },
+    history: [version], nextBeforeVersion: null, terms: null, acceptance: null,
+    requests: [{ requestId: document, versionId: id, body, createdAt: "2026-11-05T12:00:00.000000Z", status: "pending" }] };
+  const valid = await customerQuoteDetail(id, {}, fixture(data).dependencies);
+  assert.equal(valid.ok, true);
+  if (valid.ok) assert.equal(valid.requests[0].body, body);
+  const extra = { ...data, requests: [{ ...data.requests[0], internalNotes: "PRIVATE" }] };
+  assert.deepEqual(await customerQuoteDetail(id, {}, fixture(extra).dependencies), { ok: false, code: "PERSISTENCE_FAILURE" });
+});
