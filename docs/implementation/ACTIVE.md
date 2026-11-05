@@ -2,12 +2,12 @@
 
 ## Current milestone
 
-- **Week:** 04 locally verified — delivered to main
-- **Theme:** Customer identity foundation
-- **Status:** Week 04 local checks pass for corrected candidate `7512ebe`: independent PostgreSQL, 37 focused tests, TypeScript/lint, production build and Chromium 3/3. The feature was fast-forwarded and pushed to `origin/main` at `148ccbe` on 2026-11-02. Hosted rollout remains separate. Week 03 remains locally closed with its preserved archive evidence below.
+- **Week:** 05 implementation
+- **Theme:** Customer quote viewing, verified acceptance and change requests
+- **Status:** The user explicitly authorized Week 05. T1 quote reads, terms and private PDF delivery pass own local checks; T2/T3 mutations and feature-wide verification remain. Week 04 is delivered on main; hosted rollout remains separate.
 - **Context preparation merged on main:** `224cc37608f8842725733a5522bbe4ab0dbfe8c1`
 - **Executable product baseline before documentation-only preparation:** `01d5a6b0bea066a0ea87943de922e39d18eb4dac`
-- **Primary brief:** [`weeks/week-04-portal-identity.md`](./weeks/week-04-portal-identity.md). The user's explicit implementation and delivery requests superseded the planning-only handoff. Code is on main with local verification only; see [`week-04-customer-identity.md`](./week-04-customer-identity.md) and `odd/tasks/week-04-customer-identity.md`.
+- **Primary brief:** [`weeks/week-05-portal-quotes.md`](./weeks/week-05-portal-quotes.md), [`week-05-portal-quotes.md`](./week-05-portal-quotes.md), and `odd/tasks/week-05-portal-quotes.md`. The approved policy bundle requires versioned Admin-approved terms, current valid sent-version acceptance, no silent replacement, and advisor/24-hour tasks with Admin intake fallback.
 
 The context-preparation merge changed documentation only. When beginning implementation, always inspect current `main` HEAD rather than assuming either SHA is still the latest commit.
 
@@ -63,7 +63,7 @@ The packet completed local implementation through S18: local unapplied `0081`–
 
 Final local evidence is 21/21 requirements, 81/81 scenarios, and 11/11 tasks. Focused Mi día/routing **33/33**, UI **5/5**, Chromium E2E **5/5**, Mi día runtime **1/1**, combined action/automation/source/historical regression **97/97**, and follow-up/Task/CRM preservation **81/81** passed with zero skips. TypeScript, lint, the 96/96-page build, diff checks, the protected 28/28 manifest, and cleanup passed; verify-report SHA-256 is `f3a178dd5d71b6c1479992efa3f2c66ff56a6ec2052e97f47bc8cdee0f91206d`.
 
-**Next action:** await separate scope authorization for hosted reconciliation/rollout or the next milestone; do not repeat the completed main integration. Independent PostgreSQL, 37 focused tests, TypeScript/lint, production build and Chromium 3/3 passed after invitation-token fix `7512ebe`; see [`week-04-verification.md`](./week-04-verification.md). Auth HTTP/session behavior was simulated locally while SQL/RLS was real. Do not apply hosted migrations, claim live SMTP/GoTrue parity, or advance Week 05 from Git delivery alone.
+**Next action:** complete Week 05 T2/T3 and independent local verification on `feat/week-05-portal-quotes`. Week 04 evidence remains [`week-04-verification.md`](./week-04-verification.md). Do not apply hosted migrations, claim live Auth/Storage/SMTP parity, or advance Week 06 from local results.
 
 Migrations `0061`–`0089` are local artifacts supported only by local/disposable evidence. No remote state was inspected or changed during archive.
 
@@ -71,9 +71,9 @@ Migrations `0061`–`0089` are local artifacts supported only by local/disposabl
 
 Read only:
 
-1. [`weeks/week-04-portal-identity.md`](./weeks/week-04-portal-identity.md), [`week-04-verification.md`](./week-04-verification.md), and `odd/tasks/week-04-customer-identity.md` for current scope and verified local evidence; Week 03 remains the locally closed predecessor.
+1. [`weeks/week-05-portal-quotes.md`](./weeks/week-05-portal-quotes.md), [`week-05-portal-quotes.md`](./week-05-portal-quotes.md), and `odd/tasks/week-05-portal-quotes.md` for current scope. Week 04 is the verified predecessor.
 2. `docs/blueprints/INDEX.md` to locate only the customer-identity business, product, and architecture sections needed for bounded planning.
-3. Current customer/contact schema, RLS, generated types, and identity-adjacent tests as executable reality; inspect narrowly before drafting any Week 04 proposal.
+3. Current quote/version/PDF and customer schema, RLS, types and tests as executable reality; preserve existing staff workflows while extending Week 05.
 4. `docs/PROGRESS.md` and `docs/DECISIONS.md` for the exact local-only boundary and remote unknowns.
 
 ## Known gates
@@ -88,4 +88,4 @@ Read only:
 
 ## Not active yet
 
-Do not infer hosted parity, migration application, operational bootstrap execution, deployment, rollout, or production readiness from local verification or Git delivery. Week 04 identity/invitation/shell is locally verified and delivered to main. Customer quote acceptance, Trips, Travelers, payment plans, Suppliers, incidents, notifications, Marketing Studio, release hardening, and Weeks 05–12 remain future work.
+Do not infer hosted parity, migration application, operational bootstrap execution, deployment, rollout, or production readiness from local verification or Git delivery. Week 05 customer quotes are now authorized and in progress. Trips, Travelers, payment plans, Suppliers, incidents, Marketing Studio, release hardening, and Weeks 06–12 remain future work.

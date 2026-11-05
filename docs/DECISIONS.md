@@ -1,5 +1,20 @@
 # Decisiones técnicas y de producto
 
+## 2026-11-05 — Customer quote boundaries and explicit approved terms
+
+The user authorized Week 05 and approved versioned Admin-published terms, current
+valid sent-version acceptance only, no silent replacement, and advisor tasks due
+in 24 elapsed hours with Admin intake fallback. No legal copy is invented or
+seeded. Sent/accepted history can be compared; internal notes and unshared drafts
+stay private. PDF bytes require session authorization and canonical metadata,
+size/hash validation, and no-store delivery rather than a public storage URL.
+
+Customer mutation evidence must retain customer attribution separately from
+staff-profile quote-event actors. Existing Task validation and audited staff
+actions remain authoritative; portal-event tasks use compatible manual rows and
+a dedicated intake view, without widening Mi día. See the Week 05 task log for
+implementation status; hosted rollout is not authorized.
+
 ## 2026-10-29 — Complete independent local Week 04 checks before main delivery
 
 The user authorized a dedicated scoped verifier rather than waiving independent

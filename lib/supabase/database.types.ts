@@ -82,6 +82,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      portal_quote_terms: {
+        Row: { id: string; revision: string; body: string; sha256: string; published_by: string; published_at: string; is_active: boolean }
+        Insert: { id?: string; revision: string; body: string; sha256: string; published_by: string; published_at?: string; is_active?: boolean }
+        Update: { is_active?: boolean }
+        Relationships: []
+      }
       customer_accounts: {
         Row: CustomerAccountRow
         Insert: Pick<CustomerAccountRow, "user_id" | "contact_id" | "email"> & Partial<Pick<CustomerAccountRow, "is_active" | "created_at">>
@@ -3160,6 +3166,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      publish_portal_quote_terms: { Args: { p_revision: string; p_body: string }; Returns: Json }
+      read_customer_quotes: { Args: { p_before?: string | null; p_after?: string | null; p_limit?: number }; Returns: Json }
+      read_customer_quote: { Args: { p_quote_id: string; p_version_id?: string | null; p_before_version?: number | null }; Returns: Json }
+      read_customer_quote_pdf: { Args: { p_version_id: string }; Returns: Json }
       current_customer_identity: { Args: Record<PropertyKey, never>; Returns: Json }
       customer_account_is_active: { Args: Record<PropertyKey, never>; Returns: boolean }
       is_portal_staff: { Args: Record<PropertyKey, never>; Returns: boolean }

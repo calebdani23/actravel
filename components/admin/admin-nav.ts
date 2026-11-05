@@ -125,6 +125,13 @@ export const ADMIN_NAV_ITEMS = [
     icon: "users-round",
   },
   {
+    href: "/admin/portal-terms",
+    label: "Portal terms",
+    group: "Administración",
+    roles: ["admin"],
+    icon: "file-text",
+  },
+  {
     href: "/admin/account",
     label: "Mi cuenta",
     group: "Administración",

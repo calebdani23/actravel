@@ -1,0 +1,30 @@
+# Week 05 — Portal quotes
+Objective: complete the authorized portal quote brief locally while preserving staff quote/PDF workflows.
+Branch: `feat/week-05-portal-quotes`; baseline: `659b608`; delivery: auto-chain/stacked-to-main, coherent units ≤1,200 lines; runners: Node/tsx, disposable PostgreSQL, Chromium, TypeScript, ESLint, Next build.
+
+## Specs
+
+- S1: User request: "go straight tl next week and finish". Scope is `docs/implementation/weeks/week-05-portal-quotes.md`, not hosted rollout or Week 06.
+- S2: "portal quote/version read model;" and "secure PDF access;". Current active customer identity owns the Contact; only sent/accepted history is exposed. Draft/ready-only versions and internal notes/costs remain private. Public DTOs support version comparison. PDF lookup derives metadata from the authorized version, never a browser-provided bucket/path; access is authenticated and non-cacheable.
+- S3: "`quote_acceptances` + transactional acceptance path;". "Only an authorized account can accept; acceptance is tied to exact quote/version/contact/terms/time; superseded/invalid versions cannot be accepted; existing staff quote workflows remain compatible." Require current unexpired sent version, finalized active PDF, explicit consent, current approved terms/hash, and optimistic quote revision. Serialize against staff mutations; replay must not duplicate evidence, events, or tasks.
+- S4: "quote-change `customer_requests`;". Customer-authored bounded requests bind exact owned quote/version and request identity. Cross-customer, stale, invalid, and conflicting retries fail closed. Preserve immutable customer attribution separately from staff-profile event actors.
+- S5: "staff visibility/tasks for acceptance/request events." Assigned active advisor receives a task due in 24 elapsed hours; missing/inactive ownership goes to Admin intake without inventing an owner or blocking the customer action. Acceptance is a pre-alert/prepare-handoff step, not Opportunity Won or Trip creation. Reuse existing Task validation/action audit and quote audit helpers.
+- S6: User selected "Approve recommended policies": Admin-published versioned terms, acceptance disabled until approved text exists; sent/accepted history visible but only current unexpired sent PDF acceptable; no silent replacement of another accepted proposal; advisor/24-hour task routing with Admin intake fallback. No production legal copy is authored by the agent.
+- S7: Preserve migrations through `0090`, current staff RPC interfaces and behavior, customer/staff separation, storage privacy, historical-bootstrap lock interoperability, and unrelated local tooling. Local proof must include cross-account/PDF tampering, stale/version/terms/expiry denial, idempotency/concurrency/rollback, staff compatibility, and browser journeys. Hosted Auth/Storage/SMTP, migration application, deployment, merge, and push are excluded unless separately authorized.
+
+## Tasks
+
+- T1 [S2,S6,S7] inline — implemented/self-verified, independent T4 pending — `0091`, terms/read/PDF RPCs and UI; 4 PostgreSQL tests and 39 Node tests passed; types/lint/diff passed. Risk: items 1,2,3; commit pending.
+- T2 [S3,S4,S5,S7] inline — in progress — transactional acceptance/change-request evidence and staff work queue/task creation, with database proofs; Risk: items 1,2,3,4; commit pending.
+- T3 [S2,S3,S4,S5,S7] inline — pending — customer consent/request interactions and staff task controls with focused/browser regression tests; Risk: items 2,3; commit pending.
+- T4 [S1–S7] inline coordination — pending — independent local runtime verification, preservation, and completion documentation; Risk: items 1,2,3,4; evidence pending.
+
+## Log
+
+- L1: User request verbatim: "go straight tl next week and finish". Week 04 is on main at `659b608`; its hosted rollout remains separately authorized.
+- L2: User approved the recommended policy bundle recorded in S6. Approved terms content must be supplied by an Admin; tests may use clearly labelled synthetic terms only.
+- L3: Map confirmed staff acceptance permits ready/noncurrent versions and does not enforce date validity. Customer acceptance therefore needs an additive stricter transaction, not impersonation through the staff RPC. Current and accepted version pointers differ. Quote event actors reference staff profiles, so customer evidence retains the customer actor and uses null staff actor in compatible audit events.
+- L4: Existing Task primitives and representation remain authoritative. Portal-event tasks will use compatible manual Task rows plus a dedicated staff intake projection, since Mi día deliberately excludes manual tasks. Do not widen Mi día or forge a staff actor. Both acceptance and requests share one private event-to-task enqueue helper and reuse audited staff actions.
+- L5: Direct customer table/storage access remains denied. Narrow RPCs derive Contact identity from the verified account. PDF bytes are delivered through an authenticated server route with authorized canonical metadata and size/hash checks, not a public bucket or arbitrary signing endpoint.
+- L6: Forecast 2,000–3,000 authored lines across coherent units, automatically subdivided below 1,200. Inline route: behavior units are sequentially dependent; source preparation stays with the writer. Independent verification follows the high-risk implementation. Unrelated runtime/config/Week 01 files are preserved.
+- L7: T1 RED observed missing read/terms/PDF RPCs against the real pre-change schema, and missing server adapter. GREEN: 3 DB subtests plus parent, 39 Node tests, TypeScript/lint/diff. Canonical fixtures use staff registration/upload/finalization RPCs; no quote-integrity triggers were disabled. Private PDF SDK behavior checked against current Supabase documentation.
