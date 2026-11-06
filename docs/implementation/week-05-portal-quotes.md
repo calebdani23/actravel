@@ -3,6 +3,10 @@
 Scope authority: `weeks/week-05-portal-quotes.md`; live task/evidence log:
 `odd/tasks/week-05-portal-quotes.md`. Hosted rollout is not included.
 
+**Locally complete:** independent S1–S7 verification passed on `74b9f43`.
+See [`week-05-verification.md`](./week-05-verification.md) for exact proof,
+the initial failures and targeted correction, and untested hosted boundaries.
+
 ## Approved policy
 
 - Only sent/accepted history is customer-visible; unshared draft/ready proposals
@@ -74,9 +78,12 @@ direct customer DML, Opportunity Won transition or Trip creation is introduced.
 
 Only confirmed successful mutations revalidate customer quotes, staff quotes,
 the work queue and dashboard. Failed/unknown RPC responses remain closed and
-never display provider details. Independent feature-wide runtime verification,
-including positive browser fixtures, remains T4; the bounded browser regression
-source covers anonymous routes and malformed PDF inputs without hosted actions.
+never display provider details. Independent verification now includes the full
+positive customer/advisor/Admin/Operations browser journey, cross-account PDF
+denials, actual staff/customer contention and historical-universe locking.
+The committed browser journey is opt-in with `RUN_CUSTOMER_QUOTES_BROWSER_TESTS=1`
+and requires `tests/helpers/customer-quote-http-fixture.ts` in an isolated local
+environment. It uses real application SQL/RLS but simulated Auth/Storage transport.
 
 ## Compatibility and rollout
 

@@ -1,5 +1,16 @@
 # Decisiones técnicas y de producto
 
+## 2026-11-06 — Close Week 05 only against independent local proof
+
+Week 05 is locally complete after an immutable-candidate run and one targeted
+correction/recheck. Keep current DB/browser evidence distinct from retained
+unchanged-surface unit/UI evidence; TAP parent counts are not distinct scenarios.
+Actual staff/customer and historical-universe contention, legacy function equality,
+and differential ready acceptance supplement source inspection. Browser Auth and
+Storage transport remain simulated, with actual local application RPCs/RLS.
+The completed gate does not authorize hosted rollout, Git delivery or Week 06.
+See `docs/implementation/week-05-verification.md` for retained receipts and limits.
+
 ## 2026-11-05 — Customer quote boundaries and explicit approved terms
 
 The user authorized Week 05 and approved versioned Admin-published terms, current

@@ -1,5 +1,23 @@
 # Progreso AC Travel Mx MVP
 
+## 2026-11-06 — Week 05 independently verified and complete locally
+
+- Implemented private customer quote/history/PDF reads, approved terms, exact
+  acceptance evidence, bounded change requests, advisor work and Admin intake.
+- Independent S1–S7 verification passed on `74b9f43` after one bounded correction
+  of test assertions and missing contention/preservation proof. No product defect
+  was established by the initial relative-URL and textarea-locator failures.
+- Current proof: 17/17 DB TAP tests (including parents), Chromium 5/5 with the
+  positive customer/staff journey, TypeScript and lint. Retained unchanged-surface
+  proof: 51 focused and 8 UI tests. No skips in these authorized runs.
+- Exact preservation of 89 migration files through `0090`, legacy staff function
+  definitions, and differential ready-acceptance output/state passed. Source/index
+  preservation and owned-container cleanup passed; evidence was retained before
+  both disposable scratch workspaces were removed.
+- Full evidence and limitations: `docs/implementation/week-05-verification.md`.
+  The branch remains local. No merge, push, hosted migration, real Auth/Storage/SMTP
+  execution, production legal text, deployment, or Week 06 work is claimed.
+
 ## 2026-11-02 — Week 04 integrated and pushed to main
 
 The user authorized the next delivery steps. After fetching upstream, `main`
