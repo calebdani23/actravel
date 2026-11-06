@@ -1,5 +1,24 @@
 # Progreso AC Travel Mx MVP
 
+## 2026-11-06 — Weeks 01–05 audited; Week 05 merged locally, publication held
+
+- The user authorized reviewing completed local weeks and merging/pushing ready work.
+  An independent read-only delivery audit found no local Git blocker. Historical
+  evidence was reviewed, not misrepresented as newly rerun suites.
+- Week 01 closure `18731c1`, Week 02 closure/archive `f70ec88`/`d6b42fe`, Week 03
+  delivery `0b09b60`, and Week 04 delivery `148ccbe` are already ancestors of main.
+- Week 05 receipt/log hashes matched, and product/test bytes at `3bf6a05` matched
+  independently verified `74b9f43`; intervening changes were passive documents.
+- Using the explicitly approved existing GitHub session, fetched upstream and
+  confirmed main remained `659b608`, five commits behind the feature, with push
+  permission and no main branch protection/rules. Fast-forwarded local main to
+  `3bf6a05`, preserving unrelated dirty-file hashes and untracked work.
+- GitHub inspection showed successful Vercel Production deployments for prior
+  main pushes, including `659b608`. Hosted migration readiness is still unknown.
+  The user then selected **"Keep merge local (Recommended)"**. No push, deployment,
+  Supabase inspection/migration or hosting-setting change was performed. Publication
+  remains intentionally held; subsequent local changes only record this decision.
+
 ## 2026-11-06 — Week 05 independently verified and complete locally
 
 - Implemented private customer quote/history/PDF reads, approved terms, exact

@@ -1,5 +1,19 @@
 # Decisiones técnicas y de producto
 
+## 2026-11-06 — Hold production-linked publication after local main integration
+
+The user authorized audit and Git integration, then explicitly approved using the
+existing GitHub session. Remote checks showed no Git protection or freshness blocker,
+but confirmed successful Vercel Production deployments tied to main pushes. Hosted
+schema/migration readiness, including `0091`–`0092`, remains unverified.
+
+After the authorized local fast-forward through `3bf6a05`, the user selected
+**"Keep merge local (Recommended)"** rather than authorize publication with that
+automatic production consequence. Do not push, change deployment settings, inspect
+hosted Supabase or apply migrations based on the earlier Git-delivery request.
+Keep the merge and revisit publication only after separately authorized readiness
+work and an explicit decision to lift the hold.
+
 ## 2026-11-06 — Close Week 05 only against independent local proof
 
 Week 05 is locally complete after an immutable-candidate run and one targeted

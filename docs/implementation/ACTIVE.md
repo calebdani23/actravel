@@ -4,7 +4,7 @@
 
 - **Week:** 05 locally complete
 - **Theme:** Customer quote viewing, verified acceptance and change requests
-- **Status:** Week 05 T1–T4 are complete locally on `feat/week-05-portal-quotes`. Independent S1–S7 verification passed on `74b9f43`; see [`week-05-verification.md`](./week-05-verification.md). Week 05 merge/push and hosted rollout remain separate; Week 04 is delivered on main.
+- **Status:** Weeks 01–05 passed the local delivery-readiness audit. Week 05 was fast-forwarded into local `main` through `3bf6a05`; verified product/test bytes remain `74b9f43`. The user selected **"Keep merge local (Recommended)"** after GitHub inspection showed Vercel Production deployments linked to main pushes. Publication is held; last fetched `origin/main` remains `659b608`. See [`week-05-verification.md`](./week-05-verification.md).
 - **Context preparation merged on main:** `224cc37608f8842725733a5522bbe4ab0dbfe8c1`
 - **Executable product baseline before documentation-only preparation:** `01d5a6b0bea066a0ea87943de922e39d18eb4dac`
 - **Primary brief:** [`weeks/week-05-portal-quotes.md`](./weeks/week-05-portal-quotes.md), [`week-05-portal-quotes.md`](./week-05-portal-quotes.md), and `odd/tasks/week-05-portal-quotes.md`. The approved policy bundle requires versioned Admin-approved terms, current valid sent-version acceptance, no silent replacement, and advisor/24-hour tasks with Admin intake fallback.
@@ -63,7 +63,7 @@ The packet completed local implementation through S18: local unapplied `0081`–
 
 Final local evidence is 21/21 requirements, 81/81 scenarios, and 11/11 tasks. Focused Mi día/routing **33/33**, UI **5/5**, Chromium E2E **5/5**, Mi día runtime **1/1**, combined action/automation/source/historical regression **97/97**, and follow-up/Task/CRM preservation **81/81** passed with zero skips. TypeScript, lint, the 96/96-page build, diff checks, the protected 28/28 manifest, and cleanup passed; verify-report SHA-256 is `f3a178dd5d71b6c1479992efa3f2c66ff56a6ec2052e97f47bc8cdee0f91206d`.
 
-**Next action:** obtain separate authorization for Week 05 Git delivery or the next implementation week. Local completion does not authorize hosted migrations, live Auth/Storage/SMTP operations, deployment, or Week 06. Week 04 evidence remains [`week-04-verification.md`](./week-04-verification.md).
+**Next action:** retain the local merge and publication hold. A separately authorized hosted-readiness investigation is needed before reconsidering the production-linked push; no hosted access or migration is authorized by this record. Do not push, deploy, change hosting settings, or advance Week 06 automatically. Week 04 evidence remains [`week-04-verification.md`](./week-04-verification.md).
 
 Migrations `0061`–`0089` are local artifacts supported only by local/disposable evidence. No remote state was inspected or changed during archive.
 
@@ -78,6 +78,7 @@ Read only:
 
 ## Known gates
 
+- Main pushes have triggered successful Vercel Production deployments. The user explicitly held publication rather than accept that consequence with unverified hosted migration readiness, including `0091`–`0092`.
 - Remote migration, schema, data, and execution state remain unknown; any remote reconciliation or rollout requires separate current-state inspection and explicit authorization.
 - `main` may move after this file is written; inspect current HEAD when starting the change.
 - If remote schema differs from documented baseline, update the active change with discovered reality before implementing features.
@@ -88,4 +89,4 @@ Read only:
 
 ## Not active yet
 
-Do not infer hosted parity, migration application, operational bootstrap execution, deployment, rollout, or production readiness from local verification or Git delivery. Week 05 customer quotes are locally complete, not merged or pushed. Trips, Travelers, payment plans, Suppliers, incidents, Marketing Studio, release hardening, and Weeks 06–12 remain future work.
+Do not infer hosted parity, migration application, operational bootstrap execution, deployment, rollout, or production readiness from local verification or Git delivery. Week 05 customer quotes are locally complete and integrated into local main, but not pushed. Trips, Travelers, payment plans, Suppliers, incidents, Marketing Studio, release hardening, and Weeks 06–12 remain future work.
