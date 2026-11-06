@@ -1,12 +1,26 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { actorSession, psql, psqlAsync, sqlLiteral, withPostgresContainer } from "./helpers/postgres-runtime";
+import { actorSession, applyMigration, psql, psqlAsync, sqlLiteral, withPostgresContainer } from "./helpers/postgres-runtime";
 import { parityBodySql, portalActors as actors, portalId, portalPdfHash, portalRpc, preparePortalQuotesDatabase, registerPortalQuote, sqlJson } from "./helpers/customer-quotes-runtime";
 
 test("verified customer quote mutations are isolated, replay-safe, atomic and staff-compatible", {
   skip: process.env.RUN_CUSTOMER_QUOTES_DB_TESTS !== "1", timeout: 360_000,
 }, async t => withPostgresContainer(async () => {
-  const priorParity = preparePortalQuotesDatabase(92);
+  const priorParity = preparePortalQuotesDatabase(90);
+  const staffDefinitions = () => psql("quote_base", `select md5(string_agg(pg_get_functiondef(p.oid),'|' order by p.oid))
+    from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'
+    and (p.proname like 'crm_%' or p.proname='task_action' or p.proname like 'task_automation_%');`);
+  const priorStaff = staffDefinitions();
+  const legacy = registerPortalQuote(portalId(22), "legacy_differential", false);
+  const legacyLock = psql("quote_base", `select lock_version from public.quotes where id='${legacy.quoteId}';`);
+  const legacyCommand = `${actorSession(actors.admin)} begin;
+    select * from public.crm_accept_quote('${legacy.quoteId}','${legacy.versionId}',${legacyLock},null,null,'legacy_differential_accept');
+    select json_build_object('status',status,'accepted_version',accepted_version_id)::text from public.quotes where id='${legacy.quoteId}'; rollback;`;
+  const priorLegacyOutput = psql("quote_base", legacyCommand);
+  applyMigration("quote_base", "0091_customer_quote_reads_and_terms.sql");
+  applyMigration("quote_base", "0092_customer_quote_actions.sql");
+  assert.equal(staffDefinitions(), priorStaff, "all existing CRM, Task action and automation function definitions remain identical");
+  assert.equal(psql("quote_base", legacyCommand), priorLegacyOutput, "existing ready-acceptance RPC output and commercial state match the pre-Week05 baseline");
   assert.equal(psql("quote_base", parityBodySql), priorParity, "existing parity-check bodies remain byte-identical");
   assert.equal(psql("quote_base", `select bool_and(prosecdef and proconfig=array['search_path=""'] and not has_function_privilege('authenticated',oid,'execute'))
     from pg_proc where oid in ('public.validate_task_automation_task_parity()'::regprocedure,'public.validate_task_automation_origin_parity()'::regprocedure);`), "t");
@@ -160,5 +174,51 @@ test("verified customer quote mutations are isolated, replay-safe, atomic and st
     assert.equal(state(), before);
     psql("quote_base", "drop trigger portal_test_failure on public.portal_quote_work; drop function public.portal_test_failure();");
     assert.equal(portalRpc(actors.alice, call).ok, true);
+  });
+  async function waitForSession(name: string, waiting: boolean) {
+    for (let attempt = 0; attempt < 40; attempt++) {
+      const found = psql("quote_base", `select exists(select 1 from pg_stat_activity where application_name='${name}'
+        and wait_event_type='${waiting ? "Lock" : "Timeout"}');`);
+      if (found === "t") return;
+      await new Promise(resolve => setTimeout(resolve, 25));
+    }
+    assert.fail(`Expected ${name} to ${waiting ? "wait for a lock" : "hold its transaction during pg_sleep"}`);
+  }
+  await t.test("historical-bootstrap exclusive universe guard blocks customer writes until release", async () => {
+    const lock = detail().quote.lockVersion;
+    const before = state();
+    const holder = psqlAsync("quote_base", "set application_name='portal_universe_holder'; begin; select pg_advisory_xact_lock(3825938359965795805); select pg_sleep(5); commit;");
+    let customer: Promise<string> | undefined;
+    try {
+      await waitForSession("portal_universe_holder", false);
+      customer = psqlAsync("quote_base", `set application_name='portal_universe_customer'; ${actorSession(actors.alice)}
+        select public.request_customer_quote_change('${portalId(57)}','${a.quoteId}','${a.versionId}',${lock},'TEST ONLY universe contention.')::text;`);
+      await waitForSession("portal_universe_customer", true);
+      assert.equal(state(), before, "blocked customer has not written evidence, events or work");
+      await holder;
+      assert.equal(sqlJson(await customer).ok, true);
+      assert.equal(psql("quote_base", `select count(*) from public.customer_requests where request_id='${portalId(57)}';`), "1");
+    } finally { await Promise.allSettled([holder, ...(customer ? [customer] : [])]); }
+  });
+  await t.test("staff version mutation serializes customer acceptance and rejects its stale view without evidence", async () => {
+    psql("quote_base", `insert into public.leads(id,contact_id,status_id,assigned_to) values('${portalId(25)}','${portalId(11)}','${portalId(13)}','${actors.advisor}');`);
+    const target = registerPortalQuote(portalId(25), "staff_race");
+    const data = portalRpc(actors.alice, `public.read_customer_quote('${target.quoteId}',null,null)`);
+    const call = accept(portalId(58), { quoteId: target.quoteId, versionId: target.versionId, lock: data.quote.lockVersion, termsId: data.terms.termsId, termsHash: data.terms.sha256 });
+    const staff = psqlAsync("quote_base", `set application_name='portal_staff_holder'; ${actorSession(actors.admin)} begin;
+      select * from public.crm_add_quote_version('${target.quoteId}',${data.quote.lockVersion},'TEST ONLY newer version',null,'MXN',1600,300,'2099-12-31',null,null,null,'staff_race_version');
+      select pg_sleep(5); commit;`);
+    let customer: Promise<string> | undefined;
+    try {
+      await waitForSession("portal_staff_holder", false);
+      customer = psqlAsync("quote_base", `set application_name='portal_staff_customer'; ${actorSession(actors.alice)} select (${call})::text;`);
+      await waitForSession("portal_staff_customer", true);
+      await staff;
+      assert.equal(sqlJson(await customer).ok, false);
+      assert.equal(psql("quote_base", `select count(*) from public.quote_acceptances where quote_id='${target.quoteId}';`), "0");
+      assert.equal(psql("quote_base", `select count(*) from public.quote_events where quote_id='${target.quoteId}' and actor_id is null;`), "0");
+      assert.equal(psql("quote_base", `select count(*) from public.portal_quote_work where quote_id='${target.quoteId}';`), "0");
+      assert.equal(psql("quote_base", `select count(*) from public.quote_versions where quote_id='${target.quoteId}';`), "2");
+    } finally { await Promise.allSettled([staff, ...(customer ? [customer] : [])]); }
   });
 }));

@@ -16,7 +16,7 @@ test("anonymous PDF tampering never returns bytes or a storage URL", async ({ re
   const response = await request.get("/mis-viajes/cotizaciones/pdf/invalid?bucket=documents&path=private.pdf", { maxRedirects: 0 });
   // The configured Auth proxy redirects; without a configured provider the route denies directly.
   if (response.status() === 307) {
-    expect(new URL(response.headers().location).pathname).toBe("/mis-viajes/acceso");
+    expect(new URL(response.headers().location, response.url()).pathname).toBe("/mis-viajes/acceso");
   } else {
     expect(response.status()).toBe(404);
     expect(await response.json()).toEqual({ error: "Quote PDF is unavailable." });
