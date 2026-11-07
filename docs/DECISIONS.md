@@ -1,5 +1,17 @@
 # Decisiones técnicas y de producto
 
+## 2026-11-07 — Lift the hold for main publication and its automatic deployment
+
+After the production consequence was explained, the user explicitly said:
+"i authorizr that also push it to main to megr it now". This supersedes the earlier
+keep-local choice for publishing the verified commits through the existing GitHub
+session and allowing the linked automatic Vercel Production deployment.
+
+The push through `d8e18c3` succeeded and GitHub's main ref was confirmed. This
+authorization does not establish hosted readiness or authorize applying Supabase
+migrations, changing hosting settings, or starting Week 06. Those boundaries remain
+separate from the completed Git delivery.
+
 ## 2026-11-06 — Hold production-linked publication after local main integration
 
 The user authorized audit and Git integration, then explicitly approved using the

@@ -1,5 +1,19 @@
 # Progreso AC Travel Mx MVP
 
+## 2026-11-07 — Completed Weeks 01–05 published to GitHub main
+
+The user lifted the publication hold and authorized pushing main with its linked
+automatic Vercel Production deployment. A fresh fetch confirmed upstream remained
+`659b608`, with no divergence or main branch rules. Normal push advanced GitHub main
+through `d8e18c38d8039e9c72d842798e5e1c83944c4750`; remote and local SHAs matched.
+
+Product/test bytes remain identical to independently verified `74b9f43`; later
+changes only record completion and delivery decisions. No force-push or hook
+bypass occurred. Unrelated dirty tooling and untracked files were excluded.
+This records successful Git delivery, not hosted schema parity or production
+health. No Supabase migration or hosting-setting change was performed. Week 06
+remains outside the authorized work.
+
 ## 2026-11-06 — Weeks 01–05 audited; Week 05 merged locally, publication held
 
 - The user authorized reviewing completed local weeks and merging/pushing ready work.

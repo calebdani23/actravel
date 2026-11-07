@@ -4,7 +4,9 @@
 `74b9f43ce1586865f24c9b92a8914882e009d5d5`, based on
 `659b6083ad8e1f4aa829c0d6df622331b3e698e9`. Later closure edits are passive documents.
 The feature was subsequently fast-forwarded into local main through `3bf6a05`.
-The user explicitly held publication; no push or hosted rollout occurred.
+After initially holding publication, the user authorized the push and its linked
+automatic Vercel Production deployment. GitHub main was confirmed at `d8e18c3`.
+This delivery does not certify hosted migration readiness or production health.
 
 ## Scope and work units
 
@@ -133,8 +135,9 @@ inside the original JSON still identify those historical scratch locations.
   expected 404 warnings; those warnings do not establish application regressions.
 - Production approved legal terms must still be supplied by an Admin. No legal
   copy was invented, and acceptance remains gated until approved terms exist.
-- No hosted migrations, production data changes, deployment or push occurred.
-  The later authorized local main fast-forward did not change verified product bytes.
+- No hosted migrations, production data changes or hosting-setting changes were
+  performed. The later authorized Git publication and automatic deployment did not
+  change the verified product bytes; subsequent authored changes are documentation.
   RDD stayed explicitly off; normal commit hooks were not bypassed.
 
 ## Publication review — 2026-11-06
@@ -151,3 +154,13 @@ local (Recommended)"**. This is an intentional publication hold, not a failed lo
 verification or Git merge. No push was attempted. Separately authorized hosted
 readiness work and an explicit decision to lift the hold are required next.
 No additional approval/review receipt is invented, and Week 06 is not authorized.
+
+### Subsequent authorization and delivery — 2026-11-07
+
+The user explicitly lifted the hold and authorized publishing main with the linked
+automatic Vercel Production consequence. A fresh fetch confirmed the upstream
+baseline and fast-forward ancestry; the push advanced `659b608` to
+`d8e18c38d8039e9c72d842798e5e1c83944c4750`. GitHub's main ref and local HEAD matched.
+No force-push, hook bypass, unrelated-file inclusion or database operation occurred.
+The historical hold above is resolved for this publication. Deployment completion
+and live readiness are separate observations, not inferred from push success.
